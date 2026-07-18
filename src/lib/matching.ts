@@ -19,6 +19,13 @@
 const FUZZY_CUTOFF = 0.85;
 
 /**
+ * Minimum {@link similarityRatio} for a near match in {@link searchCatalog}.
+ * Much looser than {@link FUZZY_CUTOFF}: search results are picked by a
+ * human, so casting a wide net beats precision.
+ */
+const SEARCH_CUTOFF = 0.5;
+
+/**
  * Default region-preference list (substring probes against catalog file
  * names, e.g. `'(Europe'`), used when the GBA gamecode region letter is
  * unknown. Ported from `DEFAULT_PREF` in `fetch_covers_gba.py`.
@@ -248,4 +255,52 @@ export function pickBoxart(
     }
   }
   return candidates[0] ?? null;
+}
+
+/**
+ * Ranks catalog entries against a free-text query for an interactive cover
+ * search (a human picks the result, so recall beats precision).
+ *
+ * Matching runs over normalized keys ({@link normalizeTitle}; catalog entries
+ * are normalized with their `.png` extension stripped), which makes the query
+ * case- and diacritic-insensitive:
+ * 1. entries whose key contains the normalized query, shorter entry names
+ *    first (base titles before sequels/subtitles), ties alphabetical;
+ * 2. near matches with `similarityRatio >= 0.5`, best ratio first (ties:
+ *    shorter name, then alphabetical).
+ *
+ * A query that normalizes to nothing (empty or whitespace) returns the first
+ * `limit` entries alphabetically. An entry never appears twice.
+ *
+ * @param catalog Boxart file names, e.g. `'Golden Sun (USA).png'`.
+ * @param query Free-text search, e.g. the ROM title.
+ * @param limit Maximum number of results.
+ */
+export function searchCatalog(catalog: readonly string[], query: string, limit = 24): string[] {
+  const entries = [...new Set(catalog)].sort((a, b) => a.localeCompare(b));
+  const key = normalizeTitle(query);
+  if (key === '') {
+    return entries.slice(0, limit);
+  }
+
+  const substring: string[] = [];
+  const fuzzy: Array<{ entry: string; ratio: number }> = [];
+  for (const entry of entries) {
+    const base = entry.toLowerCase().endsWith('.png') ? entry.slice(0, -4) : entry;
+    const entryKey = normalizeTitle(base);
+    if (entryKey.includes(key)) {
+      substring.push(entry);
+      continue;
+    }
+    const ratio = similarityRatio(key, entryKey);
+    if (ratio >= SEARCH_CUTOFF) {
+      fuzzy.push({ entry, ratio });
+    }
+  }
+  substring.sort((a, b) => a.length - b.length || a.localeCompare(b));
+  fuzzy.sort(
+    (a, b) =>
+      b.ratio - a.ratio || a.entry.length - b.entry.length || a.entry.localeCompare(b.entry),
+  );
+  return [...substring, ...fuzzy.map((f) => f.entry)].slice(0, limit);
 }

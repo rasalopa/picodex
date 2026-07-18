@@ -1,0 +1,208 @@
+/* fullscreen overlay + centered dialog */
+
+.cover-picker__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(6 8 12 / 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.cover-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(58rem, 100%);
+  max-height: 100%;
+  padding: 1rem 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+}
+
+/* header */
+
+.cover-picker__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cover-picker__title {
+  margin: 0 auto 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover-picker__close {
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* search + status lines */
+
+.cover-picker__search {
+  width: 100%;
+}
+
+.cover-picker__status {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.cover-picker__error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--warn);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+/* candidate grid (scrolls; the compare footer stays pinned below it) */
+
+.cover-picker__results {
+  list-style: none;
+  margin: 0;
+  /* small padding keeps focus outlines visible inside the scroll clip */
+  padding: 3px;
+  flex: 1 1 auto;
+  min-height: 8rem;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.cover-picker__candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.4rem;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.cover-picker__candidate--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.cover-picker__thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #000;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.cover-picker__candidate-name {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.cover-picker__candidate--selected .cover-picker__candidate-name {
+  color: var(--text);
+}
+
+/* current vs new compare + save action */
+
+.cover-picker__compare {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.cover-picker__side {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* the launcher's visible 106x96 cover area at 1x */
+
+.cover-picker__cover {
+  display: block;
+  width: 106px;
+  height: 96px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--bg);
+  image-rendering: pixelated;
+}
+
+.cover-picker__cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+}
+
+.cover-picker__arrow {
+  color: var(--text-dim);
+  font-size: 1.25rem;
+}
+
+.cover-picker__spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: cover-picker-spin 0.8s linear infinite;
+}
+
+@keyframes cover-picker-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cover-picker__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.cover-picker__inline-error {
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.cover-picker__target {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}

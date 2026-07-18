@@ -190,3 +190,46 @@
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+
+/* fix-cover pencil: an overlay button opposite the heart, revealed on card
+   hover/focus so the grid stays clean; disabled until the gamecode resolves */
+
+.system-gallery__edit {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(10 12 16 / 0.78);
+  backdrop-filter: blur(2px);
+  color: var(--text-dim);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.system-gallery__card:hover .system-gallery__edit,
+.system-gallery__card:focus-within .system-gallery__edit {
+  opacity: 0.7;
+}
+
+.system-gallery__card .system-gallery__edit:hover:not(:disabled),
+.system-gallery__card .system-gallery__edit:focus-visible {
+  opacity: 1;
+  color: var(--text);
+}
+
+.system-gallery__edit:disabled {
+  cursor: default;
+}
+
+.system-gallery__card:hover .system-gallery__edit:disabled,
+.system-gallery__card:focus-within .system-gallery__edit:disabled {
+  opacity: 0.3;
+}

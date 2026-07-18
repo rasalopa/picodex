@@ -4,6 +4,7 @@ import {
   normalizeTitle,
   pickBoxart,
   REGION_PREFS_BY_GBA_CODE,
+  searchCatalog,
   similarityRatio,
 } from './matching';
 
@@ -173,6 +174,60 @@ describe('pickBoxart', () => {
     const catalog = ['Golden Sun (USA).png', 'Phalanx (Europe).png'];
     expect(pickBoxart('Totally Unrelated Game', catalog, DEFAULT_REGION_PREFS)).toBeNull();
     expect(pickBoxart('Golden Sun', [], DEFAULT_REGION_PREFS)).toBeNull();
+  });
+});
+
+describe('searchCatalog', () => {
+  const catalog = [
+    'Mario Party DS (USA).png',
+    'Mario Kart DS (USA).png',
+    'Golden Sun (USA).png',
+    'Zelda II - The Adventure of Link (USA).png',
+    'Zelda (USA).png',
+  ];
+
+  it('ranks substring hits above fuzzy near-matches', () => {
+    // 'mario party ds' does not contain 'mario kart' but is similar enough
+    // (ratio >= 0.5) to surface as a near match after the substring hit.
+    expect(searchCatalog(catalog, 'mario kart')).toEqual([
+      'Mario Kart DS (USA).png',
+      'Mario Party DS (USA).png',
+    ]);
+  });
+
+  it('orders substring ties shorter-name first, then alphabetical', () => {
+    const results = searchCatalog(catalog, 'zelda');
+    expect(results[0]).toBe('Zelda (USA).png');
+    expect(results[1]).toBe('Zelda II - The Adventure of Link (USA).png');
+    // pure alphabetical tie between equal-length names
+    expect(searchCatalog(['Mario B (USA).png', 'Mario A (USA).png'], 'mario')).toEqual([
+      'Mario A (USA).png',
+      'Mario B (USA).png',
+    ]);
+  });
+
+  it('returns the first entries alphabetically for an empty or whitespace query', () => {
+    expect(searchCatalog(['B.png', 'C.png', 'A.png'], '')).toEqual(['A.png', 'B.png', 'C.png']);
+    expect(searchCatalog(['B.png', 'C.png', 'A.png'], '   ', 2)).toEqual(['A.png', 'B.png']);
+  });
+
+  it('respects the limit', () => {
+    expect(searchCatalog(catalog, 'mario', 1)).toEqual(['Mario Kart DS (USA).png']);
+    const many = ['Mario 1.png', 'Mario 2.png', 'Mario 3.png', 'Mario 4.png'];
+    expect(searchCatalog(many, 'mario', 3)).toEqual(['Mario 1.png', 'Mario 2.png', 'Mario 3.png']);
+  });
+
+  it('matches case- and diacritic-insensitively', () => {
+    expect(searchCatalog(['Pokemon Edicion Rubi (Spain).png'], 'POKÉMON Edición')).toEqual([
+      'Pokemon Edicion Rubi (Spain).png',
+    ]);
+  });
+
+  it('never returns duplicates, even for duplicate catalog entries', () => {
+    expect(searchCatalog(['Zelda (USA).png', 'Zelda (USA).png'], 'zelda')).toEqual([
+      'Zelda (USA).png',
+    ]);
+    expect(searchCatalog(['Zelda (USA).png', 'Zelda (USA).png'], '')).toEqual(['Zelda (USA).png']);
   });
 });
 

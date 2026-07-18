@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CoverPicker } from '../components/CoverPicker';
 import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
@@ -59,14 +60,18 @@ function playBadge(entry: GameDataEntry): string | null {
  * gamecode-keyed systems — `covers/<nds|gba>/<CODE>.bmp` with the code read
  * from the ROM header. When Pico Enhanced's gamedata.json is present, cards
  * carry play-time badges and a heart button that toggles the favorite on the
- * card (writing gamedata.json back), and favorites sort first.
+ * card (writing gamedata.json back), and favorites sort first. A pencil
+ * button on each card opens the manual cover picker for when the automatic
+ * matcher chose the wrong box art.
  */
 export function SystemGallery({ system, onBack }: { system: System; onBack: () => void }) {
-  const { root, games, coverIndex, gameData, toggleFavorite } = useSd();
+  const { root, games, coverIndex, gameData, toggleFavorite, refresh } = useSd();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
   const [error, setError] = useState<string | null>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
   const [togglePending, setTogglePending] = useState(false);
+  /** Card whose cover is being hand-picked, `null` while the modal is closed. */
+  const [picking, setPicking] = useState<{ game: LibraryFile; cover: ResolvedCover } | null>(null);
   /**
    * gameData snapshot from when the gallery mounted, used only for ordering:
    * favorites sort first, so sorting on the live data would re-order the grid
@@ -256,6 +261,20 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       height={96}
                     />
                   )}
+                  <button
+                    type="button"
+                    className="system-gallery__edit"
+                    aria-label={`Change cover for ${title}`}
+                    title={cover === undefined ? 'Resolving game…' : 'Fix cover'}
+                    // disabled until the cover/gamecode resolves: without the
+                    // code the picker could not target covers/<nds|gba>/
+                    disabled={cover === undefined}
+                    onClick={() => {
+                      if (cover !== undefined) setPicking({ game, cover });
+                    }}
+                  >
+                    <span aria-hidden="true">🖉</span>
+                  </button>
                   {gameData !== null && (
                     <button
                       type="button"
@@ -297,6 +316,22 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             );
           })}
         </ul>
+      )}
+
+      {picking !== null && (
+        <CoverPicker
+          game={picking.game}
+          code={picking.cover.code}
+          currentCoverUrl={picking.cover.url}
+          onClose={() => {
+            setPicking(null);
+          }}
+          onSaved={() => {
+            // the gallery effect re-resolves covers off the refreshed
+            // coverIndex; the frozen favorites sort stays put by design
+            void refresh();
+          }}
+        />
       )}
     </section>
   );
