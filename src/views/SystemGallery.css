@@ -35,6 +35,13 @@
 
 /* status lines */
 
+.system-gallery__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 22rem;
+}
+
 .system-gallery__progress,
 .system-gallery__empty {
   margin: 0;

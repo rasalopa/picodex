@@ -1,3 +1,4 @@
+import { ProgressBar } from '../components/ProgressBar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
@@ -344,9 +345,12 @@ export function CoversView() {
       {scanError && <p className="covers-view__error">Scan failed: {scanError}</p>}
 
       {scanProgress && (
-        <p className="covers-view__progress" role="status">
-          Scanning {scanProgress.done}/{scanProgress.total}…
-        </p>
+        <div className="covers-view__progress" role="status">
+          <span>
+            Scanning {scanProgress.done}/{scanProgress.total}…
+          </span>
+          {scanProgress.total > 0 && <ProgressBar value={scanProgress.done / scanProgress.total} />}
+        </div>
       )}
 
       {jobs.length > 0 && (

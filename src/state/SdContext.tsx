@@ -28,6 +28,8 @@ export interface SdState {
   root: FileSystemDirectoryHandle | null;
   /** True while opening or rescanning. */
   loading: boolean;
+  /** Human-readable description of the current loading phase, when any. */
+  progress: string | null;
   error: string | null;
   games: LibraryFile[];
   coverIndex: CoverIndex;
@@ -84,6 +86,7 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
 export function SdProvider({ children }: { children: ReactNode }) {
   const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [games, setGames] = useState<LibraryFile[]>([]);
   const [coverIndex, setCoverIndex] = useState<CoverIndex>({
@@ -95,11 +98,15 @@ export function SdProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<ParsedSettings | null>(null);
 
   const loadFrom = useCallback(async (rootHandle: FileSystemDirectoryHandle) => {
+    setProgress('Scanning game library…');
     setGames(await scanLibrary(rootHandle, SYSTEMS));
+    setProgress('Reading covers…');
     setCoverIndex(await readCoverIndex(rootHandle));
+    setProgress('Reading launcher data…');
     const launcher = await readLauncherFiles(rootHandle);
     setGameData(launcher.gameData);
     setSettings(launcher.settings);
+    setProgress(null);
   }, []);
 
   const openSd = useCallback(async () => {
@@ -120,6 +127,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }, [loadFrom]);
 
@@ -132,12 +140,24 @@ export function SdProvider({ children }: { children: ReactNode }) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }, [root, loadFrom]);
 
   const value = useMemo(
-    () => ({ root, loading, error, games, coverIndex, gameData, settings, openSd, refresh }),
-    [root, loading, error, games, coverIndex, gameData, settings, openSd, refresh],
+    () => ({
+      root,
+      loading,
+      progress,
+      error,
+      games,
+      coverIndex,
+      gameData,
+      settings,
+      openSd,
+      refresh,
+    }),
+    [root, loading, progress, error, games, coverIndex, gameData, settings, openSd, refresh],
   );
 
   return <SdContext.Provider value={value}>{children}</SdContext.Provider>;

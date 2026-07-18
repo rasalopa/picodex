@@ -185,3 +185,20 @@
 .app__footer a {
   color: var(--text-dim);
 }
+
+/* loading bar + phase text (welcome and workspace) */
+
+.app__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0.75rem auto 0;
+}
+
+.app__loading-text {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+}

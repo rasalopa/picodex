@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ProgressBar } from './components/ProgressBar';
 import { isFileSystemAccessSupported } from './lib/sdcard';
 import { SdProvider, useSd } from './state/SdContext';
 import { LibraryView } from './views/LibraryView';
@@ -40,7 +41,7 @@ function Wordmark() {
 
 /** Landing hero shown before an SD card is opened. */
 function Welcome() {
-  const { openSd, loading, error } = useSd();
+  const { openSd, loading, progress, error } = useSd();
   const supported = isFileSystemAccessSupported();
   return (
     <div className="app__welcome">
@@ -60,6 +61,12 @@ function Welcome() {
           Your browser does not support the File System Access API. Please use a Chromium-based
           browser (Chrome, Edge, Brave, Opera).
         </p>
+      )}
+      {loading && (
+        <span className="app__loading" role="status">
+          <ProgressBar />
+          <span className="app__loading-text">{progress ?? 'Waiting for folder…'}</span>
+        </span>
       )}
       {error && <p className="app__error">{error}</p>}
       <ul className="app__features">
@@ -82,7 +89,7 @@ function Welcome() {
 
 /** Tabbed workspace shown once an SD card is open. */
 function Workspace() {
-  const { root, error, refresh, loading } = useSd();
+  const { root, error, refresh, loading, progress } = useSd();
   const [tab, setTab] = useState<Tab>('library');
   return (
     <>
@@ -104,6 +111,12 @@ function Workspace() {
           {loading ? 'Reloading…' : 'Reload'}
         </button>
       </nav>
+      {loading && (
+        <span className="app__loading" role="status">
+          <ProgressBar />
+          <span className="app__loading-text">{progress ?? 'Reloading…'}</span>
+        </span>
+      )}
       {error && <p className="app__error">{error}</p>}
       <main className="app__content">
         {tab === 'library' && <LibraryView />}

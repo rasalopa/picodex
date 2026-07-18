@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
 import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
@@ -195,9 +196,12 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
       {error !== null && <p className="system-gallery__error">Could not load covers: {error}</p>}
 
       {loading && (
-        <p className="system-gallery__progress" role="status">
-          Loading covers {resolved.size}/{total}…
-        </p>
+        <div className="system-gallery__progress" role="status">
+          <span>
+            Loading covers {resolved.size}/{total}…
+          </span>
+          <ProgressBar value={resolved.size / total} />
+        </div>
       )}
 
       {total === 0 ? (

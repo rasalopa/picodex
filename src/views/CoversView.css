@@ -196,3 +196,10 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.covers-view__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 22rem;
+}
