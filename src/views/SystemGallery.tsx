@@ -209,42 +209,44 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             const badge = entry === undefined ? null : playBadge(entry);
             return (
               <li key={game.fileName} className="system-gallery__card">
-                {cover === undefined ? (
-                  <span
-                    className="system-gallery__cover system-gallery__cover--skeleton"
-                    aria-hidden="true"
-                  />
-                ) : cover.url === null ? (
-                  <span className="system-gallery__cover system-gallery__cover--missing">
-                    <span aria-hidden="true">?</span>
-                  </span>
-                ) : (
-                  <img
-                    className="system-gallery__cover"
-                    src={cover.url}
-                    alt={`Cover of ${title}`}
-                    width={106}
-                    height={96}
-                  />
-                )}
+                <span className="system-gallery__cover-wrap">
+                  {cover === undefined ? (
+                    <span
+                      className="system-gallery__cover system-gallery__cover--skeleton"
+                      aria-hidden="true"
+                    />
+                  ) : cover.url === null ? (
+                    <span className="system-gallery__cover system-gallery__cover--missing">
+                      <span aria-hidden="true">?</span>
+                    </span>
+                  ) : (
+                    <img
+                      className="system-gallery__cover"
+                      src={cover.url}
+                      alt={`Cover of ${title}`}
+                      width={106}
+                      height={96}
+                    />
+                  )}
+                  {(entry?.favorite === true || badge !== null) && (
+                    <span className="system-gallery__badges">
+                      {entry?.favorite === true && (
+                        <span
+                          className="system-gallery__favorite"
+                          role="img"
+                          aria-label="Favorite"
+                          title="Favorite"
+                        >
+                          ♥
+                        </span>
+                      )}
+                      {badge !== null && <span className="system-gallery__play">{badge}</span>}
+                    </span>
+                  )}
+                </span>
                 <span className="system-gallery__name" title={game.fileName}>
                   {title}
                 </span>
-                {(entry?.favorite === true || badge !== null) && (
-                  <span className="system-gallery__badges">
-                    {entry?.favorite === true && (
-                      <span
-                        className="system-gallery__favorite"
-                        role="img"
-                        aria-label="Favorite"
-                        title="Favorite"
-                      >
-                        ♥
-                      </span>
-                    )}
-                    {badge !== null && <span className="system-gallery__play">{badge}</span>}
-                  </span>
-                )}
               </li>
             );
           })}

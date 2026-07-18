@@ -7,6 +7,13 @@
  * therefore not unit-tested; all pure pixel logic lives in `bmp.ts`.
  */
 
+import {
+  BANNER_SIZE,
+  ICON_BITMAP_SIZE,
+  ICON_PALETTE_SIZE,
+  ICON_SIZE,
+  decodeBannerIcon,
+} from './banner';
 import { COVER_HEIGHT, COVER_VISIBLE_WIDTH, COVER_WIDTH, decodeBmp } from './bmp';
 
 /** Creates a detached canvas of the given size with its 2D context. */
@@ -110,5 +117,29 @@ export async function coverBmpCroppedPreviewUrl(bytes: Uint8Array): Promise<stri
   // padding columns off. Covers narrower than the visible width stay intact.
   const [canvas, ctx] = makeCanvas(Math.min(width, COVER_VISIBLE_WIDTH), height);
   ctx.putImageData(bmpImageData(rgba, width, height), 0, 0);
+  return canvasPngUrl(canvas);
+}
+
+/**
+ * Decodes the 32x32 icon of a standalone `banner.bnr` file (as placed inside
+ * launcher folders) and renders it to a PNG object URL, preserving the
+ * palette-index-0 transparency.
+ *
+ * The caller owns the returned URL and must release it with
+ * `URL.revokeObjectURL()` when the preview is discarded.
+ *
+ * @param bnr Complete banner file bytes (at least {@link BANNER_SIZE}).
+ * @throws {Error} When the banner is too short or the canvas export fails.
+ */
+export async function bannerBnrIconPreviewUrl(bnr: Uint8Array): Promise<string> {
+  if (bnr.length < BANNER_SIZE) {
+    throw new Error(`Banner too short: ${String(bnr.length)} bytes`);
+  }
+  const rgba = decodeBannerIcon(
+    bnr.subarray(0x20, 0x20 + ICON_BITMAP_SIZE),
+    bnr.subarray(0x20 + ICON_BITMAP_SIZE, 0x20 + ICON_BITMAP_SIZE + ICON_PALETTE_SIZE),
+  );
+  const [canvas, ctx] = makeCanvas(ICON_SIZE, ICON_SIZE);
+  ctx.putImageData(bmpImageData(rgba, ICON_SIZE, ICON_SIZE), 0, 0);
   return canvasPngUrl(canvas);
 }

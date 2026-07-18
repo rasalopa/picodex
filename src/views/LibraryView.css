@@ -127,3 +127,28 @@
   border: 1px dashed var(--border);
   border-radius: var(--radius);
 }
+
+/* system folder icon (decoded from the folder's banner.bnr) */
+
+.library-view__card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.library-view__card-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.library-view__card-icon--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 1.3rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+}

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { bannerBnrIconPreviewUrl } from '../lib/coverart';
 import { gameDataTotals } from '../lib/gamedata';
-import { GAMES_DIR, type LibraryFile } from '../lib/sdcard';
+import { GAMES_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
 import { SystemGallery } from './SystemGallery';
@@ -72,10 +73,47 @@ function formatPlayTime(totalMinutes: number): string {
  * system card opens that system's cover gallery in place.
  */
 export function LibraryView() {
-  const { games, coverIndex, gameData } = useSd();
+  const { root, games, coverIndex, gameData } = useSd();
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
+  /** Folder icon URLs keyed by `system.gamesDir` (shared folders share one). */
+  const [folderIcons, setFolderIcons] = useState<ReadonlyMap<string, string>>(new Map());
 
   const groups = useMemo(() => groupBySystem(games, coverIndex), [games, coverIndex]);
+
+  // Each system folder may carry a banner.bnr (the launcher's folder icon);
+  // decode those instead of bundling console art with the app.
+  useEffect(() => {
+    if (root === null || groups.length === 0) return;
+    let cancelled = false;
+    const urls: string[] = [];
+    async function loadIcons(rootHandle: FileSystemDirectoryHandle) {
+      const icons = new Map<string, string>();
+      const gamesDirs = [...new Set(groups.map((group) => group.system.gamesDir))];
+      for (const gamesDir of gamesDirs) {
+        try {
+          const dir = await getDir(rootHandle, [GAMES_DIR, gamesDir]);
+          if (dir === null) continue;
+          const bnr = await readFileBytes(dir, 'banner.bnr');
+          if (bnr === null) continue;
+          const url = await bannerBnrIconPreviewUrl(bnr);
+          if (cancelled) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+          urls.push(url);
+          icons.set(gamesDir, url);
+        } catch {
+          // unreadable/corrupt banner: the card just keeps the fallback mark
+        }
+      }
+      if (!cancelled) setFolderIcons(icons);
+    }
+    void loadIcons(root);
+    return () => {
+      cancelled = true;
+      for (const url of urls) URL.revokeObjectURL(url);
+    };
+  }, [root, groups]);
   const totals = useMemo(() => (gameData === null ? null : gameDataTotals(gameData)), [gameData]);
 
   const selectedSystem =
@@ -132,7 +170,25 @@ export function LibraryView() {
                   setSelectedSystemId(system.id);
                 }}
               >
-                <span className="library-view__card-label">{system.label}</span>
+                <span className="library-view__card-head">
+                  {folderIcons.get(system.gamesDir) !== undefined ? (
+                    <img
+                      className="library-view__card-icon"
+                      src={folderIcons.get(system.gamesDir)}
+                      alt=""
+                      width={32}
+                      height={32}
+                    />
+                  ) : (
+                    <span
+                      className="library-view__card-icon library-view__card-icon--fallback"
+                      aria-hidden="true"
+                    >
+                      ▦
+                    </span>
+                  )}
+                  <span className="library-view__card-label">{system.label}</span>
+                </span>
                 <span className="library-view__card-count">
                   {count} {count === 1 ? 'game' : 'games'}
                 </span>
