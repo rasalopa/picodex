@@ -143,3 +143,32 @@ export async function bannerBnrIconPreviewUrl(bnr: Uint8Array): Promise<string> 
   ctx.putImageData(bmpImageData(rgba, ICON_SIZE, ICON_SIZE), 0, 0);
   return canvasPngUrl(canvas);
 }
+
+/**
+ * Decodes a launcher custom-icon BMP (32x32, 4bpp, palette index 0 =
+ * transparent) to a PNG object URL. `decodeBmp` flattens palette indices to
+ * RGBA, so transparency is recovered by matching pixels against the palette's
+ * entry 0 color read from the raw BMP header — exact for launcher icons,
+ * where entry 0 is a reserved sentinel color.
+ *
+ * The caller owns the returned URL and must release it with
+ * `URL.revokeObjectURL()` when the preview is discarded.
+ */
+export async function iconBmpPreviewUrl(bytes: Uint8Array): Promise<string> {
+  const { width, height, rgba } = decodeBmp(bytes);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const dibSize = view.getUint32(14, true);
+  const paletteOffset = 14 + dibSize;
+  const b0 = bytes[paletteOffset];
+  const g0 = bytes[paletteOffset + 1];
+  const r0 = bytes[paletteOffset + 2];
+  const pixels = new Uint8ClampedArray(rgba);
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i] === r0 && pixels[i + 1] === g0 && pixels[i + 2] === b0) {
+      pixels[i + 3] = 0;
+    }
+  }
+  const [canvas, ctx] = makeCanvas(width, height);
+  ctx.putImageData(bmpImageData(pixels, width, height), 0, 0);
+  return canvasPngUrl(canvas);
+}
