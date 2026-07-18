@@ -1,0 +1,356 @@
+/**
+ * File System Access layer + DSpico SD card layout model.
+ *
+ * Thin promise-based helpers over the browser File System Access API
+ * (directory picking, path traversal, byte/text file IO) plus the layout
+ * knowledge of a DSpico SD card as documented in pico-enhanced's ESTUDIO.md:
+ *
+ * ```
+ * /_pico/                  launcher data (settings.json, gamedata.json, covers/, ...)
+ * /_pico/covers/nds/       NDS covers keyed by 4-char gamecode (<CODE>.bmp)
+ * /_pico/covers/gba/       GBA covers keyed by 4-char gamecode (<CODE>.bmp)
+ * /_pico/covers/user/      covers keyed by full ROM file name (<file name>.bmp)
+ * /Games/<system dir>/     ROMs, one folder per system (see systems.ts)
+ * ```
+ *
+ * All functions are typed against the DOM handle interfaces so real handles
+ * flow through untouched; tests exercise them with in-memory fakes.
+ */
+
+import type { System } from './systems.ts';
+
+/**
+ * Permission descriptor accepted by `queryPermission` / `requestPermission`
+ * on File System Access handles (WICG spec, not yet in TypeScript's DOM lib).
+ */
+export interface FileSystemPermissionDescriptor {
+  /** Access level to check or request. Defaults to `'read'` in browsers. */
+  mode?: 'read' | 'readwrite';
+}
+
+// Minimal ambient declarations for the WICG File System Access API surface
+// that TypeScript's DOM lib does not ship yet. Kept local to this module on
+// purpose (no @types dependency).
+declare global {
+  /** Options bag for `window.showDirectoryPicker()` (WICG File System Access). */
+  interface DirectoryPickerOptions {
+    /** Lets the browser remember different last-used directories per id. */
+    id?: string;
+    /** Access level requested for the picked directory. */
+    mode?: 'read' | 'readwrite';
+    /** Well-known directory or handle the picker should start in. */
+    startIn?: FileSystemHandle | string;
+  }
+
+  interface Window {
+    /** WICG File System Access entry point; `undefined` in unsupported browsers. */
+    showDirectoryPicker?(options?: DirectoryPickerOptions): Promise<FileSystemDirectoryHandle>;
+  }
+
+  interface FileSystemHandle {
+    /** Queries the current permission state without prompting the user. */
+    queryPermission?(descriptor?: FileSystemPermissionDescriptor): Promise<PermissionState>;
+    /** Prompts the user (if needed) to grant access to this handle. */
+    requestPermission?(descriptor?: FileSystemPermissionDescriptor): Promise<PermissionState>;
+  }
+}
+
+/** Name of the launcher's data directory at the SD card root. */
+export const PICO_DIR = '_pico';
+
+/** Name of the ROMs directory at the SD card root (one subfolder per system). */
+export const GAMES_DIR = 'Games';
+
+/**
+ * Path segments (relative to the SD root, for {@link getDir}) of each cover
+ * art directory: `nds`/`gba` hold gamecode-keyed covers, `user` holds
+ * filename-keyed covers for every other system.
+ */
+export const COVERS: Record<'nds' | 'gba' | 'user', readonly string[]> = {
+  nds: [PICO_DIR, 'covers', 'nds'],
+  gba: [PICO_DIR, 'covers', 'gba'],
+  user: [PICO_DIR, 'covers', 'user'],
+};
+
+/** File name of the per-game data store (favorites, launch counts) inside `_pico/`. */
+export const GAMEDATA_FILE = 'gamedata.json';
+
+/** File name of the launcher settings inside `_pico/`. */
+export const SETTINGS_FILE = 'settings.json';
+
+/**
+ * Whether the current browser exposes the File System Access API needed to
+ * open an SD card directory ({@link pickSdRoot}).
+ */
+export function isFileSystemAccessSupported(): boolean {
+  return typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+}
+
+/**
+ * Opens the browser directory picker so the user can select the SD card
+ * root, requesting read-write access.
+ *
+ * @throws If the browser does not support the File System Access API, or the
+ *   user dismisses the picker (`AbortError` DOMException).
+ */
+export async function pickSdRoot(): Promise<FileSystemDirectoryHandle> {
+  if (typeof window === 'undefined' || window.showDirectoryPicker === undefined) {
+    throw new Error('File System Access API is not supported in this browser');
+  }
+  return window.showDirectoryPicker({ mode: 'readwrite' });
+}
+
+/**
+ * Ensures a previously obtained handle (e.g. restored from IndexedDB) still
+ * has read-write permission, prompting the user when necessary.
+ *
+ * @returns `true` when access is granted. Browsers that implement the API
+ *   without the permission methods are assumed to have granted access along
+ *   with the handle.
+ */
+export async function ensureReadWritePermission(handle: FileSystemHandle): Promise<boolean> {
+  const descriptor: FileSystemPermissionDescriptor = { mode: 'readwrite' };
+  const current =
+    handle.queryPermission !== undefined ? await handle.queryPermission(descriptor) : 'granted';
+  if (current === 'granted') {
+    return true;
+  }
+  if (handle.requestPermission === undefined) {
+    return false;
+  }
+  return (await handle.requestPermission(descriptor)) === 'granted';
+}
+
+/**
+ * `true` when the error signals a missing (or wrongly-typed) directory entry:
+ * `NotFoundError`, or `TypeMismatchError` (entry exists but is a file where a
+ * directory was expected, or vice versa).
+ */
+function isMissingEntryError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('name' in error)) {
+    return false;
+  }
+  const name = (error as { name: unknown }).name;
+  return name === 'NotFoundError' || name === 'TypeMismatchError';
+}
+
+/**
+ * Resolves a nested directory by walking `path` segments from `root`.
+ *
+ * @param root Directory to start from (an empty `path` returns it as-is).
+ * @param path Path segments, e.g. `[PICO_DIR, 'covers', 'nds']`.
+ * @param create When `true`, missing directories are created along the way.
+ * @returns The directory handle, or `null` when a segment does not exist (or
+ *   is a file) and `create` is `false`. Other errors (permissions, ...) are
+ *   rethrown.
+ */
+export async function getDir(
+  root: FileSystemDirectoryHandle,
+  path: readonly string[],
+  create = false,
+): Promise<FileSystemDirectoryHandle | null> {
+  let dir = root;
+  for (const segment of path) {
+    try {
+      dir = await dir.getDirectoryHandle(segment, { create });
+    } catch (error) {
+      if (!create && isMissingEntryError(error)) {
+        return null;
+      }
+      throw error;
+    }
+  }
+  return dir;
+}
+
+/**
+ * Reads a file inside `dir` as raw bytes.
+ *
+ * @returns The file contents, or `null` when no file with that name exists.
+ */
+export async function readFileBytes(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+): Promise<Uint8Array | null> {
+  let handle: FileSystemFileHandle;
+  try {
+    handle = await dir.getFileHandle(name);
+  } catch (error) {
+    if (isMissingEntryError(error)) {
+      return null;
+    }
+    throw error;
+  }
+  const file = await handle.getFile();
+  return new Uint8Array(await file.arrayBuffer());
+}
+
+/**
+ * Reads a file inside `dir` as UTF-8 text.
+ *
+ * @returns The decoded text, or `null` when no file with that name exists.
+ */
+export async function readFileText(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+): Promise<string | null> {
+  const bytes = await readFileBytes(dir, name);
+  if (bytes === null) {
+    return null;
+  }
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/**
+ * Writes `bytes` to a file inside `dir`, creating it when missing and fully
+ * replacing any previous contents.
+ */
+export async function writeFileBytes(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+  bytes: Uint8Array,
+): Promise<void> {
+  const handle = await dir.getFileHandle(name, { create: true });
+  // write() only accepts ArrayBuffer-backed views; copy if the caller's view
+  // sits on a SharedArrayBuffer (the copy also satisfies the TS 6 DOM types).
+  const chunk: Uint8Array<ArrayBuffer> =
+    bytes.buffer instanceof ArrayBuffer
+      ? (bytes as Uint8Array<ArrayBuffer>)
+      : new Uint8Array(bytes);
+  const writable = await handle.createWritable();
+  try {
+    await writable.write(chunk);
+  } catch (error) {
+    await writable.abort();
+    throw error;
+  }
+  await writable.close();
+}
+
+/**
+ * Writes UTF-8 `text` to a file inside `dir`, creating it when missing and
+ * fully replacing any previous contents.
+ */
+export async function writeFileText(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+  text: string,
+): Promise<void> {
+  await writeFileBytes(dir, name, new TextEncoder().encode(text));
+}
+
+/** One directory entry as returned by {@link listEntries}. */
+export interface SdEntry {
+  /** Entry name (file name or directory name). */
+  name: string;
+  /** Whether the entry is a file or a directory. */
+  kind: 'file' | 'directory';
+}
+
+/** Lists the immediate children of a directory (files and subdirectories). */
+export async function listEntries(dir: FileSystemDirectoryHandle): Promise<SdEntry[]> {
+  const entries: SdEntry[] = [];
+  for await (const handle of dir.values()) {
+    entries.push({ name: handle.name, kind: handle.kind });
+  }
+  return entries;
+}
+
+/** Whether a file (not a directory) named `name` exists inside `dir`. */
+export async function fileExists(dir: FileSystemDirectoryHandle, name: string): Promise<boolean> {
+  try {
+    await dir.getFileHandle(name);
+    return true;
+  } catch (error) {
+    if (isMissingEntryError(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Heuristic check that a picked directory is a DSpico SD card root: it must
+ * contain the launcher's `_pico` directory.
+ */
+export async function looksLikeDspicoSd(root: FileSystemDirectoryHandle): Promise<boolean> {
+  return (await getDir(root, [PICO_DIR])) !== null;
+}
+
+/** One ROM file found by {@link scanLibrary}. */
+export interface LibraryFile {
+  /** System the file belongs to (matched by its extension). */
+  system: System;
+  /** File name inside `Games/<system.gamesDir>/`. */
+  fileName: string;
+  /** File size in bytes. */
+  size: number;
+}
+
+/** `true` when `fileName` ends with one of `extensions` (case-insensitive). */
+function hasAnyExtension(fileName: string, extensions: readonly string[]): boolean {
+  const lower = fileName.toLowerCase();
+  return extensions.some((extension) => lower.endsWith(extension.toLowerCase()));
+}
+
+/**
+ * Collects the file handles of plausible ROMs in one games directory,
+ * skipping hidden/junk entries (names starting with `'.'`, which covers
+ * macOS `._` AppleDouble files and `.DS_Store`) and subdirectories.
+ */
+async function listRomCandidates(dir: FileSystemDirectoryHandle): Promise<FileSystemFileHandle[]> {
+  const files: FileSystemFileHandle[] = [];
+  for await (const handle of dir.values()) {
+    if (handle.name.startsWith('.') || handle.kind !== 'file') {
+      continue;
+    }
+    files.push(handle);
+  }
+  return files;
+}
+
+/**
+ * Scans `Games/<gamesDir>` for every system and returns the ROM files found.
+ *
+ * Junk entries (names starting with `'.'` or `'._'`), subdirectories and
+ * files whose extension does not match the system are skipped; systems whose
+ * games directory does not exist contribute nothing. Directories shared by
+ * several systems (gb/gbc, ws/wsc, ngp/ngc) are listed only once, and each
+ * file is attributed by extension (extensions are unique across systems).
+ *
+ * @param root SD card root handle.
+ * @param systems Systems to scan for, in the order results should appear.
+ * @returns Found files grouped per system in `systems` order (directory
+ *   order within a system); empty when `Games/` itself is missing.
+ */
+export async function scanLibrary(
+  root: FileSystemDirectoryHandle,
+  systems: readonly System[],
+): Promise<LibraryFile[]> {
+  const games = await getDir(root, [GAMES_DIR]);
+  if (games === null) {
+    return [];
+  }
+  // Several systems share one games directory; list each directory only once.
+  const listings = new Map<string, FileSystemFileHandle[] | null>();
+  const results: LibraryFile[] = [];
+  for (const system of systems) {
+    let files = listings.get(system.gamesDir);
+    if (files === undefined) {
+      const dir = await getDir(games, [system.gamesDir]);
+      files = dir === null ? null : await listRomCandidates(dir);
+      listings.set(system.gamesDir, files);
+    }
+    if (files === null) {
+      continue;
+    }
+    for (const handle of files) {
+      if (!hasAnyExtension(handle.name, system.extensions)) {
+        continue;
+      }
+      const file = await handle.getFile();
+      results.push({ system, fileName: handle.name, size: file.size });
+    }
+  }
+  return results;
+}
