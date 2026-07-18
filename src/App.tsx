@@ -6,16 +6,18 @@ import { LibraryView } from './views/LibraryView';
 import { CoversView } from './views/CoversView';
 import { StatsView } from './views/StatsView';
 import { AssociationsView } from './views/AssociationsView';
+import { HealthView } from './views/HealthView';
 import { DropImport } from './components/DropImport';
 import './App.css';
 
-type Tab = 'library' | 'covers' | 'stats' | 'associations';
+type Tab = 'library' | 'covers' | 'stats' | 'associations' | 'health';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'library', label: 'Library' },
   { id: 'covers', label: 'Covers' },
   { id: 'stats', label: 'Pico Enhanced' },
   { id: 'associations', label: 'Associations' },
+  { id: 'health', label: 'Health' },
 ];
 
 /** Small cartridge mark that echoes the favicon. */
@@ -124,6 +126,7 @@ function Workspace() {
         {tab === 'covers' && <CoversView />}
         {tab === 'stats' && <StatsView />}
         {tab === 'associations' && <AssociationsView />}
+        {tab === 'health' && <HealthView />}
       </main>
       <DropImport />
     </>
