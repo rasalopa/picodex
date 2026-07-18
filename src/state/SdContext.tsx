@@ -1,0 +1,151 @@
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import { parseGameData, type GameData } from '../lib/gamedata';
+import { parseSettings, type ParsedSettings } from '../lib/settings';
+import {
+  COVERS,
+  GAMEDATA_FILE,
+  SETTINGS_FILE,
+  PICO_DIR,
+  getDir,
+  listEntries,
+  looksLikeDspicoSd,
+  pickSdRoot,
+  readFileText,
+  scanLibrary,
+  type LibraryFile,
+} from '../lib/sdcard';
+import { SYSTEMS } from '../lib/systems';
+
+/** Names present in each cover folder, lowercased, extension included. */
+export interface CoverIndex {
+  nds: Set<string>;
+  gba: Set<string>;
+  user: Set<string>;
+}
+
+export interface SdState {
+  root: FileSystemDirectoryHandle | null;
+  /** True while opening or rescanning. */
+  loading: boolean;
+  error: string | null;
+  games: LibraryFile[];
+  coverIndex: CoverIndex;
+  /** Parsed /_pico/gamedata.json, or null on stock launchers. */
+  gameData: GameData | null;
+  /** Parsed /_pico/settings.json, or null when missing/unreadable. */
+  settings: ParsedSettings | null;
+  openSd: () => Promise<void>;
+  /** Re-reads library, covers and launcher files from the open SD. */
+  refresh: () => Promise<void>;
+}
+
+const SdContext = createContext<SdState | null>(null);
+
+async function readCoverIndex(root: FileSystemDirectoryHandle): Promise<CoverIndex> {
+  const index: CoverIndex = { nds: new Set(), gba: new Set(), user: new Set() };
+  for (const key of ['nds', 'gba', 'user'] as const) {
+    const dir = await getDir(root, COVERS[key]);
+    if (!dir) continue;
+    for (const entry of await listEntries(dir)) {
+      if (entry.kind === 'file' && !entry.name.startsWith('.')) {
+        index[key].add(entry.name.toLowerCase());
+      }
+    }
+  }
+  return index;
+}
+
+async function readLauncherFiles(root: FileSystemDirectoryHandle) {
+  const picoDir = await getDir(root, [PICO_DIR]);
+  let gameData: GameData | null = null;
+  let settings: ParsedSettings | null = null;
+  if (picoDir) {
+    const gameDataText = await readFileText(picoDir, GAMEDATA_FILE);
+    if (gameDataText !== null) {
+      try {
+        gameData = parseGameData(gameDataText);
+      } catch {
+        gameData = null;
+      }
+    }
+    const settingsText = await readFileText(picoDir, SETTINGS_FILE);
+    if (settingsText !== null) {
+      try {
+        settings = parseSettings(settingsText);
+      } catch {
+        settings = null;
+      }
+    }
+  }
+  return { gameData, settings };
+}
+
+export function SdProvider({ children }: { children: ReactNode }) {
+  const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [games, setGames] = useState<LibraryFile[]>([]);
+  const [coverIndex, setCoverIndex] = useState<CoverIndex>({
+    nds: new Set(),
+    gba: new Set(),
+    user: new Set(),
+  });
+  const [gameData, setGameData] = useState<GameData | null>(null);
+  const [settings, setSettings] = useState<ParsedSettings | null>(null);
+
+  const loadFrom = useCallback(async (rootHandle: FileSystemDirectoryHandle) => {
+    setGames(await scanLibrary(rootHandle, SYSTEMS));
+    setCoverIndex(await readCoverIndex(rootHandle));
+    const launcher = await readLauncherFiles(rootHandle);
+    setGameData(launcher.gameData);
+    setSettings(launcher.settings);
+  }, []);
+
+  const openSd = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const rootHandle = await pickSdRoot();
+      if (!(await looksLikeDspicoSd(rootHandle))) {
+        setError('That folder has no /_pico directory — pick the root of a DSpico SD card.');
+        return;
+      }
+      setRoot(rootHandle);
+      await loadFrom(rootHandle);
+    } catch (e) {
+      // user cancelling the picker is not an error
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [loadFrom]);
+
+  const refresh = useCallback(async () => {
+    if (!root) return;
+    setLoading(true);
+    try {
+      await loadFrom(root);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [root, loadFrom]);
+
+  const value = useMemo(
+    () => ({ root, loading, error, games, coverIndex, gameData, settings, openSd, refresh }),
+    [root, loading, error, games, coverIndex, gameData, settings, openSd, refresh],
+  );
+
+  return <SdContext.Provider value={value}>{children}</SdContext.Provider>;
+}
+
+/** Access the SD state; must be used under an SdProvider. */
+export function useSd(): SdState {
+  const state = useContext(SdContext);
+  if (!state) throw new Error('useSd must be used within SdProvider');
+  return state;
+}
