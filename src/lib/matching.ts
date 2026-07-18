@@ -53,7 +53,11 @@ export const REGION_PREFS_BY_GBA_CODE: Readonly<Record<string, readonly string[]
  *          // => 'legend of zelda link to past'
  */
 export function normalizeTitle(s: string): string {
-  let t = s.normalize('NFKD').replace(/[^\x00-\x7f]/g, '');
+  // keep ASCII only, like python's encode('ascii', 'ignore')
+  let t = '';
+  for (const ch of s.normalize('NFKD')) {
+    if (ch.codePointAt(0)! <= 0x7f) t += ch;
+  }
   t = t.replace(/\(.*?\)/g, '');
   t = t.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
   t = t.replace(/\b(?:the|a|an|el|la|los|las)\b/g, ' ');
