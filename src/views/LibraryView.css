@@ -152,3 +152,55 @@
   border: 1px dashed var(--border-strong);
   border-radius: 6px;
 }
+
+/* card components panel */
+
+.library-view__card-info {
+  margin-top: 0.5rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+}
+
+.library-view__card-info-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 0.6rem;
+}
+
+.library-view__card-info-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 2.5rem;
+  margin: 0;
+}
+
+.library-view__card-info-list dt {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.library-view__card-info-list dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.library-view__card-info-dim {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.library-view__chip {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}

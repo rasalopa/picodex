@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { bannerBnrIconPreviewUrl, iconBmpPreviewUrl } from '../lib/coverart';
 import { gameDataTotals } from '../lib/gamedata';
+import { loaderApiCapabilities } from '../lib/loader';
 import { GAMES_DIR, PICO_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
@@ -73,7 +74,7 @@ function formatPlayTime(totalMinutes: number): string {
  * system card opens that system's cover gallery in place.
  */
 export function LibraryView() {
-  const { root, games, coverIndex, gameData } = useSd();
+  const { root, games, coverIndex, gameData, cardInfo } = useSd();
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
   /** Icon URLs keyed by `system.id`. */
   const [systemIcons, setSystemIcons] = useState<ReadonlyMap<string, string>>(new Map());
@@ -245,6 +246,41 @@ export function LibraryView() {
           ))}
         </ul>
       )}
+
+      <aside className="library-view__card-info" aria-label="Card components">
+        <h3 className="library-view__card-info-title">On this card</h3>
+        <dl className="library-view__card-info-list">
+          <div>
+            <dt>Launcher</dt>
+            <dd>
+              {cardInfo.launcherTitle ?? 'Not found'}
+              {gameData !== null && <span className="library-view__chip">Pico Enhanced</span>}
+              {cardInfo.launcherModified !== null && (
+                <span className="library-view__card-info-dim">
+                  {' '}
+                  · updated {new Date(cardInfo.launcherModified).toLocaleDateString()}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Pico Loader</dt>
+            <dd>
+              {cardInfo.loaderApiVersion === null ? (
+                'Not found'
+              ) : (
+                <>
+                  API v{cardInfo.loaderApiVersion}
+                  <span className="library-view__card-info-dim">
+                    {' '}
+                    · {loaderApiCapabilities(cardInfo.loaderApiVersion).join(' · ')}
+                  </span>
+                </>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </aside>
     </section>
   );
 }
