@@ -51,10 +51,17 @@
   gap: 1rem;
 }
 
+.library-view__grid > li {
+  display: flex;
+}
+
+/* the whole card is one button opening the system's gallery */
 .library-view__card {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  width: 100%;
+  text-align: left;
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -64,6 +71,7 @@
 .library-view__card-label {
   margin: 0;
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .library-view__card-count {
@@ -80,6 +88,7 @@
 }
 
 .library-view__bar {
+  display: block;
   height: 6px;
   border-radius: 3px;
   background: var(--bg);
@@ -88,12 +97,24 @@
 }
 
 .library-view__bar-fill {
+  display: block;
   height: 100%;
   background: var(--accent);
 }
 
 .library-view__bar-fill--full {
   background: var(--ok);
+}
+
+.library-view__card-cta {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.library-view__card:hover .library-view__card-cta,
+.library-view__card:focus-visible .library-view__card-cta {
+  color: var(--accent);
 }
 
 /* empty state */

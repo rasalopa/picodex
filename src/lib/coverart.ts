@@ -53,6 +53,27 @@ export function composeCoverRgba(image: ImageBitmap): Uint8ClampedArray {
   return ctx.getImageData(0, 0, COVER_WIDTH, COVER_HEIGHT).data;
 }
 
+/** Decoded BMP pixels as an `ImageData` (copied when not ArrayBuffer-backed). */
+function bmpImageData(rgba: Uint8ClampedArray, width: number, height: number): ImageData {
+  // ImageData requires an ArrayBuffer-backed view; copy if needed.
+  const data: Uint8ClampedArray<ArrayBuffer> =
+    rgba.buffer instanceof ArrayBuffer
+      ? (rgba as Uint8ClampedArray<ArrayBuffer>)
+      : new Uint8ClampedArray(rgba);
+  return new ImageData(data, width, height);
+}
+
+/** Exports a canvas as a PNG blob object URL (owned by the caller). */
+async function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('Canvas preview export failed'))),
+      'image/png',
+    );
+  });
+  return URL.createObjectURL(blob);
+}
+
 /**
  * Decodes a cover BMP back into pixels and renders it to a PNG object URL,
  * so the UI can preview exactly what was written to the SD card.
@@ -65,18 +86,29 @@ export function composeCoverRgba(image: ImageBitmap): Uint8ClampedArray {
  */
 export async function coverBmpPreviewUrl(bytes: Uint8Array): Promise<string> {
   const { width, height, rgba } = decodeBmp(bytes);
-  // ImageData requires an ArrayBuffer-backed view; copy if needed.
-  const data: Uint8ClampedArray<ArrayBuffer> =
-    rgba.buffer instanceof ArrayBuffer
-      ? (rgba as Uint8ClampedArray<ArrayBuffer>)
-      : new Uint8ClampedArray(rgba);
   const [canvas, ctx] = makeCanvas(width, height);
-  ctx.putImageData(new ImageData(data, width, height), 0, 0);
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error('Canvas preview export failed'))),
-      'image/png',
-    );
-  });
-  return URL.createObjectURL(blob);
+  ctx.putImageData(bmpImageData(rgba, width, height), 0, 0);
+  return canvasPngUrl(canvas);
+}
+
+/**
+ * Decodes a cover BMP and renders only the area the launcher actually shows —
+ * the left {@link COVER_VISIBLE_WIDTH}x{@link COVER_HEIGHT} (106x96) pixels —
+ * to a PNG object URL. The columns right of {@link COVER_VISIBLE_WIDTH} are
+ * padding the launcher never displays, so gallery previews crop them away
+ * instead of showing a black strip.
+ *
+ * The caller owns the returned URL and must release it with
+ * `URL.revokeObjectURL()` when the preview is discarded.
+ *
+ * @param bytes Complete BMP file bytes (as produced by `encodeCoverBmp()`).
+ * @throws {Error} When the BMP cannot be decoded or the canvas export fails.
+ */
+export async function coverBmpCroppedPreviewUrl(bytes: Uint8Array): Promise<string> {
+  const { width, height, rgba } = decodeBmp(bytes);
+  // The canvas is only as wide as the visible area; putImageData clips the
+  // padding columns off. Covers narrower than the visible width stay intact.
+  const [canvas, ctx] = makeCanvas(Math.min(width, COVER_VISIBLE_WIDTH), height);
+  ctx.putImageData(bmpImageData(rgba, width, height), 0, 0);
+  return canvasPngUrl(canvas);
 }
