@@ -144,6 +144,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
 }
 
 /** Access the SD state; must be used under an SdProvider. */
+// eslint-disable-next-line react-refresh/only-export-components -- context + hook is the idiomatic pairing
 export function useSd(): SdState {
   const state = useContext(SdContext);
   if (!state) throw new Error('useSd must be used within SdProvider');

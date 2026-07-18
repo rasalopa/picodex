@@ -1,0 +1,103 @@
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.app__header {
+  padding: 1rem 0 0.5rem;
+}
+
+.app__logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.app__brand-accent {
+  color: var(--accent);
+}
+
+.app__welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+}
+
+.app__welcome h1 {
+  font-size: 3rem;
+}
+
+.app__tagline {
+  max-width: 34rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.app__unsupported {
+  max-width: 30rem;
+  color: var(--warn);
+}
+
+.app__error {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+}
+
+.app__tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.app__tab {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+}
+
+.app__tab--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.app__sd-name {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.app__content {
+  flex: 1;
+  padding: 1.5rem 0 3rem;
+}
+
+.app__footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 1rem 0 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.app__footer a {
+  color: var(--text-dim);
+}
