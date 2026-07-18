@@ -1,0 +1,208 @@
+.stats-view {
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stats-view__title {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+
+.stats-view__none {
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.stats-view__heart {
+  color: var(--accent);
+}
+
+.stats-view__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- info state (no game data: stock launcher or no SD open) --- */
+
+.stats-view__info {
+  margin: 3rem auto;
+  max-width: 30rem;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.stats-view__info h2 {
+  color: var(--text);
+}
+
+.stats-view__info-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin: 0 0 0.75rem;
+}
+
+.stats-view__info a {
+  color: var(--accent);
+}
+
+/* --- headline tiles --- */
+
+.stats-view__tiles {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+}
+
+.stats-view__tile {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+.stats-view__tile-label {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stats-view__tile-value {
+  margin: 0.15rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- most played table --- */
+
+.stats-view__table-wrap {
+  overflow-x: auto;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.stats-view__table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.stats-view__table th,
+.stats-view__table td {
+  padding: 0.55rem 1rem;
+  text-align: left;
+}
+
+.stats-view__table thead th {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-view__table tbody tr + tr td {
+  border-top: 1px solid var(--border);
+}
+
+.stats-view__table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.stats-view__table .stats-view__name {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-view__table .stats-view__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-view__table .stats-view__fav {
+  width: 1%;
+  text-align: center;
+}
+
+/* --- recently played list --- */
+
+.stats-view__recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.stats-view__recent-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 1rem;
+  min-width: 0;
+}
+
+.stats-view__recent-item + .stats-view__recent-item {
+  border-top: 1px solid var(--border);
+}
+
+.stats-view__recent-item .stats-view__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-view__when {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- favorites list --- */
+
+.stats-view__favorites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stats-view__favorite {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+}
+
+.stats-view__favorite .stats-view__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
