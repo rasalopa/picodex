@@ -58,12 +58,23 @@ function playBadge(entry: GameDataEntry): string | null {
  * the way the launcher does: `covers/user/<file name>.bmp` first, then — for
  * gamecode-keyed systems — `covers/<nds|gba>/<CODE>.bmp` with the code read
  * from the ROM header. When Pico Enhanced's gamedata.json is present, cards
- * carry favorite hearts and play-time badges and favorites sort first.
+ * carry play-time badges and a heart button that toggles the favorite on the
+ * card (writing gamedata.json back), and favorites sort first.
  */
 export function SystemGallery({ system, onBack }: { system: System; onBack: () => void }) {
-  const { root, games, coverIndex, gameData } = useSd();
+  const { root, games, coverIndex, gameData, toggleFavorite } = useSd();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  /** True while a favorite toggle's SD write is in flight (hearts disable). */
+  const [togglePending, setTogglePending] = useState(false);
+  /**
+   * gameData snapshot from when the gallery mounted, used only for ordering:
+   * favorites sort first, so sorting on the live data would re-order the grid
+   * on every heart toggle and yank the clicked card away from the pointer.
+   * The frozen snapshot keeps each card in place for the gallery's lifetime,
+   * while heart fill and badges still render the live state.
+   */
+  const [initialGameData] = useState(gameData);
 
   const systemGames = useMemo(
     () => games.filter((game) => game.system.id === system.id),
@@ -165,18 +176,31 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
         gameData === null
           ? undefined
           : findEntry(gameData, game.fileName, cover?.code ?? undefined);
-      return { game, cover, entry };
+      // favorites-first is decided on the mount-time snapshot, not the live
+      // entry above — see the initialGameData doc for why
+      const frozen =
+        initialGameData === null
+          ? undefined
+          : findEntry(initialGameData, game.fileName, cover?.code ?? undefined);
+      return { card: { game, cover, entry }, favoriteRank: frozen?.favorite === true ? 0 : 1 };
     });
-    list.sort((a, b) => {
-      if (gameData !== null) {
-        const favA = a.entry?.favorite === true ? 0 : 1;
-        const favB = b.entry?.favorite === true ? 0 : 1;
-        if (favA !== favB) return favA - favB;
-      }
-      return a.game.fileName.localeCompare(b.game.fileName, undefined, { sensitivity: 'base' });
+    list.sort(
+      (a, b) =>
+        a.favoriteRank - b.favoriteRank ||
+        a.card.game.fileName.localeCompare(b.card.game.fileName, undefined, {
+          sensitivity: 'base',
+        }),
+    );
+    return list.map(({ card }) => card);
+  }, [systemGames, resolved, gameData, initialGameData]);
+
+  /** Toggles a favorite on the SD card; hearts disable until it settles. */
+  function handleToggleFavorite(game: LibraryFile, cover: ResolvedCover | undefined) {
+    setTogglePending(true);
+    void toggleFavorite(game.fileName, cover?.code ?? undefined).finally(() => {
+      setTogglePending(false);
     });
-    return list;
-  }, [systemGames, resolved, gameData]);
+  }
 
   const total = systemGames.length;
   const loading = root !== null && total > 0 && resolved.size < total;
@@ -232,19 +256,37 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       height={96}
                     />
                   )}
-                  {(entry?.favorite === true || badge !== null) && (
+                  {gameData !== null && (
+                    <button
+                      type="button"
+                      className={
+                        entry?.favorite === true
+                          ? 'system-gallery__favorite system-gallery__favorite--on'
+                          : 'system-gallery__favorite'
+                      }
+                      aria-pressed={entry?.favorite === true}
+                      aria-label={`Toggle favorite for ${title}`}
+                      title={
+                        cover === undefined
+                          ? 'Resolving game…'
+                          : entry?.favorite === true
+                            ? 'Remove favorite'
+                            : 'Add favorite'
+                      }
+                      // disabled until the cover/gamecode resolves: a
+                      // name-only toggle on a renamed rom would split its
+                      // gamedata entry in two
+                      disabled={togglePending || cover === undefined}
+                      onClick={() => {
+                        handleToggleFavorite(game, cover);
+                      }}
+                    >
+                      <span aria-hidden="true">{entry?.favorite === true ? '♥' : '♡'}</span>
+                    </button>
+                  )}
+                  {badge !== null && (
                     <span className="system-gallery__badges">
-                      {entry?.favorite === true && (
-                        <span
-                          className="system-gallery__favorite"
-                          role="img"
-                          aria-label="Favorite"
-                          title="Favorite"
-                        >
-                          ♥
-                        </span>
-                      )}
-                      {badge !== null && <span className="system-gallery__play">{badge}</span>}
+                      <span className="system-gallery__play">{badge}</span>
                     </span>
                   )}
                 </span>

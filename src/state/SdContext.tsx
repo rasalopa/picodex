@@ -1,6 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { parseGameData, type GameData } from '../lib/gamedata';
+import {
+  parseGameData,
+  serializeGameData,
+  toggleFavorite as toggleGameDataFavorite,
+  type GameData,
+} from '../lib/gamedata';
 import { parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
 import {
@@ -15,6 +20,7 @@ import {
   readFileBytes,
   readFileText,
   scanLibrary,
+  writeFileText,
   type LibraryFile,
 } from '../lib/sdcard';
 import { SYSTEMS } from '../lib/systems';
@@ -54,6 +60,14 @@ export interface SdState {
   openSd: () => Promise<void>;
   /** Re-reads library, covers and launcher files from the open SD. */
   refresh: () => Promise<void>;
+  /**
+   * Toggles a game's favorite flag and writes `/_pico/gamedata.json` back to
+   * the card. No-op on stock launchers (`gameData === null`): PicoDex never
+   * creates the file — a stock launcher would not read it and a stray file
+   * would only confuse users. Concurrent calls queue behind each other; the
+   * returned promise never rejects — write failures surface via `error`.
+   */
+  toggleFavorite(fileName: string, gameCode?: string | null): Promise<void>;
 }
 
 const SdContext = createContext<SdState | null>(null);
@@ -137,14 +151,26 @@ export function SdProvider({ children }: { children: ReactNode }) {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [settings, setSettings] = useState<ParsedSettings | null>(null);
   const [cardInfo, setCardInfo] = useState<CardInfo>(EMPTY_CARD_INFO);
+  /**
+   * Mirror of `gameData` for the write queue: a queued toggle must build on
+   * the data of the toggle that just finished, not on the (possibly stale)
+   * state its closure captured when the user clicked.
+   */
+  const gameDataRef = useRef<GameData | null>(null);
+  /** Serializes gamedata.json writes: each toggle queues behind the last. */
+  const writeChain = useRef<Promise<void>>(Promise.resolve());
 
   const loadFrom = useCallback(async (rootHandle: FileSystemDirectoryHandle) => {
+    // in-flight favorite writes must commit before re-reading gamedata.json,
+    // or the reload could revert them with a pre-toggle snapshot
+    await writeChain.current;
     setProgress('Scanning game library…');
     setGames(await scanLibrary(rootHandle, SYSTEMS));
     setProgress('Reading covers…');
     setCoverIndex(await readCoverIndex(rootHandle));
     setProgress('Reading launcher data…');
     const launcher = await readLauncherFiles(rootHandle);
+    gameDataRef.current = launcher.gameData;
     setGameData(launcher.gameData);
     setSettings(launcher.settings);
     setCardInfo(await readCardInfo(rootHandle));
@@ -186,6 +212,34 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [root, loadFrom]);
 
+  const toggleFavorite = useCallback(
+    (fileName: string, gameCode?: string | null): Promise<void> => {
+      const run = async (): Promise<void> => {
+        // stock launcher: no gamedata.json on the card means nothing to
+        // toggle — never create the file (see the SdState doc above)
+        if (root === null || gameDataRef.current === null) return;
+        try {
+          const next = toggleGameDataFavorite(gameDataRef.current, fileName, gameCode);
+          const text = serializeGameData(next);
+          const picoDir = await getDir(root, [PICO_DIR]);
+          if (picoDir === null) throw new Error('No /_pico directory on the SD card');
+          await writeFileText(picoDir, GAMEDATA_FILE, text);
+          // write-then-state: a failed write never desyncs us from the card
+          gameDataRef.current = next;
+          setGameData(next);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      };
+      // queue, don't reject: `run` handles its own failures, so the chain
+      // always settles and later toggles still go through
+      const queued = writeChain.current.then(run);
+      writeChain.current = queued;
+      return queued;
+    },
+    [root],
+  );
+
   const value = useMemo(
     () => ({
       root,
@@ -199,6 +253,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       cardInfo,
       openSd,
       refresh,
+      toggleFavorite,
     }),
     [
       root,
@@ -212,6 +267,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       cardInfo,
       openSd,
       refresh,
+      toggleFavorite,
     ],
   );
 

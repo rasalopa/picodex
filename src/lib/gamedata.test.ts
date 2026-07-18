@@ -7,6 +7,7 @@ import {
   serializeGameData,
   sortedByLastPlayed,
   sortedByMostPlayed,
+  toggleFavorite,
 } from './gamedata';
 import type { GameData, GameDataEntry } from './gamedata';
 
@@ -256,6 +257,112 @@ describe('findEntry', () => {
   });
 });
 
+describe('toggleFavorite', () => {
+  it('toggles an existing entry by code, healing a renamed file name', () => {
+    const data: GameData = {
+      entries: [
+        {
+          fileName: 'Mario Kart DS.nds',
+          gameCode: 'AMCE',
+          favorite: false,
+          launchCount: 3,
+          playMinutes: 125,
+        },
+      ],
+    };
+    // the ROM was renamed on the PC since the entry was written: the code
+    // still resolves (case-insensitively) and the file name is healed
+    const next = toggleFavorite(data, 'Mario Kart DS (Europe).nds', 'amce');
+    expect(next.entries).toEqual([
+      {
+        fileName: 'Mario Kart DS (Europe).nds',
+        gameCode: 'AMCE',
+        favorite: true,
+        launchCount: 3,
+        playMinutes: 125,
+      },
+    ]);
+  });
+
+  it('toggles by name (case-insensitive), adopting a newly known code', () => {
+    const data: GameData = {
+      entries: [{ fileName: 'legacy.nds', favorite: false, launchCount: 1, playMinutes: 5 }],
+    };
+    const next = toggleFavorite(data, 'LEGACY.NDS', 'ABCD');
+    // legacy name-keyed entry upgraded with the code, name kept as written
+    expect(next.entries).toEqual([
+      { fileName: 'legacy.nds', gameCode: 'ABCD', favorite: true, launchCount: 1, playMinutes: 5 },
+    ]);
+  });
+
+  it('does not adopt unusable codes and keeps an existing code', () => {
+    const garbage = toggleFavorite(
+      { entries: [{ fileName: 'homebrew.nds', favorite: false, launchCount: 1, playMinutes: 0 }] },
+      'homebrew.nds',
+      '##',
+    );
+    expect(garbage.entries[0]?.gameCode).toBeUndefined();
+    expect(garbage.entries[0]?.favorite).toBe(true);
+
+    const keeps = toggleFavorite(
+      {
+        entries: [
+          { fileName: 'a.nds', gameCode: 'AAAA', favorite: false, launchCount: 0, playMinutes: 0 },
+        ],
+      },
+      'a.nds',
+      'BBBB',
+    );
+    expect(keeps.entries[0]?.gameCode).toBe('AAAA');
+  });
+
+  it('creates a fresh favorite entry when nothing matches', () => {
+    const next = toggleFavorite({ entries: [] }, 'new.nds', 'BXYZ');
+    expect(next.entries).toEqual([
+      { fileName: 'new.nds', gameCode: 'BXYZ', favorite: true, launchCount: 0, playMinutes: 0 },
+    ]);
+
+    // null / unusable code: the fresh entry is name-keyed only
+    const homebrew = toggleFavorite({ entries: [] }, 'homebrew.nds', null);
+    expect(homebrew.entries).toEqual([
+      { fileName: 'homebrew.nds', favorite: true, launchCount: 0, playMinutes: 0 },
+    ]);
+    expect(homebrew.entries[0]?.gameCode).toBeUndefined();
+  });
+
+  it('toggle off leaves the reset entry for serialize-side pruning', () => {
+    const data = toggleFavorite({ entries: [] }, 'once.nds', 'AAAA');
+    const next = toggleFavorite(data, 'once.nds', 'AAAA');
+    // the all-default entry survives in memory (like the launcher's) ...
+    expect(next.entries).toHaveLength(1);
+    expect(next.entries[0]?.favorite).toBe(false);
+    // ... and serializeGameData prunes it on write
+    expect(serializeGameData(next)).toBe(crlf('{', '  "games": {}', '}'));
+  });
+
+  it('never mutates the input GameData', () => {
+    const data = parseGameData(launcherSample);
+    const snapshot = structuredClone(data);
+    toggleFavorite(data, 'Mario Kart DS (Europe).nds', 'AMCE'); // heal + toggle
+    toggleFavorite(data, 'homebrew.nds', 'ABCD'); // adopt code
+    toggleFavorite(data, 'brand-new.nds'); // append
+    expect(data).toEqual(snapshot);
+  });
+
+  it('passes the session through a toggle + serialize round trip', () => {
+    const data = parseGameData(launcherSample);
+    const next = toggleFavorite(data, 'homebrew.nds');
+    expect(next.session).toBe(data.session); // untouched, same reference
+    const reparsed = parseGameData(serializeGameData(next));
+    expect(reparsed.session).toEqual({
+      game: 'Mario Kart DS.nds',
+      gameCode: 'AMCE',
+      start: '2026-07-16 21:30',
+    });
+    expect(reparsed.entries.find((e) => e.fileName === 'homebrew.nds')?.favorite).toBe(true);
+  });
+});
+
 describe('isUsableGameCode', () => {
   it('accepts printable ASCII and rejects empty/garbage codes', () => {
     expect(isUsableGameCode('AMCE')).toBe(true);
@@ -334,5 +441,57 @@ describe('stats helpers', () => {
     const most = sortedByMostPlayed(data).map((e) => e.fileName);
     // a and d tie at 3 launches; a has more minutes
     expect(most).toEqual(['a.nds', 'd.nds', 'e.nds', 'c.nds']);
+  });
+});
+
+describe('toggleFavorite duplicate healing', () => {
+  it('merges a name-keyed duplicate when healing renames onto it', () => {
+    // scenario: the game was renamed after the launcher wrote its entry, and
+    // a favorite was toggled before the gamecode was known (name-keyed
+    // duplicate). Toggling again WITH the code must not lose play history.
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old Name.gba': {
+            gameCode: 'APAE',
+            launchCount: 42,
+            playMinutes: 900,
+            lastPlayed: '2026-07-10 21:00',
+            path: '/Games/gba/Old Name.gba',
+          },
+          'New Name.gba': { favorite: true },
+        },
+      }),
+    );
+    const next = toggleFavorite(data, 'New Name.gba', 'APAE');
+    const matches = next.entries.filter((e) => e.fileName.toLowerCase() === 'new name.gba');
+    expect(matches).toHaveLength(1);
+    const merged = matches[0];
+    expect(merged.gameCode).toBe('APAE');
+    expect(merged.launchCount).toBe(42);
+    expect(merged.playMinutes).toBe(900);
+    expect(merged.lastPlayed).toBe('2026-07-10 21:00');
+    // the code entry was not favorite; this toggle turns it on
+    expect(merged.favorite).toBe(true);
+    // serialization keeps a single key with full history
+    const text = serializeGameData(next);
+    const parsed = JSON.parse(text) as { games: Record<string, { launchCount?: number }> };
+    expect(Object.keys(parsed.games)).toHaveLength(1);
+    expect(parsed.games['New Name.gba'].launchCount).toBe(42);
+  });
+
+  it('keeps the newer lastPlayed when merging', () => {
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old.gba': { gameCode: 'BXYZ', launchCount: 1, lastPlayed: '2026-01-01 10:00' },
+          'New.gba': { launchCount: 2, lastPlayed: '2026-07-01 10:00' },
+        },
+      }),
+    );
+    const next = toggleFavorite(data, 'New.gba', 'BXYZ');
+    const merged = next.entries.find((e) => e.fileName === 'New.gba');
+    expect(merged?.lastPlayed).toBe('2026-07-01 10:00');
+    expect(merged?.launchCount).toBe(3);
   });
 });

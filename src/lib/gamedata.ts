@@ -226,6 +226,86 @@ export function findEntry(
 }
 
 /**
+ * Toggles a game's favorite flag, mirroring the launcher's `ToggleFavorite`
+ * (X button). The entry is resolved like the launcher's `GetOrCreateEntry`:
+ * code-first (case-insensitive, usable codes only — see
+ * {@link isUsableGameCode}) with the file name healed to the given one on a
+ * code match (the code is the stable identity, the file may have been renamed
+ * since the entry was written); then by file name (case-insensitive),
+ * adopting the code when the entry lacks one (upgrading a legacy name-keyed
+ * entry); else a fresh favorite entry is appended.
+ *
+ * Returns a new {@link GameData} — the input is never mutated; the session
+ * and all unaffected entries are carried over untouched. An entry toggled
+ * back to all-default state (not favorite, never launched, no play time) is
+ * kept in `entries`: {@link serializeGameData} prunes it on write, exactly
+ * like the launcher does.
+ */
+export function toggleFavorite(
+  data: GameData,
+  fileName: string,
+  gameCode?: string | null,
+): GameData {
+  const code = gameCode ?? undefined;
+  const usable = isUsableGameCode(code);
+  const entries = [...data.entries];
+
+  if (usable) {
+    const lowerCode = code.toLowerCase();
+    const index = entries.findIndex(
+      (entry) => entry.gameCode !== undefined && entry.gameCode.toLowerCase() === lowerCode,
+    );
+    const found = index >= 0 ? entries[index] : undefined;
+    if (found !== undefined) {
+      // self-heal the file name: the code survives renames, the name may not
+      let healed: GameDataEntry = { ...found, fileName, favorite: !found.favorite };
+      // healing may rename onto a fileName owned by a code-less duplicate
+      // (e.g. a toggle recorded before this game's code was known). Both the
+      // launcher and serializeGameData collapse duplicate names
+      // last-writer-wins, which would destroy this entry's history — merge
+      // the duplicate into the surviving entry instead.
+      const lowerName = fileName.toLowerCase();
+      const duplicateIndex = entries.findIndex(
+        (entry, i) =>
+          i !== index && entry.gameCode === undefined && entry.fileName.toLowerCase() === lowerName,
+      );
+      if (duplicateIndex >= 0) {
+        const duplicate = entries[duplicateIndex];
+        healed = {
+          ...healed,
+          launchCount: healed.launchCount + duplicate.launchCount,
+          playMinutes: healed.playMinutes + duplicate.playMinutes,
+          lastPlayed:
+            healed.lastPlayed !== undefined &&
+            (duplicate.lastPlayed === undefined || duplicate.lastPlayed <= healed.lastPlayed)
+              ? healed.lastPlayed
+              : duplicate.lastPlayed,
+        };
+        entries.splice(duplicateIndex, 1);
+      }
+      const healedIndex = entries.indexOf(found);
+      entries[healedIndex] = healed;
+      return { ...data, entries };
+    }
+  }
+
+  const lowerName = fileName.toLowerCase();
+  const index = entries.findIndex((entry) => entry.fileName.toLowerCase() === lowerName);
+  const found = index >= 0 ? entries[index] : undefined;
+  if (found !== undefined) {
+    const next: GameDataEntry = { ...found, favorite: !found.favorite };
+    if (usable && next.gameCode === undefined) next.gameCode = code;
+    entries[index] = next;
+    return { ...data, entries };
+  }
+
+  const created: GameDataEntry = { fileName, favorite: true, launchCount: 0, playMinutes: 0 };
+  if (usable) created.gameCode = code;
+  entries.push(created);
+  return { ...data, entries };
+}
+
+/**
  * Aggregate totals, mirroring the launcher's `StatisticsViewModel`:
  * favorites are counted over all entries, while launches and play minutes
  * only accumulate over entries launched at least once.
