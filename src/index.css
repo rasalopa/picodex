@@ -1,17 +1,20 @@
 :root {
   /* palette */
-  --bg: #12141a;
-  --bg-raised: #1b1e27;
-  --bg-hover: #232734;
-  --border: #2c3140;
+  --bg: #101218;
+  --bg-raised: #181b24;
+  --bg-hover: #212533;
+  --border: #262b3a;
+  --border-strong: #343a4e;
   --text: #e8eaf0;
-  --text-dim: #9aa1b5;
+  --text-dim: #99a0b4;
   --accent: #e04b62; /* dspico raspberry */
-  --accent-soft: #e04b6222;
+  --accent-soft: #e04b6220;
   --ok: #4fc07a;
+  --ok-soft: #4fc07a22;
   --warn: #e0a84b;
 
   --radius: 10px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 
   color-scheme: dark;
@@ -29,8 +32,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
   color: var(--text);
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, #e04b6210, transparent 60%),
+    radial-gradient(50rem 26rem at -10% 0%, #4b62e00d, transparent 60%), var(--bg);
+  background-attachment: fixed;
 }
 
 #root {
@@ -39,11 +45,20 @@ body {
   flex-direction: column;
 }
 
+::selection {
+  background: var(--accent-soft);
+}
+
 h1,
 h2,
 h3 {
   line-height: 1.2;
   margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--accent);
 }
 
 button {
@@ -54,10 +69,19 @@ button {
   border-radius: var(--radius);
   padding: 0.5rem 1rem;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.05s ease;
 }
 
 button:hover:not(:disabled) {
   background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
@@ -73,8 +97,13 @@ button.primary {
 }
 
 button.primary:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   background: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 input,
@@ -85,11 +114,35 @@ select {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) / 2);
   padding: 0.4rem 0.6rem;
+  transition: border-color 0.15s ease;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 
 code {
   background: var(--bg-raised);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.1em 0.35em;
   font-size: 0.9em;
+}
+
+/* slim, theme-matching scrollbars (webkit) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

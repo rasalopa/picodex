@@ -9,17 +9,29 @@
 }
 
 .app__header {
-  padding: 1rem 0 0.5rem;
+  padding: 1.1rem 0 0.6rem;
 }
 
 .app__logo {
-  font-size: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.app__mark {
+  width: 1.5em;
+  height: 1.5em;
+  flex: none;
 }
 
 .app__brand-accent {
   color: var(--accent);
 }
+
+/* ---- welcome ---- */
 
 .app__welcome {
   flex: 1;
@@ -28,24 +40,71 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 1rem;
-  padding: 3rem 1rem;
+  gap: 1.1rem;
+  padding: 4rem 1rem 3rem;
 }
 
-.app__welcome h1 {
-  font-size: 3rem;
+.app__welcome-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 3.2rem;
+  margin: 0;
+}
+
+.app__welcome-title .app__mark {
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .app__tagline {
-  max-width: 34rem;
+  max-width: 32rem;
   color: var(--text-dim);
   margin: 0;
+  font-size: 1.05rem;
+}
+
+.app__cta {
+  padding: 0.65rem 1.6rem;
+  font-size: 1.05rem;
 }
 
 .app__unsupported {
   max-width: 30rem;
   color: var(--warn);
 }
+
+.app__features {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  margin: 2.5rem 0 0;
+  max-width: 52rem;
+  width: 100%;
+}
+
+.app__features li {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.app__feature-title {
+  display: block;
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+/* ---- workspace ---- */
 
 .app__error {
   color: var(--accent);
@@ -58,18 +117,28 @@
 .app__tabs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0;
+  gap: 0.35rem;
+  padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 5;
 }
 
 .app__tab {
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-dim);
-  padding: 0.4rem 0.9rem;
+  padding: 0.4rem 0.95rem;
   border-radius: 999px;
+}
+
+.app__tab:hover:not(:disabled) {
+  background: var(--bg-raised);
+  border-color: transparent;
 }
 
 .app__tab--active {
@@ -78,10 +147,25 @@
   font-weight: 600;
 }
 
+.app__tab--active:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
 .app__sd-name {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--text-dim);
   font-size: 0.85rem;
+}
+
+.app__sd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: none;
 }
 
 .app__content {

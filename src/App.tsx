@@ -16,21 +16,43 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'associations', label: 'Associations' },
 ];
 
+/** Small cartridge mark that echoes the favicon. */
+function Cartridge() {
+  return (
+    <svg className="app__mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="2" y="2" width="28" height="28" rx="6" fill="var(--bg-raised)" />
+      <rect x="7" y="8" width="18" height="12" rx="2" fill="var(--accent)" />
+      <rect x="10" y="11" width="12" height="6" rx="1" fill="var(--bg)" />
+      <circle cx="11" cy="24" r="2" fill="var(--accent)" />
+      <circle cx="21" cy="24" r="2" fill="var(--text-dim)" />
+    </svg>
+  );
+}
+
+function Wordmark() {
+  return (
+    <span className="app__logo">
+      <Cartridge />
+      Pico<span className="app__brand-accent">Dex</span>
+    </span>
+  );
+}
+
 /** Landing hero shown before an SD card is opened. */
 function Welcome() {
   const { openSd, loading, error } = useSd();
   const supported = isFileSystemAccessSupported();
   return (
     <div className="app__welcome">
-      <h1>
+      <h1 className="app__welcome-title">
+        <Cartridge />
         Pico<span className="app__brand-accent">Dex</span>
       </h1>
       <p className="app__tagline">
-        Manage your DSpico SD card from the browser — covers, library, favorites and play stats.
-        Your files never leave your machine.
+        Manage your DSpico SD card from the browser. Your files never leave your machine.
       </p>
       {supported ? (
-        <button className="primary" onClick={() => void openSd()} disabled={loading}>
+        <button className="primary app__cta" onClick={() => void openSd()} disabled={loading}>
           {loading ? 'Opening…' : 'Open SD card'}
         </button>
       ) : (
@@ -40,6 +62,20 @@ function Welcome() {
         </p>
       )}
       {error && <p className="app__error">{error}</p>}
+      <ul className="app__features">
+        <li>
+          <span className="app__feature-title">Box art</span>
+          Finds games without covers and fetches launcher-ready art.
+        </li>
+        <li>
+          <span className="app__feature-title">Your library</span>
+          Every system on the card at a glance, with cover coverage.
+        </li>
+        <li>
+          <span className="app__feature-title">Play stats</span>
+          Favorites, most played and recents from Pico Enhanced.
+        </li>
+      </ul>
     </div>
   );
 }
@@ -61,6 +97,7 @@ function Workspace() {
           </button>
         ))}
         <span className="app__sd-name" title="Open SD card folder">
+          <span className="app__sd-dot" aria-hidden="true" />
           {root?.name}
         </span>
         <button onClick={() => void refresh()} disabled={loading}>
@@ -85,9 +122,7 @@ function Shell() {
       {root ? (
         <>
           <header className="app__header">
-            <span className="app__logo">
-              Pico<span className="app__brand-accent">Dex</span>
-            </span>
+            <Wordmark />
           </header>
           <Workspace />
         </>
