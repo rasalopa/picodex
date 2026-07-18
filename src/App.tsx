@@ -6,6 +6,7 @@ import { LibraryView } from './views/LibraryView';
 import { CoversView } from './views/CoversView';
 import { StatsView } from './views/StatsView';
 import { AssociationsView } from './views/AssociationsView';
+import { DropImport } from './components/DropImport';
 import './App.css';
 
 type Tab = 'library' | 'covers' | 'stats' | 'associations';
@@ -124,6 +125,7 @@ function Workspace() {
         {tab === 'stats' && <StatsView />}
         {tab === 'associations' && <AssociationsView />}
       </main>
+      <DropImport />
     </>
   );
 }

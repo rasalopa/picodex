@@ -1,0 +1,120 @@
+/* Full-window overlay shown while a file drag hovers the window. */
+.drop-import__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+  /* purely visual: drag/drop events are handled on the window */
+  pointer-events: none;
+}
+
+.drop-import__overlay-box {
+  margin: 0;
+  padding: 1.4rem 2.4rem;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-card);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Bottom-right results card. */
+.drop-import__panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(26rem, calc(100vw - 2.5rem));
+  max-height: min(24rem, 60vh);
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+.drop-import__panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.drop-import__title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.drop-import__summary {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.drop-import__close {
+  border: none;
+  background: transparent;
+  padding: 0 0.4rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--text-dim);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.drop-import__close:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.drop-import__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  overflow-y: auto;
+}
+
+.drop-import__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.drop-import__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drop-import__status {
+  flex: none;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.drop-import__row--busy .drop-import__status {
+  color: var(--text);
+}
+
+.drop-import__row--ok .drop-import__status {
+  color: var(--ok);
+}
+
+.drop-import__row--skip .drop-import__status {
+  color: var(--warn);
+}
+
+.drop-import__row--error .drop-import__status {
+  color: var(--accent);
+}
