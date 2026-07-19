@@ -48,15 +48,20 @@ export function StatsView() {
           </p>
           <h2>No play stats here yet</h2>
           <p>
-            This section lights up when the SD card runs the Pico Enhanced launcher, which tracks
-            launches, play time and favorites for every game.
-          </p>
-          <p>
-            The stock{' '}
+            This section lights up when the SD card runs{' '}
+            <a
+              href="https://github.com/rasalopa/pico-launcher-enhanced"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Pico Launcher Enhanced
+            </a>
+            , a launcher fork that tracks launches, play time and favorites for every game. It is a
+            drop-in replacement for the stock{' '}
             <a href="https://github.com/LNH-team/pico-launcher" target="_blank" rel="noreferrer">
-              pico-launcher
-            </a>{' '}
-            does not record play statistics.
+              Pico Launcher
+            </a>
+            , which does not record play statistics.
           </p>
         </div>
       </section>
