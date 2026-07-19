@@ -2,8 +2,6 @@
 
 > Manage your [DSpico](https://github.com/LNH-team/dspico) SD card from the browser — covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
 
-**Status: work in progress — not yet released.**
-
 ## What it does
 
 - 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage, and — if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) — your favorites and play stats.
@@ -21,9 +19,9 @@ Everything runs client-side. PicoDex has no server, no accounts and no telemetry
 
 ## Using it
 
-Hosted version: _coming with the first release._
+**Use it now: https://rasalopa.github.io/picodex/** — no install needed.
 
-Run it locally:
+Or run it locally:
 
 ```bash
 git clone https://github.com/rasalopa/picodex.git
