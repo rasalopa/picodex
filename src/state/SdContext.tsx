@@ -3,8 +3,9 @@ import type { ReactNode } from 'react';
 import {
   parseGameData,
   serializeGameData,
-  toggleFavorite as toggleGameDataFavorite,
+  toggleFlag,
   type GameData,
+  type GameFlag,
 } from '../lib/gamedata';
 import { parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
@@ -73,6 +74,8 @@ export interface SdState {
    * returned promise never rejects — write failures surface via `error`.
    */
   toggleFavorite(fileName: string, gameCode?: string | null): Promise<void>;
+  /** Same contract as {@link toggleFavorite}, for the completed flag. */
+  toggleCompleted(fileName: string, gameCode?: string | null): Promise<void>;
 }
 
 const SdContext = createContext<SdState | null>(null);
@@ -219,14 +222,14 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [root, loadFrom]);
 
-  const toggleFavorite = useCallback(
-    (fileName: string, gameCode?: string | null): Promise<void> => {
+  const toggleGameFlag = useCallback(
+    (fileName: string, gameCode: string | null | undefined, flag: GameFlag): Promise<void> => {
       const run = async (): Promise<void> => {
         // stock launcher: no gamedata.json on the card means nothing to
         // toggle — never create the file (see the SdState doc above)
         if (root === null || gameDataRef.current === null) return;
         try {
-          const next = toggleGameDataFavorite(gameDataRef.current, fileName, gameCode);
+          const next = toggleFlag(gameDataRef.current, fileName, gameCode, flag);
           const text = serializeGameData(next);
           const picoDir = await getDir(root, [PICO_DIR]);
           if (picoDir === null) throw new Error('No /_pico directory on the SD card');
@@ -247,6 +250,18 @@ export function SdProvider({ children }: { children: ReactNode }) {
     [root],
   );
 
+  const toggleFavorite = useCallback(
+    (fileName: string, gameCode?: string | null): Promise<void> =>
+      toggleGameFlag(fileName, gameCode, 'favorite'),
+    [toggleGameFlag],
+  );
+
+  const toggleCompleted = useCallback(
+    (fileName: string, gameCode?: string | null): Promise<void> =>
+      toggleGameFlag(fileName, gameCode, 'completed'),
+    [toggleGameFlag],
+  );
+
   const value = useMemo(
     () => ({
       root,
@@ -261,6 +276,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       openSd,
       refresh,
       toggleFavorite,
+      toggleCompleted,
     }),
     [
       root,
@@ -275,6 +291,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       openSd,
       refresh,
       toggleFavorite,
+      toggleCompleted,
     ],
   );
 

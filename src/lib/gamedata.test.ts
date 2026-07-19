@@ -7,6 +7,7 @@ import {
   serializeGameData,
   sortedByLastPlayed,
   sortedByMostPlayed,
+  toggleCompleted,
   toggleFavorite,
 } from './gamedata';
 import type { GameData, GameDataEntry } from './gamedata';
@@ -39,7 +40,8 @@ const launcherSample = crlf(
   '    },',
   '    "Zelda.gba": {',
   '      "gameCode": "AZLS",',
-  '      "favorite": true',
+  '      "favorite": true,',
+  '      "completed": true',
   '    }',
   '  },',
   '  "sessionGame": "Mario Kart DS.nds",',
@@ -57,6 +59,7 @@ describe('parseGameData', () => {
       fileName: 'Mario Kart DS.nds',
       gameCode: 'AMCE',
       favorite: true,
+      completed: false,
       launchCount: 3,
       playMinutes: 125,
       lastPlayed: '2026-07-16 21:30',
@@ -66,17 +69,19 @@ describe('parseGameData', () => {
     expect(data.entries[1]).toEqual({
       fileName: 'homebrew.nds',
       favorite: false,
+      completed: false,
       launchCount: 1,
       playMinutes: 0,
       lastPlayed: '2026-07-10 09:05',
       path: '/homebrew/homebrew.nds',
     });
     expect(data.entries[1]?.gameCode).toBeUndefined();
-    // favorite-only entry, never launched
+    // favorite+completed entry, never launched
     expect(data.entries[2]).toEqual({
       fileName: 'Zelda.gba',
       gameCode: 'AZLS',
       favorite: true,
+      completed: true,
       launchCount: 0,
       playMinutes: 0,
     });
@@ -105,6 +110,7 @@ describe('parseGameData', () => {
         games: {
           'a.nds': {
             favorite: 'yes',
+            completed: 1,
             launchCount: -2,
             playMinutes: 1.5,
             lastPlayed: 42,
@@ -119,12 +125,14 @@ describe('parseGameData', () => {
     expect(data.entries[0]).toEqual({
       fileName: 'a.nds',
       favorite: false,
+      completed: false,
       launchCount: 0,
       playMinutes: 0,
     });
     expect(data.entries[1]).toEqual({
       fileName: 'b.nds',
       favorite: false,
+      completed: false,
       launchCount: 0,
       playMinutes: 0,
     });
@@ -175,12 +183,13 @@ describe('serializeGameData', () => {
           fileName: 'reset.nds',
           gameCode: 'AAAA',
           favorite: false,
+          completed: false,
           launchCount: 0,
           playMinutes: 0,
           lastPlayed: '2026-01-01 10:00',
           path: '/reset.nds',
         },
-        { fileName: 'kept.nds', favorite: true, launchCount: 0, playMinutes: 0 },
+        { fileName: 'kept.nds', favorite: true, completed: false, launchCount: 0, playMinutes: 0 },
       ],
     };
     expect(serializeGameData(data)).toBe(
@@ -195,6 +204,7 @@ describe('serializeGameData', () => {
           fileName: 'a.nds',
           gameCode: '',
           favorite: false,
+          completed: false,
           launchCount: 2,
           playMinutes: 0,
           lastPlayed: '',
@@ -265,6 +275,7 @@ describe('toggleFavorite', () => {
           fileName: 'Mario Kart DS.nds',
           gameCode: 'AMCE',
           favorite: false,
+          completed: false,
           launchCount: 3,
           playMinutes: 125,
         },
@@ -278,6 +289,7 @@ describe('toggleFavorite', () => {
         fileName: 'Mario Kart DS (Europe).nds',
         gameCode: 'AMCE',
         favorite: true,
+        completed: false,
         launchCount: 3,
         playMinutes: 125,
       },
@@ -286,18 +298,43 @@ describe('toggleFavorite', () => {
 
   it('toggles by name (case-insensitive), adopting a newly known code', () => {
     const data: GameData = {
-      entries: [{ fileName: 'legacy.nds', favorite: false, launchCount: 1, playMinutes: 5 }],
+      entries: [
+        {
+          fileName: 'legacy.nds',
+          favorite: false,
+          completed: false,
+          launchCount: 1,
+          playMinutes: 5,
+        },
+      ],
     };
     const next = toggleFavorite(data, 'LEGACY.NDS', 'ABCD');
     // legacy name-keyed entry upgraded with the code, name kept as written
     expect(next.entries).toEqual([
-      { fileName: 'legacy.nds', gameCode: 'ABCD', favorite: true, launchCount: 1, playMinutes: 5 },
+      {
+        fileName: 'legacy.nds',
+        gameCode: 'ABCD',
+        favorite: true,
+        completed: false,
+        launchCount: 1,
+        playMinutes: 5,
+      },
     ]);
   });
 
   it('does not adopt unusable codes and keeps an existing code', () => {
     const garbage = toggleFavorite(
-      { entries: [{ fileName: 'homebrew.nds', favorite: false, launchCount: 1, playMinutes: 0 }] },
+      {
+        entries: [
+          {
+            fileName: 'homebrew.nds',
+            favorite: false,
+            completed: false,
+            launchCount: 1,
+            playMinutes: 0,
+          },
+        ],
+      },
       'homebrew.nds',
       '##',
     );
@@ -307,7 +344,14 @@ describe('toggleFavorite', () => {
     const keeps = toggleFavorite(
       {
         entries: [
-          { fileName: 'a.nds', gameCode: 'AAAA', favorite: false, launchCount: 0, playMinutes: 0 },
+          {
+            fileName: 'a.nds',
+            gameCode: 'AAAA',
+            favorite: false,
+            completed: false,
+            launchCount: 0,
+            playMinutes: 0,
+          },
         ],
       },
       'a.nds',
@@ -319,13 +363,26 @@ describe('toggleFavorite', () => {
   it('creates a fresh favorite entry when nothing matches', () => {
     const next = toggleFavorite({ entries: [] }, 'new.nds', 'BXYZ');
     expect(next.entries).toEqual([
-      { fileName: 'new.nds', gameCode: 'BXYZ', favorite: true, launchCount: 0, playMinutes: 0 },
+      {
+        fileName: 'new.nds',
+        gameCode: 'BXYZ',
+        favorite: true,
+        completed: false,
+        launchCount: 0,
+        playMinutes: 0,
+      },
     ]);
 
     // null / unusable code: the fresh entry is name-keyed only
     const homebrew = toggleFavorite({ entries: [] }, 'homebrew.nds', null);
     expect(homebrew.entries).toEqual([
-      { fileName: 'homebrew.nds', favorite: true, launchCount: 0, playMinutes: 0 },
+      {
+        fileName: 'homebrew.nds',
+        favorite: true,
+        completed: false,
+        launchCount: 0,
+        playMinutes: 0,
+      },
     ]);
     expect(homebrew.entries[0]?.gameCode).toBeUndefined();
   });
@@ -377,6 +434,7 @@ describe('isUsableGameCode', () => {
 describe('stats helpers', () => {
   const entry = (partial: Partial<GameDataEntry> & { fileName: string }): GameDataEntry => ({
     favorite: false,
+    completed: false,
     launchCount: 0,
     playMinutes: 0,
     ...partial,
@@ -390,7 +448,7 @@ describe('stats helpers', () => {
         playMinutes: 125,
         lastPlayed: '2025-12-31 23:59',
       }),
-      entry({ fileName: 'b.nds', favorite: true }),
+      entry({ fileName: 'b.nds', favorite: true, completed: true }),
       entry({
         fileName: 'c.nds',
         launchCount: 1,
@@ -412,12 +470,14 @@ describe('stats helpers', () => {
     expect(gameDataTotals(data)).toEqual({
       playedCount: 4,
       favoriteCount: 2, // favorites counted even when never launched
+      completedCount: 1, // completed too
       totalLaunches: 9,
       totalPlayMinutes: 335,
     });
     expect(gameDataTotals({ entries: [] })).toEqual({
       playedCount: 0,
       favoriteCount: 0,
+      completedCount: 0,
       totalLaunches: 0,
       totalPlayMinutes: 0,
     });
@@ -493,5 +553,97 @@ describe('toggleFavorite duplicate healing', () => {
     const merged = next.entries.find((e) => e.fileName === 'New.gba');
     expect(merged?.lastPlayed).toBe('2026-07-01 10:00');
     expect(merged?.launchCount).toBe(3);
+  });
+
+  it('carries the untoggled flag of the swallowed duplicate into the merge', () => {
+    // the completed mark lives only on the name-keyed duplicate (marked
+    // before the gamecode was known); toggling FAVORITE via the code path
+    // must not silently drop it
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old.gba': { gameCode: 'BXYZ', launchCount: 1 },
+          'New.gba': { completed: true },
+        },
+      }),
+    );
+    const next = toggleFavorite(data, 'New.gba', 'BXYZ');
+    const merged = next.entries.find((e) => e.fileName === 'New.gba');
+    expect(merged?.favorite).toBe(true);
+    expect(merged?.completed).toBe(true); // survived the merge
+  });
+
+  it('never resurrects the toggled flag from the duplicate', () => {
+    // the UI showed the code entry's state (favorite on); the user clicked
+    // to REMOVE it — the duplicate's stale favorite must not undo that
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old.gba': { gameCode: 'BXYZ', favorite: true, launchCount: 1 },
+          'New.gba': { favorite: true, completed: true },
+        },
+      }),
+    );
+    const next = toggleFavorite(data, 'New.gba', 'BXYZ');
+    const merged = next.entries.find((e) => e.fileName === 'New.gba');
+    expect(merged?.favorite).toBe(false); // the un-toggle wins
+    expect(merged?.completed).toBe(true); // the untoggled flag still survives
+  });
+});
+
+describe('toggleCompleted', () => {
+  it('creates a fresh completed entry and leaves favorite untouched', () => {
+    const next = toggleCompleted({ entries: [] }, 'done.nds', 'DONE');
+    expect(next.entries).toEqual([
+      {
+        fileName: 'done.nds',
+        gameCode: 'DONE',
+        favorite: false,
+        completed: true,
+        launchCount: 0,
+        playMinutes: 0,
+      },
+    ]);
+  });
+
+  it('toggles completed independently of favorite on an existing entry', () => {
+    const data = parseGameData(launcherSample);
+    const next = toggleCompleted(data, 'Mario Kart DS.nds', 'AMCE');
+    const mario = next.entries.find((e) => e.fileName === 'Mario Kart DS.nds');
+    expect(mario?.completed).toBe(true);
+    expect(mario?.favorite).toBe(true); // untouched
+    const off = toggleCompleted(next, 'Mario Kart DS.nds', 'AMCE');
+    expect(off.entries.find((e) => e.fileName === 'Mario Kart DS.nds')?.completed).toBe(false);
+  });
+
+  it('writes "completed" after "favorite" and survives a round trip', () => {
+    const next = toggleCompleted(
+      toggleFavorite({ entries: [] }, 'done.nds', 'DONE'),
+      'done.nds',
+      'DONE',
+    );
+    const text = serializeGameData(next);
+    expect(text).toBe(
+      crlf(
+        '{',
+        '  "games": {',
+        '    "done.nds": {',
+        '      "gameCode": "DONE",',
+        '      "favorite": true,',
+        '      "completed": true',
+        '    }',
+        '  }',
+        '}',
+      ),
+    );
+    expect(parseGameData(text).entries[0]?.completed).toBe(true);
+  });
+
+  it('a completed-only entry survives serialize-side pruning', () => {
+    const on = toggleCompleted({ entries: [] }, 'keep.nds', null);
+    expect(serializeGameData(on)).toContain('keep.nds');
+    // toggled back off it becomes all-default and is pruned
+    const off = toggleCompleted(on, 'keep.nds', null);
+    expect(serializeGameData(off)).toBe(crlf('{', '  "games": {}', '}'));
   });
 });

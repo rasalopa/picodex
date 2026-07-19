@@ -177,7 +177,8 @@
    card's gamedata.json exists to write back to). Hollow and dim when the
    game is not a favorite, rising on hover/focus; filled accent when it is. */
 
-.system-gallery__favorite {
+.system-gallery__favorite,
+.system-gallery__completed {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -199,12 +200,20 @@
   transition: opacity 0.15s ease;
 }
 
+/* the completed check stacks right below the heart */
+.system-gallery__completed {
+  top: 36px;
+}
+
 .system-gallery__favorite:hover,
-.system-gallery__favorite:focus-visible {
+.system-gallery__favorite:focus-visible,
+.system-gallery__completed:hover,
+.system-gallery__completed:focus-visible {
   opacity: 1;
 }
 
-.system-gallery__favorite:focus-visible {
+.system-gallery__favorite:focus-visible,
+.system-gallery__completed:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
@@ -214,7 +223,13 @@
   opacity: 1;
 }
 
-.system-gallery__favorite:disabled {
+.system-gallery__completed--on {
+  color: var(--ok);
+  opacity: 1;
+}
+
+.system-gallery__favorite:disabled,
+.system-gallery__completed:disabled {
   cursor: default;
   opacity: 0.3;
 }

@@ -85,6 +85,10 @@ export function StatsView() {
           <dd className="stats-view__tile-value">{totals.favoriteCount}</dd>
         </div>
         <div className="stats-view__tile card">
+          <dt className="stats-view__tile-label">Completed</dt>
+          <dd className="stats-view__tile-value">{totals.completedCount}</dd>
+        </div>
+        <div className="stats-view__tile card">
           <dt className="stats-view__tile-label">Total launches</dt>
           <dd className="stats-view__tile-value">{totals.totalLaunches}</dd>
         </div>

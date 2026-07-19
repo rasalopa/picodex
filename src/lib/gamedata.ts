@@ -10,6 +10,7 @@
  *     "<fileName>": {
  *       "gameCode": "AMCE",
  *       "favorite": true,
+ *       "completed": true,
  *       "launchCount": 3,
  *       "playMinutes": 125,
  *       "lastPlayed": "2026-07-16 21:30",
@@ -40,6 +41,11 @@ export interface GameDataEntry {
   gameCode?: string;
   /** Marked as favorite (X button in the launcher). */
   favorite: boolean;
+  /**
+   * Marked as completed (long-press X in the launcher). Requires Pico
+   * Launcher Enhanced v1.1.0+ — older launchers drop the key on save.
+   */
+  completed: boolean;
   /** Number of times the game was launched. */
   launchCount: number;
   /**
@@ -83,6 +89,8 @@ export interface GameDataTotals {
   playedCount: number;
   /** Entries marked as favorite (played or not). */
   favoriteCount: number;
+  /** Entries marked as completed (played or not). */
+  completedCount: number;
   /** Sum of launchCount over played entries. */
   totalLaunches: number;
   /** Sum of playMinutes over played entries. */
@@ -140,6 +148,7 @@ export function parseGameData(text: string): GameData {
       const entry: GameDataEntry = {
         fileName,
         favorite: game['favorite'] === true,
+        completed: game['completed'] === true,
         launchCount: readCount(game['launchCount']),
         playMinutes: readCount(game['playMinutes']),
       };
@@ -178,11 +187,13 @@ export function serializeGameData(data: GameData): string {
   const games: Record<string, unknown> = {};
   for (const entry of data.entries) {
     // entries reset back to all-default state are pruned on write
-    if (!entry.favorite && entry.launchCount <= 0 && entry.playMinutes <= 0) continue;
+    if (!entry.favorite && !entry.completed && entry.launchCount <= 0 && entry.playMinutes <= 0)
+      continue;
     const game: Record<string, unknown> = {};
     if (entry.gameCode !== undefined && entry.gameCode.length > 0)
       game['gameCode'] = entry.gameCode;
     if (entry.favorite) game['favorite'] = true;
+    if (entry.completed) game['completed'] = true;
     if (entry.launchCount > 0) game['launchCount'] = entry.launchCount;
     if (entry.playMinutes > 0) game['playMinutes'] = entry.playMinutes;
     if (entry.lastPlayed !== undefined && entry.lastPlayed.length > 0)
@@ -225,26 +236,31 @@ export function findEntry(
   return data.entries.find((entry) => entry.fileName.toLowerCase() === name);
 }
 
+/** User-editable boolean marks on a game entry. */
+export type GameFlag = 'favorite' | 'completed';
+
 /**
- * Toggles a game's favorite flag, mirroring the launcher's `ToggleFavorite`
- * (X button). The entry is resolved like the launcher's `GetOrCreateEntry`:
- * code-first (case-insensitive, usable codes only — see
- * {@link isUsableGameCode}) with the file name healed to the given one on a
- * code match (the code is the stable identity, the file may have been renamed
- * since the entry was written); then by file name (case-insensitive),
- * adopting the code when the entry lacks one (upgrading a legacy name-keyed
- * entry); else a fresh favorite entry is appended.
+ * Toggles one of a game's boolean flags, mirroring the launcher's
+ * `ToggleFavorite`/`ToggleCompleted` (X press / X long-press). The entry is
+ * resolved like the launcher's `GetOrCreateEntry`: code-first
+ * (case-insensitive, usable codes only — see {@link isUsableGameCode}) with
+ * the file name healed to the given one on a code match (the code is the
+ * stable identity, the file may have been renamed since the entry was
+ * written); then by file name (case-insensitive), adopting the code when the
+ * entry lacks one (upgrading a legacy name-keyed entry); else a fresh entry
+ * with just that flag set is appended.
  *
  * Returns a new {@link GameData} — the input is never mutated; the session
  * and all unaffected entries are carried over untouched. An entry toggled
- * back to all-default state (not favorite, never launched, no play time) is
+ * back to all-default state (no flags, never launched, no play time) is
  * kept in `entries`: {@link serializeGameData} prunes it on write, exactly
  * like the launcher does.
  */
-export function toggleFavorite(
+export function toggleFlag(
   data: GameData,
   fileName: string,
-  gameCode?: string | null,
+  gameCode: string | null | undefined,
+  flag: GameFlag,
 ): GameData {
   const code = gameCode ?? undefined;
   const usable = isUsableGameCode(code);
@@ -258,7 +274,8 @@ export function toggleFavorite(
     const found = index >= 0 ? entries[index] : undefined;
     if (found !== undefined) {
       // self-heal the file name: the code survives renames, the name may not
-      let healed: GameDataEntry = { ...found, fileName, favorite: !found.favorite };
+      let healed: GameDataEntry = { ...found, fileName };
+      healed[flag] = !found[flag];
       // healing may rename onto a fileName owned by a code-less duplicate
       // (e.g. a toggle recorded before this game's code was known). Both the
       // launcher and serializeGameData collapse duplicate names
@@ -281,6 +298,12 @@ export function toggleFavorite(
               ? healed.lastPlayed
               : duplicate.lastPlayed,
         };
+        // a flag set only on the swallowed duplicate must survive the merge.
+        // The flag being toggled is exempt: the UI showed (and the user acted
+        // on) the code entry's state, so its just-flipped value wins — OR-ing
+        // it too would undo an intentional un-toggle.
+        const untoggled: GameFlag = flag === 'favorite' ? 'completed' : 'favorite';
+        healed[untoggled] = healed[untoggled] || duplicate[untoggled];
         entries.splice(duplicateIndex, 1);
       }
       const healedIndex = entries.indexOf(found);
@@ -293,16 +316,42 @@ export function toggleFavorite(
   const index = entries.findIndex((entry) => entry.fileName.toLowerCase() === lowerName);
   const found = index >= 0 ? entries[index] : undefined;
   if (found !== undefined) {
-    const next: GameDataEntry = { ...found, favorite: !found.favorite };
+    const next: GameDataEntry = { ...found };
+    next[flag] = !found[flag];
     if (usable && next.gameCode === undefined) next.gameCode = code;
     entries[index] = next;
     return { ...data, entries };
   }
 
-  const created: GameDataEntry = { fileName, favorite: true, launchCount: 0, playMinutes: 0 };
+  const created: GameDataEntry = {
+    fileName,
+    favorite: false,
+    completed: false,
+    launchCount: 0,
+    playMinutes: 0,
+  };
+  created[flag] = true;
   if (usable) created.gameCode = code;
   entries.push(created);
   return { ...data, entries };
+}
+
+/** Toggles a game's favorite flag — see {@link toggleFlag}. */
+export function toggleFavorite(
+  data: GameData,
+  fileName: string,
+  gameCode?: string | null,
+): GameData {
+  return toggleFlag(data, fileName, gameCode, 'favorite');
+}
+
+/** Toggles a game's completed flag — see {@link toggleFlag}. */
+export function toggleCompleted(
+  data: GameData,
+  fileName: string,
+  gameCode?: string | null,
+): GameData {
+  return toggleFlag(data, fileName, gameCode, 'completed');
 }
 
 /**
@@ -314,11 +363,13 @@ export function gameDataTotals(data: GameData): GameDataTotals {
   const totals: GameDataTotals = {
     playedCount: 0,
     favoriteCount: 0,
+    completedCount: 0,
     totalLaunches: 0,
     totalPlayMinutes: 0,
   };
   for (const entry of data.entries) {
     if (entry.favorite) totals.favoriteCount++;
+    if (entry.completed) totals.completedCount++;
     if (entry.launchCount <= 0) continue;
     totals.playedCount++;
     totals.totalLaunches += entry.launchCount;

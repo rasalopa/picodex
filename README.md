@@ -22,7 +22,7 @@
 
 ## What it does
 
-- 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage, and — if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) — your favorites and play stats.
+- 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage, and — if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) — your favorites, completed games and play stats.
 - 🖼 **Cover manager**: finds games without box art, matches them against the [libretro-thumbnails](https://github.com/libretro-thumbnails) catalogs (No-Intro naming, region-aware), previews the result and writes launcher-ready BMPs to `/_pico/covers/`.
 - 🎮 **Library organizer**: drop ROM files onto the page — PicoDex detects the system, places them under `Games/`, and fetches their covers.
 - 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.

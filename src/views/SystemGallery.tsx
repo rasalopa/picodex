@@ -59,13 +59,13 @@ function playBadge(entry: GameDataEntry): string | null {
  * the way the launcher does: `covers/user/<file name>.bmp` first, then — for
  * gamecode-keyed systems — `covers/<nds|gba>/<CODE>.bmp` with the code read
  * from the ROM header. When Pico Enhanced's gamedata.json is present, cards
- * carry play-time badges and a heart button that toggles the favorite on the
- * card (writing gamedata.json back), and favorites sort first. A pencil
- * button on each card opens the manual cover picker for when the automatic
- * matcher chose the wrong box art.
+ * carry play-time badges plus heart and check buttons that toggle the
+ * favorite/completed flags on the card (writing gamedata.json back), and
+ * favorites sort first. A pencil button on each card opens the manual cover
+ * picker for when the automatic matcher chose the wrong box art.
  */
 export function SystemGallery({ system, onBack }: { system: System; onBack: () => void }) {
-  const { root, games, coverIndex, gameData, toggleFavorite, refresh } = useSd();
+  const { root, games, coverIndex, gameData, toggleFavorite, toggleCompleted, refresh } = useSd();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
   const [error, setError] = useState<string | null>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
@@ -199,10 +199,14 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     return list.map(({ card }) => card);
   }, [systemGames, resolved, gameData, initialGameData]);
 
-  /** Toggles a favorite on the SD card; hearts disable until it settles. */
-  function handleToggleFavorite(game: LibraryFile, cover: ResolvedCover | undefined) {
+  /** Toggles a game flag on the SD card; all badges disable until it settles. */
+  function handleToggle(
+    toggle: (fileName: string, gameCode?: string | null) => Promise<void>,
+    game: LibraryFile,
+    cover: ResolvedCover | undefined,
+  ) {
     setTogglePending(true);
-    void toggleFavorite(game.fileName, cover?.code ?? undefined).finally(() => {
+    void toggle(game.fileName, cover?.code ?? undefined).finally(() => {
       setTogglePending(false);
     });
   }
@@ -297,10 +301,37 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       // gamedata entry in two
                       disabled={togglePending || cover === undefined}
                       onClick={() => {
-                        handleToggleFavorite(game, cover);
+                        handleToggle(toggleFavorite, game, cover);
                       }}
                     >
                       <span aria-hidden="true">{entry?.favorite === true ? '♥' : '♡'}</span>
+                    </button>
+                  )}
+                  {gameData !== null && (
+                    <button
+                      type="button"
+                      className={
+                        entry?.completed === true
+                          ? 'system-gallery__completed system-gallery__completed--on'
+                          : 'system-gallery__completed'
+                      }
+                      aria-pressed={entry?.completed === true}
+                      aria-label={`Toggle completed for ${title}`}
+                      title={
+                        cover === undefined
+                          ? 'Resolving game…'
+                          : entry?.completed === true
+                            ? 'Unmark completed'
+                            : 'Mark completed'
+                      }
+                      // same gate as the heart: a name-only toggle on a
+                      // renamed rom would split its gamedata entry in two
+                      disabled={togglePending || cover === undefined}
+                      onClick={() => {
+                        handleToggle(toggleCompleted, game, cover);
+                      }}
+                    >
+                      <span aria-hidden="true">✓</span>
                     </button>
                   )}
                   {badge !== null && (
