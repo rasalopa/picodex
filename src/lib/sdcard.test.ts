@@ -7,6 +7,7 @@ import {
   SETTINGS_FILE,
   ensureReadWritePermission,
   fileExists,
+  friendlyFsError,
   getDir,
   isFileSystemAccessSupported,
   listEntries,
@@ -417,5 +418,23 @@ describe('scanLibrary', () => {
       ['gb', 'C.gb', 3],
       ['gbc', 'D.gbc', 4],
     ]);
+  });
+});
+
+describe('friendlyFsError', () => {
+  it('translates the misleading Chromium permission-denial wording', () => {
+    const denial = new DOMException(
+      'An attempt was made to write to a file or directory which could not ' +
+        'be modified due to the state of the underlying filesystem.',
+      'NoModificationAllowedError',
+    );
+    expect(friendlyFsError(denial)).toContain('macOS denied access');
+    expect(friendlyFsError(denial)).toContain('.Trashes');
+  });
+
+  it('passes other errors through unchanged', () => {
+    expect(friendlyFsError(new DOMException('gone', 'NotFoundError'))).toBe('gone');
+    expect(friendlyFsError(new Error('boom'))).toBe('boom');
+    expect(friendlyFsError('plain string')).toBe('plain string');
   });
 });

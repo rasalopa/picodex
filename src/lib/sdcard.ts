@@ -354,3 +354,19 @@ export async function scanLibrary(
   }
   return results;
 }
+
+/**
+ * Human-readable message for a filesystem error. Chromium reports macOS
+ * permission denials (system-protected entries like `.Trashes`, read-only
+ * mounts) as a misleading "an attempt was made to write..." — name the
+ * likely causes instead of echoing it.
+ */
+export function friendlyFsError(e: unknown): string {
+  if (e instanceof DOMException && e.name === 'NoModificationAllowedError') {
+    return (
+      'macOS denied access to an entry on the card — it may be a system-protected ' +
+      'folder (like .Trashes) or the card may be mounted read-only.'
+    );
+  }
+  return e instanceof Error ? e.message : String(e);
+}

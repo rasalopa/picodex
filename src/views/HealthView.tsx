@@ -1,129 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSd } from '../state/SdContext';
-import {
-  JUNK_DIR_NAMES,
-  findOrphanSaves,
-  findOrphanUserCovers,
-  isJunkFileName,
-  isPreventionOnlyFsevents,
-  missingLoaderFiles,
-  type SaveFile,
-} from '../lib/health';
-import { COVERS, GAMES_DIR, PICO_DIR, getDir, listEntries } from '../lib/sdcard';
+import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
+import { scanCard, type ScanResult } from '../lib/scan';
+import { COVERS, GAMES_DIR, friendlyFsError, getDir } from '../lib/sdcard';
 import './HealthView.css';
 
 /** URL of the Pico Loader releases page (source of the required .bin files). */
 const LOADER_RELEASES_URL = 'https://github.com/LNH-team/pico-loader/releases';
-
-/** How deep the scanner walks below the SD root. */
-const MAX_SCAN_DEPTH = 8;
-
-/** One junk file found by the scan, with enough context to delete it. */
-interface JunkFile {
-  /** Directory path segments from the SD root (empty = at the root). */
-  path: readonly string[];
-  name: string;
-  size: number;
-}
-
-/** One macOS junk directory found at the SD root. */
-interface JunkDir {
-  name: string;
-  /** `.fseventsd` holding only the intentional `no_log` marker: never deleted. */
-  preventionOnly: boolean;
-}
-
-/** Raw data collected by one walk of the card (orphans are derived later). */
-interface ScanResult {
-  junkFiles: JunkFile[];
-  junkDirs: JunkDir[];
-  /** File names found directly inside `/_pico` (for the loader check). */
-  picoEntries: string[];
-  /** `.sav` files found in `Games/<dir>/`. */
-  saves: SaveFile[];
-  /** File names found in `_pico/covers/user/`. */
-  userCoverNames: string[];
-  /** Total number of files visited. */
-  filesSeen: number;
-}
-
-/** Case-insensitive path comparison: FAT preserves case but ignores it. */
-function pathEquals(path: readonly string[], expected: readonly string[]): boolean {
-  return (
-    path.length === expected.length &&
-    expected.every((segment, i) => path[i].toLowerCase() === segment.toLowerCase())
-  );
-}
-
-/**
- * Walks the whole card (depth-capped) collecting health data. Junk
- * directories are inspected but never descended into; everything else —
- * including ROM folders, where Finder drops `._*` files too — is visited.
- */
-async function scanCard(
-  root: FileSystemDirectoryHandle,
-  onProgress: (filesSeen: number) => void,
-): Promise<ScanResult> {
-  const result: ScanResult = {
-    junkFiles: [],
-    junkDirs: [],
-    picoEntries: [],
-    saves: [],
-    userCoverNames: [],
-    filesSeen: 0,
-  };
-
-  async function walk(dir: FileSystemDirectoryHandle, path: readonly string[]): Promise<void> {
-    const inPico = pathEquals(path, [PICO_DIR]);
-    const inUserCovers = pathEquals(path, COVERS.user);
-    const gamesDir =
-      path.length === 2 && path[0].toLowerCase() === GAMES_DIR.toLowerCase() ? path[1] : null;
-    for await (const handle of dir.values()) {
-      if (handle.kind === 'file') {
-        result.filesSeen += 1;
-        if (result.filesSeen % 50 === 0) {
-          onProgress(result.filesSeen);
-        }
-        if (isJunkFileName(handle.name)) {
-          const file = await handle.getFile();
-          result.junkFiles.push({ path, name: handle.name, size: file.size });
-          continue; // junk is junk everywhere; never double-report it below
-        }
-        if (inPico) {
-          result.picoEntries.push(handle.name);
-        } else if (inUserCovers) {
-          result.userCoverNames.push(handle.name);
-        } else if (gamesDir !== null && handle.name.toLowerCase().endsWith('.sav')) {
-          result.saves.push({ gamesDir, name: handle.name });
-        }
-        continue;
-      }
-      if (JUNK_DIR_NAMES.includes(handle.name)) {
-        // never descend into junk dirs; only the root-level ones are
-        // reported (that is where macOS creates them)
-        if (path.length === 0) {
-          const entryNames = (await listEntries(handle)).map((entry) => entry.name);
-          result.junkDirs.push({
-            name: handle.name,
-            preventionOnly: handle.name === '.fseventsd' && isPreventionOnlyFsevents(entryNames),
-          });
-        }
-        continue;
-      }
-      if (path.length < MAX_SCAN_DEPTH) {
-        await walk(handle, [...path, handle.name]);
-      }
-    }
-  }
-
-  await walk(root, []);
-  onProgress(result.filesSeen);
-  return result;
-}
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
 
 /** Section card class with its ok/warn status edge modifier. */
 function sectionClass(ok: boolean): string {
@@ -197,9 +80,9 @@ function ConfirmDelete({
 /**
  * SD card health check: finds macOS junk, missing Pico Loader files,
  * orphaned saves and orphaned user covers, with surgical cleanup actions.
- * Junk is deleted by exact rules only ({@link isJunkFileName},
- * {@link JUNK_DIR_NAMES}); anything possibly valuable (saves) requires
- * explicit per-item opt-in.
+ * Junk is deleted by exact rules only (the `isJunkFileName` /
+ * `JUNK_DIR_NAMES` allowlists in `lib/health`); anything possibly valuable
+ * (saves) requires explicit per-item opt-in.
  */
 export function HealthView() {
   const { root, games, refresh, loading } = useSd();
@@ -232,7 +115,15 @@ export function HealthView() {
     try {
       // orphan classification joins the walk against the context library:
       // re-read it first so files copied outside PicoDex are known
-      await refresh();
+      if (!(await refresh())) {
+        // scanning against a stale or empty library would flag healthy
+        // saves and covers as orphans — refuse rather than mislead
+        setScanError(
+          'The game library could not be re-read (see the error above), ' +
+            'so the scan was cancelled — its results would be unreliable.',
+        );
+        return;
+      }
       const result = await scanCard(root, setFilesSeen);
       setScan(result);
       // fresh scan, fresh choices: selections and pending confirms reset
@@ -242,7 +133,7 @@ export function HealthView() {
       setSavesConfirm(false);
       setCoversConfirm(false);
     } catch (e) {
-      setScanError(errorMessage(e));
+      setScanError(friendlyFsError(e));
     } finally {
       setScanning(false);
     }
@@ -291,17 +182,29 @@ export function HealthView() {
     if (root === null || scan === null || anyBusy) return;
     setJunkBusy(true);
     setJunkError(null);
-    try {
-      for (const file of scan.junkFiles) {
+    // one protected entry must not abort the rest of the cleanup
+    const failed: string[] = [];
+    for (const file of scan.junkFiles) {
+      try {
         const dir = await getDir(root, file.path);
         if (dir === null) continue; // parent vanished since the scan
         await dir.removeEntry(file.name);
+      } catch {
+        failed.push([...file.path, file.name].join('/'));
       }
-      for (const junkDir of deletableJunkDirs) {
+    }
+    for (const junkDir of deletableJunkDirs) {
+      try {
         await root.removeEntry(junkDir.name, { recursive: true });
+      } catch {
+        failed.push(junkDir.name);
       }
-    } catch (e) {
-      setJunkError(errorMessage(e));
+    }
+    if (failed.length > 0) {
+      setJunkError(
+        `Could not delete: ${failed.join(', ')}. macOS protects some of its own ` +
+          'folders (such as .Trashes) from other apps — they are harmless to the launcher.',
+      );
     }
     setJunkConfirm(false);
     await refresh();
@@ -320,7 +223,7 @@ export function HealthView() {
         await dir.removeEntry(save.name);
       }
     } catch (e) {
-      setSavesError(errorMessage(e));
+      setSavesError(friendlyFsError(e));
     }
     setSavesConfirm(false);
     await refresh();
@@ -340,7 +243,7 @@ export function HealthView() {
         }
       }
     } catch (e) {
-      setCoversError(errorMessage(e));
+      setCoversError(friendlyFsError(e));
     }
     setCoversConfirm(false);
     await refresh();
@@ -385,7 +288,24 @@ export function HealthView() {
 
       {scan !== null && !scanning && (
         <>
-          <p className="health-view__dim">Scanned {scan.filesSeen} files.</p>
+          <p className="health-view__dim">
+            Scanned {scan.filesSeen} files.
+            {scan.skippedDirs.length > 0 && (
+              <>
+                {' '}
+                Skipped {scan.skippedDirs.length}{' '}
+                {scan.skippedDirs.length === 1 ? 'folder' : 'folders'} macOS would not let the
+                browser read:{' '}
+                {scan.skippedDirs.map((name, index) => (
+                  <span key={name}>
+                    {index > 0 && ', '}
+                    <code>{name}</code>
+                  </span>
+                ))}
+                .
+              </>
+            )}
+          </p>
 
           <section className={sectionClass(junkCount === 0)}>
             <h3 className="section-title">macOS junk</h3>

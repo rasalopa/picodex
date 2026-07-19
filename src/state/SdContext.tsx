@@ -13,6 +13,7 @@ import {
   GAMEDATA_FILE,
   SETTINGS_FILE,
   PICO_DIR,
+  friendlyFsError,
   getDir,
   listEntries,
   looksLikeDspicoSd,
@@ -58,8 +59,12 @@ export interface SdState {
   /** Launcher/loader component info detected on the card. */
   cardInfo: CardInfo;
   openSd: () => Promise<void>;
-  /** Re-reads library, covers and launcher files from the open SD. */
-  refresh: () => Promise<void>;
+  /**
+   * Re-reads library, covers and launcher files from the open SD. Resolves
+   * `false` when the re-read failed (the message lands in `error`) — callers
+   * whose results depend on a current library must not proceed then.
+   */
+  refresh: () => Promise<boolean>;
   /**
    * Toggles a game's favorite flag and writes `/_pico/gamedata.json` back to
    * the card. No-op on stock launchers (`gameData === null`): PicoDex never
@@ -191,7 +196,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       // user cancelling the picker is not an error
       if (!(e instanceof DOMException && e.name === 'AbortError')) {
-        setError(e instanceof Error ? e.message : String(e));
+        setError(friendlyFsError(e));
       }
     } finally {
       setLoading(false);
@@ -199,13 +204,15 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [loadFrom]);
 
-  const refresh = useCallback(async () => {
-    if (!root) return;
+  const refresh = useCallback(async (): Promise<boolean> => {
+    if (!root) return false;
     setLoading(true);
     try {
       await loadFrom(root);
+      return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyFsError(e));
+      return false;
     } finally {
       setLoading(false);
       setProgress(null);
@@ -228,7 +235,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
           gameDataRef.current = next;
           setGameData(next);
         } catch (e) {
-          setError(e instanceof Error ? e.message : String(e));
+          setError(friendlyFsError(e));
         }
       };
       // queue, don't reject: `run` handles its own failures, so the chain
