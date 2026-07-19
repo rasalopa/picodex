@@ -92,6 +92,22 @@ export function extractBannerIcon(ndsRom: Uint8Array): BannerIcon | null {
 }
 
 /**
+ * Reads the icon (bitmap + palette) of a standalone `banner.bnr` file, as
+ * placed inside launcher folders.
+ *
+ * @param bnr - Banner file bytes.
+ * @returns Copies of the icon bitmap and palette, or `null` when the buffer
+ *   is shorter than a complete banner ({@link BANNER_SIZE} bytes).
+ */
+export function parseBnrIcon(bnr: Uint8Array): BannerIcon | null {
+  if (bnr.length < BANNER_SIZE) return null;
+  return {
+    bitmap: bnr.slice(0x20, 0x220),
+    palette: bnr.slice(0x220, 0x240),
+  };
+}
+
+/**
  * Decodes a 4bpp tiled icon into 32x32 RGBA pixels.
  * Palette index 0 decodes as fully transparent black; other indices use
  * BGR555 -> RGB888 expansion `(v & 31) << 3` per channel with alpha 255.

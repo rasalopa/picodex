@@ -7,6 +7,7 @@ import {
   encodeBannerIcon,
   extractBannerIcon,
   parseBannerTitle,
+  parseBnrIcon,
 } from './banner';
 
 /** Little-endian u16 read straight from a byte array. */
@@ -206,6 +207,33 @@ describe('icon tiling math', () => {
     expect(at(0, 0)).toEqual([0, 0, 0, 0]);
     expect(at(1, 0)).toEqual([248, 0, 0, 255]);
     expect(at(8, 0)).toEqual([248, 0, 0, 255]);
+  });
+});
+
+describe('parseBnrIcon', () => {
+  const bitmap = Uint8Array.from({ length: 0x200 }, (_, i) => (i * 3 + 2) & 0xff);
+  const palette = Uint8Array.from({ length: 0x20 }, (_, i) => 0x40 + i);
+
+  it('round-trips the icon of a banner built with buildFolderBanner', () => {
+    const banner = buildFolderBanner({ bitmap, palette }, 'Retro Folder');
+    const icon = parseBnrIcon(banner);
+    expect(icon).not.toBeNull();
+    expect(icon!.bitmap).toEqual(bitmap);
+    expect(icon!.palette).toEqual(palette);
+  });
+
+  it('returns copies, not views into the banner', () => {
+    const banner = buildFolderBanner({ bitmap, palette }, 'Retro Folder');
+    const icon = parseBnrIcon(banner)!;
+    icon.bitmap[0] = 0xee;
+    icon.palette[0] = 0xee;
+    expect(banner[0x20]).toBe(bitmap[0]);
+    expect(banner[0x220]).toBe(palette[0]);
+  });
+
+  it('returns null for buffers shorter than a complete banner', () => {
+    expect(parseBnrIcon(new Uint8Array(0))).toBeNull();
+    expect(parseBnrIcon(new Uint8Array(BANNER_SIZE - 1))).toBeNull();
   });
 });
 

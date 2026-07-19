@@ -60,6 +60,31 @@ export function composeCoverRgba(image: ImageBitmap): Uint8ClampedArray {
   return ctx.getImageData(0, 0, COVER_WIDTH, COVER_HEIGHT).data;
 }
 
+/**
+ * Composes an arbitrary image into the launcher's 32x32 folder-icon square:
+ * aspect-fit, centered, on a fully TRANSPARENT background — icons are never
+ * stretched, and the empty margins stay transparent so the encoder maps them
+ * to palette index 0 (the launcher's transparent index).
+ *
+ * @param image Decoded source image of any size.
+ * @returns Top-down RGBA pixels of the 32x32 icon, ready for
+ *   `encodeBannerIcon()`.
+ */
+export function composeIconRgba(image: ImageBitmap): Uint8ClampedArray {
+  const [, ctx] = makeCanvas(ICON_SIZE, ICON_SIZE);
+  const scale = Math.min(ICON_SIZE / image.width, ICON_SIZE / image.height);
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  ctx.drawImage(
+    image,
+    Math.floor((ICON_SIZE - width) / 2),
+    Math.floor((ICON_SIZE - height) / 2),
+    width,
+    height,
+  );
+  return ctx.getImageData(0, 0, ICON_SIZE, ICON_SIZE).data;
+}
+
 /** Decoded BMP pixels as an `ImageData` (copied when not ArrayBuffer-backed). */
 function bmpImageData(rgba: Uint8ClampedArray, width: number, height: number): ImageData {
   // ImageData requires an ArrayBuffer-backed view; copy if needed.
@@ -139,6 +164,20 @@ export async function bannerBnrIconPreviewUrl(bnr: Uint8Array): Promise<string> 
     bnr.subarray(0x20, 0x20 + ICON_BITMAP_SIZE),
     bnr.subarray(0x20 + ICON_BITMAP_SIZE, 0x20 + ICON_BITMAP_SIZE + ICON_PALETTE_SIZE),
   );
+  return bannerIconRgbaPreviewUrl(rgba);
+}
+
+/**
+ * Renders 32x32 RGBA icon pixels (as produced by `decodeBannerIcon()`) to a
+ * PNG object URL, preserving transparency.
+ *
+ * The caller owns the returned URL and must release it with
+ * `URL.revokeObjectURL()` when the preview is discarded.
+ *
+ * @param rgba 32*32*4 RGBA bytes in row-major order.
+ * @throws {Error} When the canvas export fails.
+ */
+export async function bannerIconRgbaPreviewUrl(rgba: Uint8ClampedArray): Promise<string> {
   const [canvas, ctx] = makeCanvas(ICON_SIZE, ICON_SIZE);
   ctx.putImageData(bmpImageData(rgba, ICON_SIZE, ICON_SIZE), 0, 0);
   return canvasPngUrl(canvas);

@@ -53,6 +53,8 @@
 
 .library-view__grid > li {
   display: flex;
+  /* anchor for the banner-edit overlay button */
+  position: relative;
 }
 
 /* the whole card is one button opening the system's gallery */
@@ -115,6 +117,27 @@
 .library-view__card:hover .library-view__card-cta,
 .library-view__card:focus-visible .library-view__card-cta {
   color: var(--accent);
+}
+
+/* folder banner edit affordance: a sibling overlaid on the card's corner,
+   never nested inside the card <button> (nested buttons are invalid HTML) */
+
+.library-view__card-edit {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-radius: calc(var(--radius) / 2);
+}
+
+.library-view__card-edit:hover:not(:disabled),
+.library-view__card-edit:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* empty state */

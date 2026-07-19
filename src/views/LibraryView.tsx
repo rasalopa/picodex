@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BannerEditor } from '../components/BannerEditor';
 import { bannerBnrIconPreviewUrl, iconBmpPreviewUrl } from '../lib/coverart';
 import { gameDataTotals } from '../lib/gamedata';
 import { loaderApiCapabilities } from '../lib/loader';
@@ -74,10 +75,14 @@ function formatPlayTime(totalMinutes: number): string {
  * system card opens that system's cover gallery in place.
  */
 export function LibraryView() {
-  const { root, games, coverIndex, gameData, cardInfo } = useSd();
+  const { root, games, coverIndex, gameData, cardInfo, refresh } = useSd();
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
   /** Icon URLs keyed by `system.id`. */
   const [systemIcons, setSystemIcons] = useState<ReadonlyMap<string, string>>(new Map());
+  /** Folder whose banner is being edited, `null` while the editor is closed. */
+  const [bannerTarget, setBannerTarget] = useState<{ gamesDir: string; label: string } | null>(
+    null,
+  );
 
   const groups = useMemo(() => groupBySystem(games, coverIndex), [games, coverIndex]);
 
@@ -242,9 +247,37 @@ export function LibraryView() {
                 </span>
                 <span className="library-view__card-cta">View games →</span>
               </button>
+              {/* Sibling overlay, NOT a child of the card <button> — nested
+                  buttons are invalid HTML. */}
+              <button
+                type="button"
+                className="library-view__card-edit"
+                aria-label={`Edit folder banner for ${system.label}`}
+                title="Edit folder banner"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBannerTarget({ gamesDir: system.gamesDir, label: system.label });
+                }}
+              >
+                <span aria-hidden="true">🖉</span>
+              </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {bannerTarget !== null && (
+        <BannerEditor
+          gamesDir={bannerTarget.gamesDir}
+          systemLabel={bannerTarget.label}
+          games={games.filter((game) => game.system.gamesDir === bannerTarget.gamesDir)}
+          onClose={() => {
+            setBannerTarget(null);
+          }}
+          onSaved={() => {
+            void refresh();
+          }}
+        />
       )}
 
       <aside className="library-view__card-info" aria-label="Card components">
