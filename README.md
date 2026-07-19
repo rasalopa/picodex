@@ -7,6 +7,15 @@
 
 > Manage your [DSpico](https://github.com/LNH-team/dspico) SD card from the browser — covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
 
+![Cover gallery with favorites and play badges](docs/screenshots/gallery.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/stats.png" alt="Play statistics from Pico Launcher Enhanced" /></td>
+    <td width="50%"><img src="docs/screenshots/cover-picker.jpg" alt="Manual cover picker with catalog search" /></td>
+  </tr>
+</table>
+
 ## What it does
 
 - 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage, and — if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) — your favorites and play stats.
