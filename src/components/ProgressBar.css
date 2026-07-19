@@ -2,7 +2,7 @@
   display: block;
   position: relative;
   width: 100%;
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
   background: var(--bg-hover);
   overflow: hidden;
@@ -33,5 +33,14 @@
   }
   100% {
     left: 100%;
+  }
+}
+
+/* reduced motion: freeze the indeterminate slider into a static 35% bar
+   (the determinate fill keeps rendering at its real width) */
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar__slider {
+    animation: none;
+    left: 0;
   }
 }

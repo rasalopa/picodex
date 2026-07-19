@@ -337,6 +337,14 @@ export function DropImport() {
       {dragActive && (
         <div className="drop-import__overlay" aria-hidden="true">
           <p className="drop-import__overlay-box">
+            {/* the app's cartridge mark (App.tsx), body tinted for this surface */}
+            <svg className="drop-import__overlay-mark" viewBox="0 0 32 32" aria-hidden="true">
+              <rect x="2" y="2" width="28" height="28" rx="6" fill="var(--bg-hover)" />
+              <rect x="7" y="8" width="18" height="12" rx="2" fill="var(--accent)" />
+              <rect x="10" y="11" width="12" height="6" rx="1" fill="var(--bg)" />
+              <circle cx="11" cy="24" r="2" fill="var(--accent)" />
+              <circle cx="21" cy="24" r="2" fill="var(--text-dim)" />
+            </svg>
             {running ? 'Import in progress…' : 'Drop ROMs to add them to your card'}
           </p>
         </div>

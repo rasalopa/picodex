@@ -305,7 +305,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
 
         <footer className="cover-picker__compare">
           <figure className="cover-picker__side">
-            <figcaption>Current</figcaption>
+            <figcaption className="section-title">Current</figcaption>
             {currentCoverUrl !== null ? (
               <img
                 className="cover-picker__cover"
@@ -324,7 +324,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
             →
           </span>
           <figure className="cover-picker__side">
-            <figcaption>New</figcaption>
+            <figcaption className="section-title">New</figcaption>
             {composing ? (
               <span
                 className="cover-picker__cover cover-picker__cover--empty"

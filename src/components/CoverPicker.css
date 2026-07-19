@@ -8,9 +8,11 @@
   align-items: center;
   justify-content: center;
   padding: 1.25rem;
-  background: rgb(6 8 12 / 0.7);
-  backdrop-filter: blur(2px);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
 }
+
+/* dialog = card pattern + modal shadow, one entrance animation */
 
 .cover-picker {
   display: flex;
@@ -20,9 +22,17 @@
   max-height: 100%;
   padding: 1rem 1.25rem;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  box-shadow: var(--shadow-modal);
+  animation: cover-picker-enter 0.18s ease;
+}
+
+@keyframes cover-picker-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 /* header */
@@ -35,6 +45,7 @@
 
 .cover-picker__title {
   margin: 0 auto 0 0;
+  font-size: 1.15rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -55,6 +66,8 @@
 
 .cover-picker__status {
   margin: 0;
+  padding: 2.5rem 1rem;
+  text-align: center;
   color: var(--text-dim);
 }
 
@@ -76,31 +89,35 @@
 .cover-picker__results {
   list-style: none;
   margin: 0;
-  /* small padding keeps focus outlines visible inside the scroll clip */
+  /* small padding keeps focus outlines + selection rings inside the scroll clip */
   padding: 3px;
   flex: 1 1 auto;
   min-height: 8rem;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-content: start;
 }
 
 .cover-picker__candidate {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
   width: 100%;
   height: 100%;
-  padding: 0.4rem;
+  padding: 0.5rem;
   text-align: center;
   background: var(--bg);
   border: 1px solid var(--border);
 }
 
-.cover-picker__candidate--selected {
+/* selected: a 2px accent ring (1px border + 1px shadow, so nothing shifts) */
+
+.cover-picker__candidate--selected,
+.cover-picker__candidate--selected:hover:not(:disabled) {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
   background: var(--accent-soft);
 }
 
@@ -113,7 +130,7 @@
 }
 
 .cover-picker__candidate-name {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   line-height: 1.25;
   color: var(--text-dim);
   overflow-wrap: anywhere;
@@ -139,16 +156,18 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--text-dim);
 }
 
-/* the launcher's visible 106x96 cover area at 1x */
+.cover-picker__side .section-title {
+  margin: 0;
+}
+
+/* the launcher's visible 106x96 cover area at 2x (matches the Covers view) */
 
 .cover-picker__cover {
   display: block;
-  width: 106px;
-  height: 96px;
+  width: 212px;
+  height: 192px;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) / 2);
   background: var(--bg);
@@ -188,7 +207,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.35rem;
+  gap: 0.5rem;
   margin-left: auto;
   min-width: 0;
 }
@@ -196,13 +215,13 @@
 .cover-picker__inline-error {
   margin: 0;
   color: var(--warn);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
 .cover-picker__target {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }

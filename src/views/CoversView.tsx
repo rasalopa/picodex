@@ -354,7 +354,7 @@ export function CoversView() {
       )}
 
       {jobs.length > 0 && (
-        <section className="covers-view__batch" aria-label="Fetch results">
+        <section className="covers-view__batch card" aria-label="Fetch results">
           <h3>Fetch results</h3>
           <p className="covers-view__counter" role="status">
             {fetching
@@ -402,7 +402,7 @@ export function CoversView() {
 
       {!scanProgress && missing.length > 0 && (
         <section aria-label="Games missing covers">
-          <div className="covers-view__toolbar">
+          <div className="covers-view__toolbar card">
             <h3 className="covers-view__toolbar-title">
               Missing covers <span className="covers-view__dim">({missing.length})</span>
             </h3>
@@ -427,7 +427,7 @@ export function CoversView() {
           </div>
           {groups.map((group) => (
             <div key={group.system.id} className="covers-view__group">
-              <h4 className="covers-view__group-title">
+              <h4 className="covers-view__group-title section-title">
                 {group.system.label}{' '}
                 <span className="covers-view__dim">({group.items.length})</span>
               </h4>

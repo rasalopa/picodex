@@ -9,14 +9,14 @@
 }
 
 .app__header {
-  padding: 1.1rem 0 0.6rem;
+  padding: 1.1rem 0 0.75rem;
 }
 
 .app__logo {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -85,15 +85,16 @@
   width: 100%;
 }
 
+/* card pattern, non-interactive: no hover state on purpose */
 .app__features li {
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-  padding: 0.9rem 1.1rem;
+  padding: 1rem;
   text-align: left;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
@@ -107,18 +108,19 @@
 /* ---- workspace ---- */
 
 .app__error {
-  color: var(--accent);
+  color: var(--text);
   background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 calc(var(--radius) / 2) calc(var(--radius) / 2) 0;
   padding: 0.5rem 1rem;
+  font-size: 0.875rem;
 }
 
 .app__tabs {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.6rem 0;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   position: sticky;
@@ -132,12 +134,17 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-dim);
-  padding: 0.4rem 0.95rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 999px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.05s ease;
 }
 
 .app__tab:hover:not(:disabled) {
   background: var(--bg-raised);
+  color: var(--text);
   border-color: transparent;
 }
 
@@ -149,6 +156,7 @@
 
 .app__tab--active:hover:not(:disabled) {
   background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .app__sd-name {
@@ -157,7 +165,7 @@
   align-items: center;
   gap: 0.4rem;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .app__sd-dot {
@@ -179,7 +187,7 @@
   justify-content: center;
   padding: 1rem 0 1.5rem;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
 }
 
 .app__footer a {
@@ -199,6 +207,6 @@
 
 .app__loading-text {
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   text-align: center;
 }

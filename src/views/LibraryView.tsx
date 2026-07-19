@@ -169,21 +169,21 @@ export function LibraryView() {
   return (
     <section className="library-view" aria-label="Library overview">
       <dl className="library-view__summary">
-        <div className="library-view__stat">
+        <div className="library-view__stat card">
           <dt>Games</dt>
           <dd>{games.length}</dd>
         </div>
-        <div className="library-view__stat">
+        <div className="library-view__stat card">
           <dt>Systems</dt>
           <dd>{groups.length}</dd>
         </div>
         {totals !== null && (
           <>
-            <div className="library-view__stat">
+            <div className="library-view__stat card">
               <dt>Favorites</dt>
               <dd>{totals.favoriteCount}</dd>
             </div>
-            <div className="library-view__stat">
+            <div className="library-view__stat card">
               <dt>Play time</dt>
               <dd>{formatPlayTime(totals.totalPlayMinutes)}</dd>
             </div>
@@ -199,7 +199,7 @@ export function LibraryView() {
             <li key={system.id}>
               <button
                 type="button"
-                className="library-view__card"
+                className="library-view__card card card--interactive"
                 onClick={() => {
                   setSelectedSystemId(system.id);
                 }}
@@ -280,8 +280,8 @@ export function LibraryView() {
         />
       )}
 
-      <aside className="library-view__card-info" aria-label="Card components">
-        <h3 className="library-view__card-info-title">On this card</h3>
+      <aside className="library-view__card-info card" aria-label="Card components">
+        <h3 className="library-view__card-info-title section-title">On this card</h3>
         <dl className="library-view__card-info-list">
           <div>
             <dt>Launcher</dt>

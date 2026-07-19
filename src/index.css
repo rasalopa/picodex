@@ -6,6 +6,7 @@
   --border: #262b3a;
   --border-strong: #343a4e;
   --text: #e8eaf0;
+  --text-strong: #f4f5f9;
   --text-dim: #99a0b4;
   --accent: #e04b62; /* dspico raspberry */
   --accent-soft: #e04b6220;
@@ -15,6 +16,7 @@
 
   --radius: 10px;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-modal: 0 12px 40px rgb(0 0 0 / 0.5);
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 
   color-scheme: dark;
@@ -129,6 +131,49 @@ code {
   border-radius: 4px;
   padding: 0.1em 0.35em;
   font-size: 0.9em;
+}
+
+/* ---- shared utilities (see src/design.md; views may adopt incrementally) ---- */
+
+/* Section header pattern: small uppercase dim label above a block of content. */
+.section-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+/* Shared card surface. Add .card--interactive only when the card is clickable. */
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1rem;
+}
+
+.card--interactive {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card--interactive:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+/* ---- reduced motion: no entrance animations, no transitions ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* slim, theme-matching scrollbars (webkit) */

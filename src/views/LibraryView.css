@@ -1,43 +1,41 @@
 .library-view {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
   max-width: 1080px;
   margin: 0 auto;
   padding: 1.5rem;
 }
 
-/* summary strip */
+/* summary strip: a row of stat tiles (each tile also carries .card) */
 
 .library-view__summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 0;
 }
 
 .library-view__stat {
   flex: 1 1 10rem;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
 }
 
 .library-view__stat dt {
-  font-size: 0.75rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--text-dim);
 }
 
 .library-view__stat dd {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
 }
 
 /* system card grid */
@@ -48,7 +46,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .library-view__grid > li {
@@ -57,17 +55,14 @@
   position: relative;
 }
 
-/* the whole card is one button opening the system's gallery */
+/* the whole card is one button opening the system's gallery;
+   surface + hover come from .card / .card--interactive */
 .library-view__card {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   width: 100%;
   text-align: left;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem;
 }
 
 .library-view__card-label {
@@ -78,13 +73,13 @@
 
 .library-view__card-count {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-dim);
 }
 
 .library-view__card-covers {
   margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
@@ -108,15 +103,19 @@
   background: var(--ok);
 }
 
+/* CTA: hidden at rest, fades in on card hover/focus */
+
 .library-view__card-cta {
   margin-top: 0.4rem;
-  font-size: 0.85rem;
-  color: var(--text-dim);
+  font-size: 0.875rem;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
 .library-view__card:hover .library-view__card-cta,
 .library-view__card:focus-visible .library-view__card-cta {
-  color: var(--accent);
+  opacity: 1;
 }
 
 /* folder banner edit affordance: a sibling overlaid on the card's corner,
@@ -140,15 +139,13 @@
   border-color: var(--accent);
 }
 
-/* empty state */
+/* empty state: quiet — no border, just dim centered text */
 
 .library-view__empty {
   margin: 0;
-  padding: 3rem 1rem;
+  padding: 2.5rem 1rem;
   text-align: center;
   color: var(--text-dim);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
 }
 
 /* system folder icon (decoded from the folder's banner.bnr) */
@@ -176,23 +173,7 @@
   border-radius: 6px;
 }
 
-/* card components panel */
-
-.library-view__card-info {
-  margin-top: 0.5rem;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.9rem 1.1rem;
-}
-
-.library-view__card-info-title {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin-bottom: 0.6rem;
-}
+/* card components panel: surface comes from .card, header from .section-title */
 
 .library-view__card-info-list {
   display: flex;
@@ -203,17 +184,16 @@
 
 .library-view__card-info-list dt {
   color: var(--text-dim);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
 .library-view__card-info-list dd {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .library-view__card-info-dim {
   color: var(--text-dim);
-  font-size: 0.85rem;
 }
 
 .library-view__chip {

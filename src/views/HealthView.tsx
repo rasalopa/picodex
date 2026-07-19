@@ -125,6 +125,11 @@ function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+/** Section card class with its ok/warn status edge modifier. */
+function sectionClass(ok: boolean): string {
+  return `health-view__section health-view__section--${ok ? 'ok' : 'warn'}`;
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -382,8 +387,8 @@ export function HealthView() {
         <>
           <p className="health-view__dim">Scanned {scan.filesSeen} files.</p>
 
-          <section className="health-view__section">
-            <h3>macOS junk</h3>
+          <section className={sectionClass(junkCount === 0)}>
+            <h3 className="section-title">macOS junk</h3>
             {junkCount === 0 ? (
               <p className="health-view__ok">No macOS junk found.</p>
             ) : (
@@ -448,8 +453,8 @@ export function HealthView() {
             )}
           </section>
 
-          <section className="health-view__section">
-            <h3>Loader files</h3>
+          <section className={sectionClass(loader !== null && loader.required.length === 0)}>
+            <h3 className="section-title">Loader files</h3>
             {loader !== null && loader.required.length === 0 ? (
               <p className="health-view__ok">All required loader files are present.</p>
             ) : (
@@ -486,8 +491,8 @@ export function HealthView() {
             )}
           </section>
 
-          <section className="health-view__section">
-            <h3>Orphaned saves</h3>
+          <section className={sectionClass(orphanSaves.length === 0)}>
+            <h3 className="section-title">Orphaned saves</h3>
             {orphanSaves.length === 0 ? (
               <p className="health-view__ok">Every save file belongs to a game on the card.</p>
             ) : (
@@ -539,8 +544,8 @@ export function HealthView() {
             )}
           </section>
 
-          <section className="health-view__section">
-            <h3>Orphaned user covers</h3>
+          <section className={sectionClass(orphanCovers.length === 0)}>
+            <h3 className="section-title">Orphaned user covers</h3>
             {orphanCovers.length === 0 ? (
               <p className="health-view__ok">Every user cover belongs to a game on the card.</p>
             ) : (

@@ -255,7 +255,7 @@ export function AssociationsView() {
       </p>
 
       {dirty && (
-        <div className="associations-view__save-bar">
+        <div className="associations-view__save-bar card">
           <p className="associations-view__warning" role="status">
             The launcher reads associations at boot — restart your DS after saving for the changes
             to take effect.

@@ -8,8 +8,8 @@
   align-items: center;
   justify-content: center;
   padding: 1.25rem;
-  background: rgb(6 8 12 / 0.7);
-  backdrop-filter: blur(2px);
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
 }
 
 .banner-editor {
@@ -21,9 +21,17 @@
   overflow-y: auto;
   padding: 1rem 1.25rem;
   background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  box-shadow: var(--shadow-modal);
+  animation: banner-editor-enter 0.18s ease;
+}
+
+@keyframes banner-editor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 /* header */
@@ -36,6 +44,7 @@
 
 .banner-editor__heading {
   margin: 0 auto 0 0;
+  font-size: 1.15rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -58,13 +67,13 @@
 .banner-editor__note {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .banner-editor__error {
   margin: 0;
-  color: var(--warn);
-  font-size: 0.85rem;
+  color: var(--accent);
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
@@ -73,8 +82,8 @@
 .banner-editor__preview {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.6rem 0.9rem;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -98,8 +107,9 @@
 }
 
 .banner-editor__preview-title {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
+  color: var(--text-strong);
   overflow-wrap: anywhere;
 }
 
@@ -108,7 +118,7 @@
 .banner-editor__field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .banner-editor__field input {
@@ -119,11 +129,11 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--text-dim);
 }
 
-/* icon source picker */
+/* icon source picker: radio options rendered as pill buttons */
 
 .banner-editor__sources {
   display: flex;
@@ -137,20 +147,56 @@
 .banner-editor__source-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1.25rem;
+  gap: 0.5rem;
 }
 
 .banner-editor__source {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.banner-editor__source:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+/* the native radio stays for keyboard/AT; the pill is its visual */
+.banner-editor__source input[type='radio'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.banner-editor__source:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.banner-editor__source:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .banner-editor__source-detail {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .banner-editor__source-detail select {
@@ -160,7 +206,7 @@
 .banner-editor__hint {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
 /* footer: remove (left) vs save (right) */
@@ -178,8 +224,18 @@
   margin-right: auto;
 }
 
+/* destructive action: outlined accent, solid only on hover */
+
 .banner-editor__remove {
-  color: var(--warn);
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.banner-editor__remove:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .banner-editor__confirm {
@@ -188,14 +244,14 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   color: var(--warn);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .banner-editor__actions {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.35rem;
+  gap: 0.5rem;
   margin-left: auto;
   min-width: 0;
 }
@@ -203,6 +259,6 @@
 .banner-editor__target {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }

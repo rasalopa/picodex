@@ -6,20 +6,36 @@
 
 .covers-view__header h2 {
   margin-bottom: 0.25rem;
+  font-size: 1.4rem;
 }
 
 .covers-view__hint {
   margin: 0;
   color: var(--text-dim);
+  font-size: 0.875rem;
   max-width: 60ch;
 }
 
+/* quiet empty/info states (no borders) */
+
 .covers-view__empty,
-.covers-view__progress {
+.covers-view__all-covered {
+  margin: 0;
+  padding: 2.5rem 1rem;
+  text-align: center;
   color: var(--text-dim);
 }
 
+.covers-view__all-covered::before {
+  content: '✓';
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: var(--ok);
+}
+
 .covers-view__error {
+  margin: 0;
   color: var(--warn);
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -27,26 +43,27 @@
   padding: 0.5rem 0.75rem;
 }
 
-.covers-view__all-covered {
-  color: var(--ok);
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
+.covers-view__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 22rem;
+  color: var(--text-dim);
 }
 
-/* Missing-covers toolbar + groups */
+/* Missing-covers toolbar (a card, so the CTA reads as one grouped block) + groups */
 
 .covers-view__toolbar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .covers-view__toolbar-title {
   margin: 0 auto 0 0;
+  font-size: 1.15rem;
 }
 
 .covers-view__dim {
@@ -55,13 +72,14 @@
 }
 
 .covers-view__group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.covers-view__group-title {
-  margin: 0 0 0.35rem;
-  color: var(--text);
+.covers-view__group:last-child {
+  margin-bottom: 0;
 }
+
+/* group titles use the shared .section-title header (see index.css) */
 
 .covers-view__list {
   list-style: none;
@@ -75,10 +93,11 @@
 .covers-view__row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.35rem 0.6rem;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
   border-radius: calc(var(--radius) / 2);
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .covers-view__row:hover {
@@ -95,64 +114,70 @@
 
 .covers-view__row-note {
   color: var(--text-dim);
-  font-size: 0.85em;
+  font-size: 0.78rem;
 }
 
-/* Fetch batch results */
+/* Fetch batch results: a card panel with one entrance animation */
 
 .covers-view__batch {
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
+  animation: covers-view-enter 0.18s ease;
+}
+
+@keyframes covers-view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .covers-view__batch h3 {
   margin-bottom: 0.25rem;
+  font-size: 1.15rem;
 }
 
 .covers-view__counter {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
   color: var(--text-dim);
+  font-size: 0.875rem;
 }
+
+/* quiet list rows: border-top separators, no per-row boxes */
 
 .covers-view__jobs {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .covers-view__job {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--bg);
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
 }
+
+/* written covers render at 2x their native 128x96 (crisp integer scaling) */
 
 .covers-view__preview {
   flex: none;
-  width: 96px;
-  height: 72px;
+  width: 256px;
+  height: 192px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: calc(var(--radius) / 2);
   image-rendering: pixelated;
   background: #000;
 }
 
 .covers-view__preview--empty {
-  background: var(--bg-raised);
+  background: transparent;
   border-style: dashed;
 }
 
 .covers-view__job-text {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
   min-width: 0;
   margin-right: auto;
 }
@@ -163,43 +188,27 @@
 
 .covers-view__job-detail {
   color: var(--text-dim);
-  font-size: 0.85em;
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
+/* status: right-aligned, quiet; terminal phases pick up a status color */
+
 .covers-view__job-status {
   flex: none;
-  font-size: 0.85em;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  text-align: right;
   color: var(--text-dim);
 }
 
-.covers-view__job--matched .covers-view__job-status {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--text);
-}
-
 .covers-view__job--written .covers-view__job-status {
-  border-color: var(--ok);
   color: var(--ok);
 }
 
 .covers-view__job--no-match .covers-view__job-status {
-  border-color: var(--warn);
   color: var(--warn);
 }
 
 .covers-view__job--error .covers-view__job-status {
-  border-color: var(--accent);
   color: var(--accent);
-}
-
-.covers-view__progress {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  max-width: 22rem;
 }

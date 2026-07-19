@@ -71,26 +71,26 @@ export function StatsView() {
   return (
     <section className="stats-view">
       <dl className="stats-view__tiles">
-        <div className="stats-view__tile">
+        <div className="stats-view__tile card">
           <dt className="stats-view__tile-label">Games played</dt>
           <dd className="stats-view__tile-value">{totals.playedCount}</dd>
         </div>
-        <div className="stats-view__tile">
+        <div className="stats-view__tile card">
           <dt className="stats-view__tile-label">Favorites</dt>
           <dd className="stats-view__tile-value">{totals.favoriteCount}</dd>
         </div>
-        <div className="stats-view__tile">
+        <div className="stats-view__tile card">
           <dt className="stats-view__tile-label">Total launches</dt>
           <dd className="stats-view__tile-value">{totals.totalLaunches}</dd>
         </div>
-        <div className="stats-view__tile">
+        <div className="stats-view__tile card">
           <dt className="stats-view__tile-label">Total play time</dt>
           <dd className="stats-view__tile-value">{formatPlayTime(totals.totalPlayMinutes)}</dd>
         </div>
       </dl>
 
       <section aria-labelledby="stats-view-most-played">
-        <h2 className="stats-view__title" id="stats-view-most-played">
+        <h2 className="stats-view__title section-title" id="stats-view-most-played">
           Most played
         </h2>
         {mostPlayed.length === 0 ? (
@@ -130,7 +130,7 @@ export function StatsView() {
       </section>
 
       <section aria-labelledby="stats-view-recent">
-        <h2 className="stats-view__title" id="stats-view-recent">
+        <h2 className="stats-view__title section-title" id="stats-view-recent">
           Recently played
         </h2>
         {recentlyPlayed.length === 0 ? (
@@ -155,7 +155,7 @@ export function StatsView() {
       </section>
 
       <section aria-labelledby="stats-view-favorites">
-        <h2 className="stats-view__title" id="stats-view-favorites">
+        <h2 className="stats-view__title section-title" id="stats-view-favorites">
           Favorites
         </h2>
         {favorites.length === 0 ? (
