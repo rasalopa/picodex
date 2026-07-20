@@ -16,7 +16,7 @@
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/stats.png" alt="Play statistics from Pico Launcher Enhanced" /></td>
-    <td width="50%"></td>
+    <td width="50%"><img src="docs/screenshots/health.png" alt="SD health check finding macOS junk and orphaned saves" /></td>
   </tr>
 </table>
 
@@ -27,6 +27,7 @@
 - 🎮 **Library organizer**: drop ROM files onto the page — PicoDex detects the system, places them under `Games/`, and fetches their covers.
 - 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.
 - 🔗 **File association editor**: point each ROM extension at its emulator without hand-editing `settings.json`.
+- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers — nothing is deleted without confirmation.
 
 Everything runs client-side. PicoDex has no server, no accounts and no telemetry.
 
