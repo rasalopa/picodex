@@ -4,6 +4,7 @@ import {
   normalizeTitle,
   pickBoxart,
   REGION_PREFS_BY_GBA_CODE,
+  buildCatalogIndex,
   searchCatalog,
   similarityRatio,
 } from './matching';
@@ -228,6 +229,27 @@ describe('searchCatalog', () => {
       'Zelda (USA).png',
     ]);
     expect(searchCatalog(['Zelda (USA).png', 'Zelda (USA).png'], '')).toEqual(['Zelda (USA).png']);
+  });
+
+  it('returns identical results through a prebuilt CatalogIndex', () => {
+    const index = buildCatalogIndex(catalog);
+    for (const query of ['mario kart', 'zelda', '', 'POKÉMON', 'golden sub']) {
+      expect(searchCatalog(index, query)).toEqual(searchCatalog(catalog, query));
+    }
+  });
+
+  it('keeps ranking fuzzy hits when substring hits alone fill the limit', () => {
+    // substring hits >= limit: fuzzy candidates must not appear, and order
+    // must still be shortest-name first
+    const many = ['Mario Golf.png', 'Mario Kart DS.png', 'Mario.png', 'Wario Land.png'];
+    expect(searchCatalog(many, 'mario', 2)).toEqual(['Mario.png', 'Mario Golf.png']);
+    // below the limit the fuzzy near match ('wario' vs 'mario') still ranks last
+    expect(searchCatalog(many, 'mario', 4)).toEqual([
+      'Mario.png',
+      'Mario Golf.png',
+      'Mario Kart DS.png',
+      'Wario Land.png',
+    ]);
   });
 });
 

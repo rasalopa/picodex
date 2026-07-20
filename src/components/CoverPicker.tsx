@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpCroppedPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
-import { searchCatalog } from '../lib/matching';
+import { buildCatalogIndex, searchCatalog } from '../lib/matching';
 import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
 import { useSd } from '../state/SdContext';
@@ -184,9 +184,14 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     };
   }, [selected, repo]);
 
+  // index once per catalog; per keystroke only the query-dependent half runs
+  const searchIndex = useMemo(
+    () => (catalog === null ? null : buildCatalogIndex(catalog)),
+    [catalog],
+  );
   const results = useMemo(
-    () => (catalog === null ? [] : searchCatalog(catalog, query)),
-    [catalog, query],
+    () => (searchIndex === null ? [] : searchCatalog(searchIndex, query)),
+    [searchIndex, query],
   );
 
   /**

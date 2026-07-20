@@ -258,6 +258,29 @@ export function pickBoxart(
 }
 
 /**
+ * Catalog pre-processed for {@link searchCatalog}: entries deduplicated and
+ * alphabetized, with the normalized key of each entry computed once. Build it
+ * with {@link buildCatalogIndex} when the same catalog is searched repeatedly
+ * (e.g. per keystroke) — deduplicating, collation-sorting and normalizing
+ * thousands of entries on every call is what made typing janky.
+ */
+export interface CatalogIndex {
+  /** Unique catalog entries, alphabetical. */
+  entries: readonly string[];
+  /** `normalizeTitle` of each entry (`.png` stripped), same order. */
+  keys: readonly string[];
+}
+
+/** Pre-computes the query-independent half of {@link searchCatalog}. */
+export function buildCatalogIndex(catalog: readonly string[]): CatalogIndex {
+  const entries = [...new Set(catalog)].sort((a, b) => a.localeCompare(b));
+  const keys = entries.map((entry) =>
+    normalizeTitle(entry.toLowerCase().endsWith('.png') ? entry.slice(0, -4) : entry),
+  );
+  return { entries, keys };
+}
+
+/**
  * Ranks catalog entries against a free-text query for an interactive cover
  * search (a human picks the result, so recall beats precision).
  *
@@ -272,35 +295,49 @@ export function pickBoxart(
  * A query that normalizes to nothing (empty or whitespace) returns the first
  * `limit` entries alphabetically. An entry never appears twice.
  *
- * @param catalog Boxart file names, e.g. `'Golden Sun (USA).png'`.
+ * @param catalog Boxart file names (e.g. `'Golden Sun (USA).png'`), or a
+ *   {@link CatalogIndex} to skip the per-call preprocessing.
  * @param query Free-text search, e.g. the ROM title.
  * @param limit Maximum number of results.
  */
-export function searchCatalog(catalog: readonly string[], query: string, limit = 24): string[] {
-  const entries = [...new Set(catalog)].sort((a, b) => a.localeCompare(b));
+export function searchCatalog(
+  catalog: readonly string[] | CatalogIndex,
+  query: string,
+  limit = 24,
+): string[] {
+  const { entries, keys } = Array.isArray(catalog)
+    ? buildCatalogIndex(catalog)
+    : (catalog as CatalogIndex);
   const key = normalizeTitle(query);
   if (key === '') {
     return entries.slice(0, limit);
   }
 
   const substring: string[] = [];
-  const fuzzy: Array<{ entry: string; ratio: number }> = [];
-  for (const entry of entries) {
-    const base = entry.toLowerCase().endsWith('.png') ? entry.slice(0, -4) : entry;
-    const entryKey = normalizeTitle(base);
-    if (entryKey.includes(key)) {
-      substring.push(entry);
-      continue;
-    }
-    const ratio = similarityRatio(key, entryKey);
-    if (ratio >= SEARCH_CUTOFF) {
-      fuzzy.push({ entry, ratio });
+  const restIndices: number[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (keys[i].includes(key)) {
+      substring.push(entries[i]);
+    } else {
+      restIndices.push(i);
     }
   }
-  substring.sort((a, b) => a.length - b.length || a.localeCompare(b));
-  fuzzy.sort(
-    (a, b) =>
-      b.ratio - a.ratio || a.entry.length - b.entry.length || a.entry.localeCompare(b.entry),
-  );
+  // entries are already alphabetical and sort() is stable, so sorting by
+  // length alone keeps the alphabetical tie order without re-collating
+  substring.sort((a, b) => a.length - b.length);
+  if (substring.length >= limit) {
+    // fuzzy hits rank after every substring hit; none of them can make the
+    // cut, so skip the expensive similarity pass entirely
+    return substring.slice(0, limit);
+  }
+
+  const fuzzy: Array<{ entry: string; ratio: number }> = [];
+  for (const i of restIndices) {
+    const ratio = similarityRatio(key, keys[i]);
+    if (ratio >= SEARCH_CUTOFF) {
+      fuzzy.push({ entry: entries[i], ratio });
+    }
+  }
+  fuzzy.sort((a, b) => b.ratio - a.ratio || a.entry.length - b.entry.length);
   return [...substring, ...fuzzy.map((f) => f.entry)].slice(0, limit);
 }
