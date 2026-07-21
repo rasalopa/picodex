@@ -192,7 +192,11 @@ export function LibraryView() {
       </dl>
 
       {games.length === 0 ? (
-        <p className="library-view__empty">No games found under {GAMES_DIR}/</p>
+        <p className="library-view__empty">
+          No games found under {GAMES_DIR}/. PicoDex looks for ROMs in per-system folders —{' '}
+          <code>Games/nds</code>, <code>Games/gba</code>, <code>Games/gb</code> and so on (the
+          layout the DSpico docs suggest). Support for custom folder layouts is on the roadmap.
+        </p>
       ) : (
         <ul className="library-view__grid">
           {groups.map(({ system, count, covered, approximate }) => (

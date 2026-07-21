@@ -154,13 +154,20 @@ export function HealthView() {
     () => (scan === null ? null : missingLoaderFiles(scan.picoEntries)),
     [scan],
   );
+  /**
+   * With no games found under `Games/<system>` (e.g. ROMs kept in a custom
+   * folder layout), EVERY save and user cover would classify as orphaned —
+   * a mass-deletion invitation. Skip orphan detection entirely then and
+   * explain why instead.
+   */
+  const libraryEmpty = games.length === 0;
   const orphanSaves = useMemo(
-    () => (scan === null ? [] : findOrphanSaves(games, scan.saves)),
-    [scan, games],
+    () => (scan === null || libraryEmpty ? [] : findOrphanSaves(games, scan.saves)),
+    [scan, games, libraryEmpty],
   );
   const orphanCovers = useMemo(
-    () => (scan === null ? [] : findOrphanUserCovers(scan.userCoverNames, games)),
-    [scan, games],
+    () => (scan === null || libraryEmpty ? [] : findOrphanUserCovers(scan.userCoverNames, games)),
+    [scan, games, libraryEmpty],
   );
 
   const deletableJunkDirs = useMemo(
@@ -413,7 +420,13 @@ export function HealthView() {
 
           <section className={sectionClass(orphanSaves.length === 0)}>
             <h3 className="section-title">Orphaned saves</h3>
-            {orphanSaves.length === 0 ? (
+            {libraryEmpty ? (
+              <p className="health-view__dim">
+                Skipped: no games were found under <code>Games/&lt;system&gt;</code>, so every save
+                would wrongly look orphaned. If your ROMs live in a different folder layout, this
+                check cannot tell orphans apart yet.
+              </p>
+            ) : orphanSaves.length === 0 ? (
               <p className="health-view__ok">Every save file belongs to a game on the card.</p>
             ) : (
               <>
@@ -466,7 +479,12 @@ export function HealthView() {
 
           <section className={sectionClass(orphanCovers.length === 0)}>
             <h3 className="section-title">Orphaned user covers</h3>
-            {orphanCovers.length === 0 ? (
+            {libraryEmpty ? (
+              <p className="health-view__dim">
+                Skipped: no games were found under <code>Games/&lt;system&gt;</code>, so every user
+                cover would wrongly look orphaned.
+              </p>
+            ) : orphanCovers.length === 0 ? (
               <p className="health-view__ok">Every user cover belongs to a game on the card.</p>
             ) : (
               <>
