@@ -193,9 +193,9 @@ export function LibraryView() {
 
       {games.length === 0 ? (
         <p className="library-view__empty">
-          No games found under {GAMES_DIR}/. PicoDex looks for ROMs in per-system folders —{' '}
-          <code>Games/nds</code>, <code>Games/gba</code>, <code>Games/gb</code> and so on (the
-          layout the DSpico docs suggest). Support for custom folder layouts is on the roadmap.
+          No games found on the card. PicoDex scans every folder (except <code>/_pico</code>) for
+          known ROM extensions, so your games can live in <code>Games/nds</code>, a{' '}
+          <code>roms/</code> folder, or anywhere else.
         </p>
       ) : (
         <ul className="library-view__grid">
@@ -274,7 +274,14 @@ export function LibraryView() {
         <BannerEditor
           gamesDir={bannerTarget.gamesDir}
           systemLabel={bannerTarget.label}
-          games={games.filter((game) => game.system.gamesDir === bannerTarget.gamesDir)}
+          // the editor reads ROM banners from the canonical folder, so only
+          // offer the games that actually live there (case-insensitive: FAT)
+          games={games.filter(
+            (game) =>
+              game.path.length === 2 &&
+              game.path[0].toLowerCase() === GAMES_DIR.toLowerCase() &&
+              game.path[1].toLowerCase() === bannerTarget.gamesDir.toLowerCase(),
+          )}
           onClose={() => {
             setBannerTarget(null);
           }}

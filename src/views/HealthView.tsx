@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSd } from '../state/SdContext';
 import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
 import { scanCard, type ScanResult } from '../lib/scan';
-import { COVERS, GAMES_DIR, friendlyFsError, getDir } from '../lib/sdcard';
+import { COVERS, friendlyFsError, getDir } from '../lib/sdcard';
 import './HealthView.css';
 
 /** URL of the Pico Loader releases page (source of the required .bin files). */
@@ -95,7 +95,7 @@ export function HealthView() {
   const [junkBusy, setJunkBusy] = useState(false);
   const [junkError, setJunkError] = useState<string | null>(null);
 
-  /** Selected orphan saves (`<gamesDir>/<name>` keys) — empty by default. */
+  /** Selected orphan saves (full-path keys) — empty by default. */
   const [savesSelected, setSavesSelected] = useState<ReadonlySet<string>>(new Set());
   const [savesConfirm, setSavesConfirm] = useState(false);
   const [savesBusy, setSavesBusy] = useState(false);
@@ -179,7 +179,7 @@ export function HealthView() {
   const junkSize = scan?.junkFiles.reduce((sum, file) => sum + file.size, 0) ?? 0;
 
   const selectedSaves = orphanSaves.filter((save) =>
-    savesSelected.has(`${save.gamesDir}/${save.name}`),
+    savesSelected.has([...save.path, save.name].join('/')),
   );
   const selectedCovers = orphanCovers.filter((name) => !coversDeselected.has(name));
 
@@ -225,7 +225,7 @@ export function HealthView() {
     setSavesError(null);
     try {
       for (const save of selectedSaves) {
-        const dir = await getDir(root, [GAMES_DIR, save.gamesDir]);
+        const dir = await getDir(root, save.path);
         if (dir === null) continue;
         await dir.removeEntry(save.name);
       }
@@ -422,22 +422,21 @@ export function HealthView() {
             <h3 className="section-title">Orphaned saves</h3>
             {libraryEmpty ? (
               <p className="health-view__dim">
-                Skipped: no games were found under <code>Games/&lt;system&gt;</code>, so every save
-                would wrongly look orphaned. If your ROMs live in a different folder layout, this
-                check cannot tell orphans apart yet.
+                Skipped: no games were found on the card, so every save would wrongly look orphaned.
               </p>
             ) : orphanSaves.length === 0 ? (
               <p className="health-view__ok">Every save file belongs to a game on the card.</p>
             ) : (
               <>
                 <p className="health-view__warn">
-                  {orphanSaves.length} save {orphanSaves.length === 1 ? 'file' : 'files'} match no
-                  ROM on the card. Saves may hold game progress and deleting them is permanent —
+                  {orphanSaves.length} save {orphanSaves.length === 1 ? 'file' : 'files'} have no
+                  matching ROM in their own folder — the launcher only pairs a save with a ROM
+                  sitting next to it. Saves may hold game progress and deleting them is permanent —
                   select only the ones you are sure about.
                 </p>
                 <ul className="health-view__list">
                   {orphanSaves.map((save) => {
-                    const key = `${save.gamesDir}/${save.name}`;
+                    const key = [...save.path, save.name].join('/');
                     return (
                       <li key={key}>
                         <label className="health-view__check">
@@ -449,9 +448,7 @@ export function HealthView() {
                               setSavesSelected((previous) => toggledSet(previous, key))
                             }
                           />
-                          <code>
-                            {GAMES_DIR}/{save.gamesDir}/{save.name}
-                          </code>
+                          <code>{key}</code>
                         </label>
                       </li>
                     );
@@ -481,8 +478,8 @@ export function HealthView() {
             <h3 className="section-title">Orphaned user covers</h3>
             {libraryEmpty ? (
               <p className="health-view__dim">
-                Skipped: no games were found under <code>Games/&lt;system&gt;</code>, so every user
-                cover would wrongly look orphaned.
+                Skipped: no games were found on the card, so every user cover would wrongly look
+                orphaned.
               </p>
             ) : orphanCovers.length === 0 ? (
               <p className="health-view__ok">Every user cover belongs to a game on the card.</p>

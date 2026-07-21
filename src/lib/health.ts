@@ -78,10 +78,10 @@ export function missingLoaderFiles(picoEntries: readonly string[]): {
   return { required: missing(REQUIRED_LOADER_FILES), optional: missing(OPTIONAL_LOADER_FILES) };
 }
 
-/** A save file found in a games directory, as collected by the card walk. */
+/** A save file found next to games, as collected by the card walk. */
 export interface SaveFile {
-  /** Directory under `Games/` the save was found in (e.g. `'nds'`, `'gb'`). */
-  gamesDir: string;
+  /** Directory path segments from the SD root (empty = at the root). */
+  path: readonly string[];
   /** File name of the save (e.g. `'Mario Kart DS (USA).sav'`). */
   name: string;
 }
@@ -94,18 +94,17 @@ function baseName(name: string): string {
 
 /**
  * Finds `.sav` files that no longer belong to any ROM: their base name
- * (name minus the final extension) matches no game in the same games
- * directory, case-insensitively.
+ * (name minus the final extension) matches no game in the same directory,
+ * case-insensitively.
  *
- * Systems can share a games directory (gb/gbc both use `gb`, ws/wsc use
- * `ws`, ngp/ngc use `ngp`), so a save is compared against every game whose
- * `system.gamesDir` equals the save's directory. To stay conservative, a
- * save also counts as owned when its base name equals a game's full file
- * name (`'Game.nds.sav'` next to `'Game.nds'`), a naming scheme some
- * loaders use.
+ * The launcher creates a game's save next to its ROM, so ownership is a
+ * same-directory relation — a ROM elsewhere on the card does not rescue a
+ * save it was separated from. To stay conservative, a save also counts as
+ * owned when its base name equals a game's full file name (`'Game.nds.sav'`
+ * next to `'Game.nds'`), a naming scheme some loaders use.
  *
  * @param games All ROMs found on the card.
- * @param saves Save files collected per games directory.
+ * @param saves Save files collected by the card walk.
  * @returns The orphaned saves, in `saves` order. Non-`.sav` entries are
  *   ignored, never reported.
  */
@@ -113,13 +112,13 @@ export function findOrphanSaves(
   games: readonly LibraryFile[],
   saves: readonly SaveFile[],
 ): SaveFile[] {
-  // FAT is case-insensitive: an on-disk 'Games/NDS' still holds the 'nds'
-  // system's games, so the directory join must be case-insensitive too or
-  // every save in a re-cased folder would be flagged orphaned.
-  /** lowercased gamesDir → lowercased names a save base may match. */
+  // FAT preserves case but ignores it, so the directory join must be
+  // case-insensitive too or every save in a re-cased folder would be
+  // flagged orphaned.
+  /** lowercased dir path → lowercased names a save base may match. */
   const ownedByDir = new Map<string, Set<string>>();
   for (const game of games) {
-    const dirKey = game.system.gamesDir.toLowerCase();
+    const dirKey = game.path.join('/').toLowerCase();
     let owned = ownedByDir.get(dirKey);
     if (owned === undefined) {
       owned = new Set();
@@ -132,7 +131,7 @@ export function findOrphanSaves(
     if (!save.name.toLowerCase().endsWith('.sav')) {
       return false;
     }
-    const owned = ownedByDir.get(save.gamesDir.toLowerCase());
+    const owned = ownedByDir.get(save.path.join('/').toLowerCase());
     return owned === undefined || !owned.has(baseName(save.name).toLowerCase());
   });
 }

@@ -281,78 +281,124 @@ export async function looksLikeDspicoSd(root: FileSystemDirectoryHandle): Promis
 export interface LibraryFile {
   /** System the file belongs to (matched by its extension). */
   system: System;
-  /** File name inside `Games/<system.gamesDir>/`. */
+  /** File name, without its directory. */
   fileName: string;
   /** File size in bytes. */
   size: number;
+  /**
+   * Directory path segments from the SD root (empty = at the root). ROMs can
+   * live anywhere on the card, not just `Games/<system.gamesDir>` — always
+   * open a game through this, never by rebuilding the canonical layout.
+   */
+  path: readonly string[];
 }
 
-/** `true` when `fileName` ends with one of `extensions` (case-insensitive). */
-function hasAnyExtension(fileName: string, extensions: readonly string[]): boolean {
-  const lower = fileName.toLowerCase();
-  return extensions.some((extension) => lower.endsWith(extension.toLowerCase()));
-}
+/** How deep the card walks (library and health scan) go below the SD root. */
+export const MAX_SCAN_DEPTH = 8;
+
+/** The launcher ROM at the card root — a tool, never a library game. */
+export const LAUNCHER_FILE = '_picoboot.nds';
 
 /**
- * Collects the file handles of plausible ROMs in one games directory,
- * skipping hidden/junk entries (names starting with `'.'`, which covers
- * macOS `._` AppleDouble files and `.DS_Store`) and subdirectories.
+ * Whether an error is the browser denying access to an entry. Chromium
+ * surfaces macOS/Windows permission denials as these names — sometimes as
+ * `NoModificationAllowedError` even on reads (see {@link friendlyFsError}).
  */
-async function listRomCandidates(dir: FileSystemDirectoryHandle): Promise<FileSystemFileHandle[]> {
-  const files: FileSystemFileHandle[] = [];
-  for await (const handle of dir.values()) {
-    if (handle.name.startsWith('.') || handle.kind !== 'file') {
-      continue;
-    }
-    files.push(handle);
-  }
-  return files;
+export function isAccessError(e: unknown): boolean {
+  return (
+    e instanceof DOMException &&
+    (e.name === 'NoModificationAllowedError' ||
+      e.name === 'NotAllowedError' ||
+      e.name === 'NotReadableError')
+  );
 }
 
 /**
- * Scans `Games/<gamesDir>` for every system and returns the ROM files found.
+ * Scans the whole card (depth-capped) and returns every file whose extension
+ * belongs to a system — ROMs can live anywhere, not just in the suggested
+ * `Games/<gamesDir>` layout.
  *
- * Junk entries (names starting with `'.'` or `'._'`), subdirectories and
- * files whose extension does not match the system are skipped; systems whose
- * games directory does not exist contribute nothing. Directories shared by
- * several systems (gb/gbc, ws/wsc, ngp/ngc) are listed only once, and each
- * file is attributed by extension (extensions are unique across systems).
+ * Skipped while walking: entries whose name starts with `'.'` (macOS `._*`
+ * AppleDouble files, `.DS_Store`, and junk/protected folders like `.Trashes`),
+ * the `_pico` folder (its `emulators/` holds `.nds` files that are tools, not
+ * library games), the launcher ROM `_picoboot.nds` at the root, and
+ * directories the browser is not allowed to read (Windows ACL-protects
+ * `System Volume Information` on every card it touches — one such folder
+ * must not abort the whole library). Each file is attributed by extension —
+ * extensions are unique across systems, which also disambiguates the systems
+ * that share a canonical folder (gb/gbc, ws/wsc, ngp/ngc).
  *
  * @param root SD card root handle.
  * @param systems Systems to scan for, in the order results should appear.
- * @returns Found files grouped per system in `systems` order (directory
- *   order within a system); empty when `Games/` itself is missing.
+ * @returns Found files grouped per system in `systems` order (walk order
+ *   within a system); empty when the card holds no known ROMs.
  */
 export async function scanLibrary(
   root: FileSystemDirectoryHandle,
   systems: readonly System[],
 ): Promise<LibraryFile[]> {
-  const games = await getDir(root, [GAMES_DIR]);
-  if (games === null) {
-    return [];
-  }
-  // Several systems share one games directory; list each directory only once.
-  const listings = new Map<string, FileSystemFileHandle[] | null>();
-  const results: LibraryFile[] = [];
+  const systemByExtension = new Map<string, System>();
   for (const system of systems) {
-    let files = listings.get(system.gamesDir);
-    if (files === undefined) {
-      const dir = await getDir(games, [system.gamesDir]);
-      files = dir === null ? null : await listRomCandidates(dir);
-      listings.set(system.gamesDir, files);
+    for (const extension of system.extensions) {
+      systemByExtension.set(extension.toLowerCase(), system);
     }
-    if (files === null) {
-      continue;
-    }
-    for (const handle of files) {
-      if (!hasAnyExtension(handle.name, system.extensions)) {
+  }
+
+  const results: LibraryFile[] = [];
+  async function walk(dir: FileSystemDirectoryHandle, path: readonly string[]): Promise<void> {
+    for await (const handle of dir.values()) {
+      if (handle.name.startsWith('.')) {
         continue;
       }
-      const file = await handle.getFile();
-      results.push({ system, fileName: handle.name, size: file.size });
+      if (handle.kind === 'directory') {
+        if (path.length === 0 && handle.name.toLowerCase() === PICO_DIR.toLowerCase()) {
+          continue;
+        }
+        if (path.length < MAX_SCAN_DEPTH) {
+          try {
+            await walk(handle, [...path, handle.name]);
+          } catch (e) {
+            if (!isAccessError(e)) {
+              throw e;
+            }
+            // unreadable subtree: skip it rather than lose the whole library
+          }
+        }
+        continue;
+      }
+      if (path.length === 0 && handle.name.toLowerCase() === LAUNCHER_FILE) {
+        continue;
+      }
+      const dot = handle.name.lastIndexOf('.');
+      if (dot <= 0) {
+        continue;
+      }
+      const system = systemByExtension.get(handle.name.slice(dot).toLowerCase());
+      if (system === undefined) {
+        continue;
+      }
+      let file: File;
+      try {
+        file = await handle.getFile();
+      } catch (e) {
+        if (!isAccessError(e)) {
+          throw e;
+        }
+        // a locked file must cost only itself, not its siblings (an error
+        // escaping this loop would abort the whole directory mid-iteration)
+        continue;
+      }
+      results.push({ system, fileName: handle.name, size: file.size, path });
     }
   }
-  return results;
+  await walk(root, []);
+
+  // group per system in `systems` order; the sort is stable, so files keep
+  // their walk order within a system
+  const systemOrder = new Map(systems.map((system, index) => [system.id, index]));
+  return results.sort(
+    (a, b) => (systemOrder.get(a.system.id) ?? 0) - (systemOrder.get(b.system.id) ?? 0),
+  );
 }
 
 /**

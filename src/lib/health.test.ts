@@ -12,13 +12,16 @@ import {
 import type { LibraryFile } from './sdcard.ts';
 import { systemById } from './systems.ts';
 
-/** Builds a LibraryFile for a real registry system (throws on unknown id). */
-function rom(systemId: string, fileName: string): LibraryFile {
+/**
+ * Builds a LibraryFile for a real registry system (throws on unknown id).
+ * `path` defaults to the canonical `Games/<gamesDir>` location.
+ */
+function rom(systemId: string, fileName: string, path?: readonly string[]): LibraryFile {
   const system = systemById(systemId);
   if (system === null) {
     throw new Error(`unknown system in test: ${systemId}`);
   }
-  return { system, fileName, size: 0 };
+  return { system, fileName, size: 0, path: path ?? ['Games', system.gamesDir] };
 }
 
 describe('isJunkFileName', () => {
@@ -110,53 +113,55 @@ describe('missingLoaderFiles', () => {
 describe('findOrphanSaves', () => {
   it('keeps saves whose base name matches a game in the same dir, case-insensitively', () => {
     const games = [rom('nds', 'Mario Kart DS (USA).nds')];
-    const saves = [{ gamesDir: 'nds', name: 'MARIO KART DS (usa).SAV' }];
+    const saves = [{ path: ['Games', 'nds'], name: 'MARIO KART DS (usa).SAV' }];
     expect(findOrphanSaves(games, saves)).toEqual([]);
   });
 
   it('reports saves that match no game in their dir', () => {
     const games = [rom('nds', 'Mario Kart DS (USA).nds')];
     const saves = [
-      { gamesDir: 'nds', name: 'Mario Kart DS (USA).sav' },
-      { gamesDir: 'nds', name: 'Deleted Game (USA).sav' },
+      { path: ['Games', 'nds'], name: 'Mario Kart DS (USA).sav' },
+      { path: ['Games', 'nds'], name: 'Deleted Game (USA).sav' },
     ];
     expect(findOrphanSaves(games, saves)).toEqual([
-      { gamesDir: 'nds', name: 'Deleted Game (USA).sav' },
+      { path: ['Games', 'nds'], name: 'Deleted Game (USA).sav' },
     ]);
   });
 
   it('matches across systems sharing a games dir (gb + gbc both live in gb/)', () => {
     const games = [rom('gb', 'Tetris (World).gb'), rom('gbc', 'Zelda DX (USA).gbc')];
     const saves = [
-      { gamesDir: 'gb', name: 'Tetris (World).sav' },
-      { gamesDir: 'gb', name: 'Zelda DX (USA).sav' },
-      { gamesDir: 'gb', name: 'Gone (USA).sav' },
+      { path: ['Games', 'gb'], name: 'Tetris (World).sav' },
+      { path: ['Games', 'gb'], name: 'Zelda DX (USA).sav' },
+      { path: ['Games', 'gb'], name: 'Gone (USA).sav' },
     ];
-    expect(findOrphanSaves(games, saves)).toEqual([{ gamesDir: 'gb', name: 'Gone (USA).sav' }]);
+    expect(findOrphanSaves(games, saves)).toEqual([
+      { path: ['Games', 'gb'], name: 'Gone (USA).sav' },
+    ]);
   });
 
   it('does not let a game in one dir claim a same-named save in another dir', () => {
     const games = [rom('nds', 'Metroid (USA).nds')];
-    const saves = [{ gamesDir: 'gba', name: 'Metroid (USA).sav' }];
+    const saves = [{ path: ['Games', 'gba'], name: 'Metroid (USA).sav' }];
     expect(findOrphanSaves(games, saves)).toEqual(saves);
   });
 
   it('keeps saves named after the full ROM file name (Game.nds.sav scheme)', () => {
     const games = [rom('nds', 'Mario Kart DS (USA).nds')];
-    const saves = [{ gamesDir: 'nds', name: 'Mario Kart DS (USA).nds.sav' }];
+    const saves = [{ path: ['Games', 'nds'], name: 'Mario Kart DS (USA).nds.sav' }];
     expect(findOrphanSaves(games, saves)).toEqual([]);
   });
 
   it('ignores non-.sav files entirely', () => {
     const saves = [
-      { gamesDir: 'nds', name: 'notes.txt' },
-      { gamesDir: 'nds', name: 'Orphan.sav.bak' },
+      { path: ['Games', 'nds'], name: 'notes.txt' },
+      { path: ['Games', 'nds'], name: 'Orphan.sav.bak' },
     ];
     expect(findOrphanSaves([], saves)).toEqual([]);
   });
 
   it('reports every save in a dir that has no games at all', () => {
-    const saves = [{ gamesDir: 'snes', name: 'Old Game.sav' }];
+    const saves = [{ path: ['Games', 'snes'], name: 'Old Game.sav' }];
     expect(findOrphanSaves([], saves)).toEqual(saves);
   });
 });
@@ -193,7 +198,29 @@ describe('findOrphanSaves directory casing', () => {
   it('joins games and saves case-insensitively across dir names', () => {
     // FAT preserves case: a card can carry Games/NDS while the registry says 'nds'
     const games = [rom('nds', 'Zelda.nds')];
-    const saves = [{ gamesDir: 'NDS', name: 'Zelda.sav' }];
+    const saves = [{ path: ['GAMES', 'NDS'], name: 'Zelda.sav' }];
     expect(findOrphanSaves(games, saves)).toHaveLength(0);
+  });
+});
+
+describe('findOrphanSaves with custom folder layouts', () => {
+  it('keeps a save next to its ROM in a custom folder', () => {
+    const games = [rom('nds', 'Celeste.nds', ['roms'])];
+    const saves = [{ path: ['roms'], name: 'Celeste.sav' }];
+    expect(findOrphanSaves(games, saves)).toEqual([]);
+  });
+
+  it('keeps a save next to a ROM at the card root', () => {
+    const games = [rom('gba', 'Golden Sun.gba', [])];
+    const saves = [{ path: [], name: 'Golden Sun.sav' }];
+    expect(findOrphanSaves(games, saves)).toEqual([]);
+  });
+
+  it('a ROM elsewhere does not rescue a save it was separated from', () => {
+    // the launcher pairs saves with the ROM in the same directory: if the
+    // ROM moved to /roms, the save left in Games/nds no longer loads
+    const games = [rom('nds', 'Moved.nds', ['roms'])];
+    const saves = [{ path: ['Games', 'nds'], name: 'Moved.sav' }];
+    expect(findOrphanSaves(games, saves)).toEqual(saves);
   });
 });

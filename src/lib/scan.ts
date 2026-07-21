@@ -14,10 +14,9 @@ import {
   isPreventionOnlyFsevents,
   type SaveFile,
 } from './health.ts';
-import { COVERS, GAMES_DIR, PICO_DIR, listEntries } from './sdcard.ts';
+import { COVERS, MAX_SCAN_DEPTH, PICO_DIR, isAccessError, listEntries } from './sdcard.ts';
 
-/** How deep the scanner walks below the SD root. */
-export const MAX_SCAN_DEPTH = 8;
+export { MAX_SCAN_DEPTH } from './sdcard.ts';
 
 /** One junk file found by the scan, with enough context to delete it. */
 export interface JunkFile {
@@ -40,7 +39,7 @@ export interface ScanResult {
   junkDirs: JunkDir[];
   /** File names found directly inside `/_pico` (for the loader check). */
   picoEntries: string[];
-  /** `.sav` files found in `Games/<dir>/`. */
+  /** `.sav` files found anywhere outside `/_pico`. */
   saves: SaveFile[];
   /** File names found in `_pico/covers/user/`. */
   userCoverNames: string[];
@@ -55,16 +54,6 @@ function pathEquals(path: readonly string[], expected: readonly string[]): boole
   return (
     path.length === expected.length &&
     expected.every((segment, i) => path[i].toLowerCase() === segment.toLowerCase())
-  );
-}
-
-/** Whether an error is the browser denying access to an entry. */
-function isAccessError(e: unknown): boolean {
-  return (
-    e instanceof DOMException &&
-    (e.name === 'NoModificationAllowedError' ||
-      e.name === 'NotAllowedError' ||
-      e.name === 'NotReadableError')
   );
 }
 
@@ -103,8 +92,13 @@ export async function scanCard(
   async function walk(dir: FileSystemDirectoryHandle, path: readonly string[]): Promise<void> {
     const inPico = pathEquals(path, [PICO_DIR]);
     const inUserCovers = pathEquals(path, COVERS.user);
-    const gamesDir =
-      path.length === 2 && path[0].toLowerCase() === GAMES_DIR.toLowerCase() ? path[1] : null;
+    // saves live next to their ROM, which can be anywhere outside /_pico —
+    // but the library walk never enters dot-directories, so a save in one
+    // must not be collected either (its ROM would be invisible and the save
+    // would wrongly classify as orphaned)
+    const savesCollectible =
+      path.every((segment) => !segment.startsWith('.')) &&
+      (path.length === 0 || path[0].toLowerCase() !== PICO_DIR.toLowerCase());
     for await (const handle of dir.values()) {
       if (handle.kind === 'file') {
         result.filesSeen += 1;
@@ -125,8 +119,8 @@ export async function scanCard(
           result.picoEntries.push(handle.name);
         } else if (inUserCovers) {
           result.userCoverNames.push(handle.name);
-        } else if (gamesDir !== null && handle.name.toLowerCase().endsWith('.sav')) {
-          result.saves.push({ gamesDir, name: handle.name });
+        } else if (savesCollectible && handle.name.toLowerCase().endsWith('.sav')) {
+          result.saves.push({ path, name: handle.name });
         }
         continue;
       }

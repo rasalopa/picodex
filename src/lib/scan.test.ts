@@ -89,7 +89,7 @@ describe('scanCard', () => {
       { path: ['Games', 'nds'], name: '._Mario.nds', size: 4096 },
     ]);
     expect(result.picoEntries).toEqual(['picoLoader7.bin', 'gamedata.json']);
-    expect(result.saves).toEqual([{ gamesDir: 'nds', name: 'Mario.sav' }]);
+    expect(result.saves).toEqual([{ path: ['Games', 'nds'], name: 'Mario.sav' }]);
     expect(result.userCoverNames).toEqual(['Mario.bmp']);
     expect(result.junkDirs).toEqual([]);
     expect(result.skippedDirs).toEqual([]);
@@ -174,7 +174,7 @@ describe('scanCard', () => {
 
     expect(result.skippedDirs).toEqual(['Games/secret']);
     // the walk continued past the unreadable sibling
-    expect(result.saves).toEqual([{ gamesDir: 'nds', name: 'Mario.sav' }]);
+    expect(result.saves).toEqual([{ path: ['Games', 'nds'], name: 'Mario.sav' }]);
   });
 
   it('rethrows non-permission errors', async () => {
@@ -201,6 +201,32 @@ describe('scanCard', () => {
 
     // files at depths 0..MAX are visited; the one below the cap is not
     expect(result.filesSeen).toBe(MAX_SCAN_DEPTH + 1);
+  });
+
+  it('collects saves from custom folders and the root, but never under _pico', async () => {
+    const root = new FakeDirectoryHandle();
+    root.dir('roms').file('Celeste.sav', 512);
+    root.file('Loose.sav', 256);
+    root.dir('_pico').dir('backup').file('old.sav', 128);
+
+    const result = await scanCard(asRoot(root), noProgress);
+
+    expect(result.saves).toEqual([
+      { path: ['roms'], name: 'Celeste.sav' },
+      { path: [], name: 'Loose.sav' },
+    ]);
+  });
+
+  it('never collects saves inside dot-directories', async () => {
+    // the library walk never enters dot-dirs, so their ROMs are invisible —
+    // collecting the save would wrongly flag it as orphaned
+    const root = new FakeDirectoryHandle();
+    root.dir('.stash').file('Hidden.sav', 512);
+    root.dir('roms').dir('.backup').file('Old.sav', 256);
+
+    const result = await scanCard(asRoot(root), noProgress);
+
+    expect(result.saves).toEqual([]);
   });
 
   it('reports progress with the final file count', async () => {

@@ -10,7 +10,7 @@ function sys(id: string): System {
 }
 
 function lib(id: string, fileName: string): LibraryFile {
-  return { system: sys(id), fileName, size: 0 };
+  return { system: sys(id), fileName, size: 0, path: ['Games', sys(id).gamesDir] };
 }
 
 describe('planImport', () => {

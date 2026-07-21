@@ -4,7 +4,7 @@ import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
 import { DEFAULT_REGION_PREFS, REGION_PREFS_BY_GBA_CODE, pickBoxart } from '../lib/matching';
 import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
-import { COVERS, GAMES_DIR, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
+import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
 import { useSd, type CoverIndex } from '../state/SdContext';
@@ -74,10 +74,13 @@ async function readGameCode(
   dirCache: Map<string, FileSystemDirectoryHandle | null>,
 ): Promise<string | null> {
   const { system, fileName } = game;
-  let dir = dirCache.get(system.gamesDir);
+  // ROMs can live anywhere on the card; cache directories per game path
+  // (lowercased key — FAT ignores case)
+  const dirKey = game.path.join('/').toLowerCase();
+  let dir = dirCache.get(dirKey);
   if (dir === undefined) {
-    dir = await getDir(root, [GAMES_DIR, system.gamesDir]);
-    dirCache.set(system.gamesDir, dir);
+    dir = await getDir(root, game.path);
+    dirCache.set(dirKey, dir);
   }
   if (dir === null) {
     return null;
@@ -113,7 +116,8 @@ async function classifyGame(
       return null;
     }
   }
-  return { id: `${system.id}/${fileName}`, game, code };
+  // the path is part of the id: same-named ROMs can live in different folders
+  return { id: [system.id, ...game.path, fileName].join('/'), game, code };
 }
 
 /**

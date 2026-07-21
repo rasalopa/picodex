@@ -33,6 +33,8 @@ class FakeFileHandle {
   readonly kind = 'file' as const;
   readonly name: string;
   data: Uint8Array;
+  /** Simulates a locked/unreadable file: getFile() throws. */
+  denyRead = false;
 
   constructor(name: string, data: Uint8Array = new Uint8Array(0)) {
     this.name = name;
@@ -40,6 +42,9 @@ class FakeFileHandle {
   }
 
   async getFile(): Promise<{ size: number; arrayBuffer(): Promise<ArrayBuffer> }> {
+    if (this.denyRead) {
+      throw new DOMException('access denied', 'NotReadableError');
+    }
     const snapshot = new Uint8Array(this.data);
     return {
       size: snapshot.byteLength,
@@ -79,6 +84,9 @@ class FakeDirectoryHandle {
   readonly kind = 'directory' as const;
   readonly name: string;
   readonly children = new Map<string, FakeEntry>();
+  /** Simulates an ACL/TCC-protected directory (Windows `System Volume
+   *  Information`, macOS `.Trashes`): listing it throws. */
+  denyRead = false;
 
   constructor(name = '') {
     this.name = name;
@@ -129,6 +137,9 @@ class FakeDirectoryHandle {
   }
 
   async *values(): AsyncGenerator<FakeEntry> {
+    if (this.denyRead) {
+      throw new DOMException('access denied', 'NotReadableError');
+    }
     yield* this.children.values();
   }
 }
@@ -362,7 +373,12 @@ describe('scanLibrary', () => {
 
     const found = await scanLibrary(asDir(root), [mustSystem('nds')]);
     expect(found).toEqual([
-      { system: mustSystem('nds'), fileName: 'Mario Kart DS (USA).nds', size: 64 },
+      {
+        system: mustSystem('nds'),
+        fileName: 'Mario Kart DS (USA).nds',
+        size: 64,
+        path: [GAMES_DIR, 'nds'],
+      },
     ]);
   });
 
@@ -382,24 +398,125 @@ describe('scanLibrary', () => {
 
     const found = await scanLibrary(asDir(root), [mustSystem('gb'), mustSystem('gbc')]);
     expect(found).toEqual([
-      { system: mustSystem('gb'), fileName: 'Tetris (World).gb', size: 32 },
-      { system: mustSystem('gbc'), fileName: 'Wario Land 3 (World).gbc', size: 48 },
+      {
+        system: mustSystem('gb'),
+        fileName: 'Tetris (World).gb',
+        size: 32,
+        path: [GAMES_DIR, 'gb'],
+      },
+      {
+        system: mustSystem('gbc'),
+        fileName: 'Wario Land 3 (World).gbc',
+        size: 48,
+        path: [GAMES_DIR, 'gb'],
+      },
     ]);
   });
 
-  it('skips systems whose games directory is missing', async () => {
+  it('only reports files whose extension belongs to a requested system', async () => {
     const root = new FakeDirectoryHandle('root');
     const games = root.addDir(GAMES_DIR);
     games.addDir('nds').addFile('Game.nds', new Uint8Array(8));
-    // No Games/snes directory at all.
-    const found = await scanLibrary(asDir(root), [mustSystem('snes'), mustSystem('nds')]);
-    expect(found).toEqual([{ system: mustSystem('nds'), fileName: 'Game.nds', size: 8 }]);
+    games.addDir('snes').addFile('Game.sfc', new Uint8Array(9));
+    const found = await scanLibrary(asDir(root), [mustSystem('nds')]);
+    expect(found).toEqual([
+      { system: mustSystem('nds'), fileName: 'Game.nds', size: 8, path: [GAMES_DIR, 'nds'] },
+    ]);
   });
 
-  it('returns an empty array when Games/ itself is missing', async () => {
+  it('returns an empty array when the card has no known ROMs', async () => {
     const root = new FakeDirectoryHandle('root');
     root.addDir('_pico');
+    root.addDir('DCIM').addFile('photo.jpg', new Uint8Array(3));
     await expect(scanLibrary(asDir(root), SYSTEMS)).resolves.toEqual([]);
+  });
+
+  it('finds ROMs in custom folders anywhere on the card', async () => {
+    const root = new FakeDirectoryHandle('root');
+    const roms = root.addDir('roms');
+    roms.addFile('Celeste.nds', new Uint8Array(5));
+    roms.addDir('handhelds').addFile('Shantae.gbc', new Uint8Array(6));
+    root.addFile('Loose.gba', new Uint8Array(7));
+
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    // grouped in SYSTEMS order (nds before gba before gbc)
+    expect(found.map((f) => [f.system.id, f.fileName, f.path])).toEqual([
+      ['nds', 'Celeste.nds', ['roms']],
+      ['gba', 'Loose.gba', []],
+      ['gbc', 'Shantae.gbc', ['roms', 'handhelds']],
+    ]);
+  });
+
+  it('never scans inside _pico (emulators are tools, not library games)', async () => {
+    const root = new FakeDirectoryHandle('root');
+    root.addDir('_pico').addDir('emulators').addFile('GBARunner2.nds', new Uint8Array(4));
+    root.addDir(GAMES_DIR).addDir('nds').addFile('Real.nds', new Uint8Array(2));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    expect(found.map((f) => f.fileName)).toEqual(['Real.nds']);
+  });
+
+  it('never descends into dot-directories (.Trashes and friends)', async () => {
+    const root = new FakeDirectoryHandle('root');
+    root.addDir('.Trashes').addFile('Deleted.nds', new Uint8Array(4));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    expect(found).toEqual([]);
+  });
+
+  it('never lists the launcher ROM (_picoboot.nds) as a game', async () => {
+    const root = new FakeDirectoryHandle('root');
+    root.addFile('_picoboot.nds', new Uint8Array(64));
+    root.addFile('_PICOBOOT.NDS', new Uint8Array(64)); // FAT re-cased
+    root.addDir(GAMES_DIR).addDir('nds').addFile('_picoboot.nds', new Uint8Array(2));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    // only the root-level launcher is special; a user file elsewhere with
+    // the same name is still a (weirdly named) game
+    expect(found.map((f) => [...f.path, f.fileName].join('/'))).toEqual([
+      'Games/nds/_picoboot.nds',
+    ]);
+  });
+
+  it('skips unreadable directories instead of losing the whole library', async () => {
+    // Windows ACL-protects 'System Volume Information' on every card it
+    // touches; one such folder must not abort the scan
+    const root = new FakeDirectoryHandle('root');
+    root.addDir('System Volume Information').denyRead = true;
+    root.addDir(GAMES_DIR).addDir('nds').addFile('Game.nds', new Uint8Array(2));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    expect(found.map((f) => f.fileName)).toEqual(['Game.nds']);
+  });
+
+  it('skips a locked file without losing its siblings or the scan', async () => {
+    const root = new FakeDirectoryHandle('root');
+    root.addFile('LockedRoot.gba', new Uint8Array(1)).denyRead = true;
+    const nds = root.addDir(GAMES_DIR).addDir('nds');
+    nds.addFile('A.nds', new Uint8Array(1));
+    nds.addFile('Locked.nds', new Uint8Array(1)).denyRead = true;
+    nds.addFile('Z.nds', new Uint8Array(1));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    // a locked file costs only itself — Z.nds after it must survive
+    expect(found.map((f) => f.fileName)).toEqual(['A.nds', 'Z.nds']);
+  });
+
+  it('reports the same file name in two folders as two library entries', async () => {
+    const root = new FakeDirectoryHandle('root');
+    root.addDir(GAMES_DIR).addDir('nds').addFile('Mario.nds', new Uint8Array(1));
+    root.addDir('backup').addFile('Mario.nds', new Uint8Array(1));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    expect(found.map((f) => [...f.path, f.fileName].join('/'))).toEqual([
+      'Games/nds/Mario.nds',
+      'backup/Mario.nds',
+    ]);
+  });
+
+  it('stops descending below the depth cap', async () => {
+    const root = new FakeDirectoryHandle('root');
+    let dir = root;
+    for (let depth = 1; depth <= 9; depth += 1) {
+      dir = dir.addDir(`level-${depth}`);
+    }
+    dir.addFile('TooDeep.nds', new Uint8Array(1));
+    const found = await scanLibrary(asDir(root), SYSTEMS);
+    expect(found).toEqual([]);
   });
 
   it('scans the full registry without duplicating shared directories', async () => {

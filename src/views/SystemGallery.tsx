@@ -4,7 +4,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
 import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
-import { COVERS, GAMES_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
+import { COVERS, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
 import './SystemGallery.css';
@@ -86,6 +86,10 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     [games, system.id],
   );
 
+  /** Unique per file on the card: two same-named ROMs can live in different
+   *  folders now, so `fileName` alone cannot key the resolved-cover map. */
+  const gameKey = (game: LibraryFile) => [...game.path, game.fileName].join('/');
+
   useEffect(() => {
     if (root === null) return;
     const rootHandle = root;
@@ -96,19 +100,25 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     setError(null);
 
     async function loadAll() {
-      const gamesDir =
-        system.coverKeying === 'gamecode'
-          ? await getDir(rootHandle, [GAMES_DIR, system.gamesDir])
-          : null;
       const userDir = await getDir(rootHandle, COVERS.user);
       const codeKey = system.id === 'nds' ? 'nds' : system.id === 'gba' ? 'gba' : null;
       const codeDir = codeKey === null ? null : await getDir(rootHandle, COVERS[codeKey]);
+      /** ROMs can live anywhere on the card; directories are opened per game
+       *  path and cached (lowercased key — FAT ignores case). */
+      const dirCache = new Map<string, FileSystemDirectoryHandle | null>();
 
       /** Reads the 4-char gamecode from a ROM header (first bytes only). */
-      async function readCode(fileName: string): Promise<string | null> {
-        if (gamesDir === null) return null;
+      async function readCode(game: LibraryFile): Promise<string | null> {
+        if (system.coverKeying !== 'gamecode') return null;
+        const dirKey = game.path.join('/').toLowerCase();
+        let dir = dirCache.get(dirKey);
+        if (dir === undefined) {
+          dir = await getDir(rootHandle, game.path);
+          dirCache.set(dirKey, dir);
+        }
+        if (dir === null) return null;
         try {
-          const handle = await gamesDir.getFileHandle(fileName);
+          const handle = await dir.getFileHandle(game.fileName);
           const file = await handle.getFile();
           const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
           return system.id === 'nds' ? parseNdsGameCode(header) : parseGbaGameCode(header);
@@ -121,7 +131,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
       async function resolveCover(game: LibraryFile): Promise<ResolvedCover> {
         // the gamecode also keys the play-stats lookup, so read it for
         // gamecode systems even when a user-folder cover short-circuits
-        const code = codeKey === null ? null : await readCode(game.fileName);
+        const code = codeKey === null ? null : await readCode(game);
         let bytes: Uint8Array | null = null;
         const userName = `${game.fileName}.bmp`;
         if (userDir !== null && coverIndex.user.has(userName.toLowerCase())) {
@@ -158,7 +168,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
               return;
             }
             if (result.url !== null) urls.push(result.url);
-            setResolved((prev) => new Map(prev).set(game.fileName, result));
+            setResolved((prev) => new Map(prev).set(gameKey(game), result));
           }
         }),
       );
@@ -176,7 +186,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
 
   const cards = useMemo<Card[]>(() => {
     const list = systemGames.map((game) => {
-      const cover = resolved.get(game.fileName);
+      const cover = resolved.get(gameKey(game));
       const entry =
         gameData === null
           ? undefined
@@ -245,7 +255,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             const title = titleOf(game.fileName);
             const badge = entry === undefined ? null : playBadge(entry);
             return (
-              <li key={game.fileName} className="system-gallery__card">
+              <li key={gameKey(game)} className="system-gallery__card">
                 <span className="system-gallery__cover-wrap">
                   {cover === undefined ? (
                     <span
