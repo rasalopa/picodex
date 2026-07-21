@@ -508,6 +508,16 @@ describe('scanLibrary', () => {
     ]);
   });
 
+  it('reports progress with the final count of visited files', async () => {
+    const root = new FakeDirectoryHandle('root');
+    const nds = root.addDir(GAMES_DIR).addDir('nds');
+    nds.addFile('A.nds', new Uint8Array(1));
+    nds.addFile('notes.txt', 'not a rom'); // visited files count, not ROMs
+    const calls: number[] = [];
+    await scanLibrary(asDir(root), SYSTEMS, (n) => calls.push(n));
+    expect(calls.at(-1)).toBe(2);
+  });
+
   it('stops descending below the depth cap', async () => {
     const root = new FakeDirectoryHandle('root');
     let dir = root;

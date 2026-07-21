@@ -173,7 +173,12 @@ export function SdProvider({ children }: { children: ReactNode }) {
     // or the reload could revert them with a pre-toggle snapshot
     await writeChain.current;
     setProgress('Scanning game library…');
-    setGames(await scanLibrary(rootHandle, SYSTEMS));
+    setGames(
+      await scanLibrary(rootHandle, SYSTEMS, (filesSeen) => {
+        // large collections take a while: show the walk is alive
+        setProgress(`Scanning game library… ${filesSeen} files`);
+      }),
+    );
     setProgress('Reading covers…');
     setCoverIndex(await readCoverIndex(rootHandle));
     setProgress('Reading launcher data…');

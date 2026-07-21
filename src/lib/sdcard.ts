@@ -330,12 +330,16 @@ export function isAccessError(e: unknown): boolean {
  *
  * @param root SD card root handle.
  * @param systems Systems to scan for, in the order results should appear.
+ * @param onProgress Called with the number of files visited so far (every
+ *   50 files and once at the end) — large collections take a while and the
+ *   UI should show the walk is alive.
  * @returns Found files grouped per system in `systems` order (walk order
  *   within a system); empty when the card holds no known ROMs.
  */
 export async function scanLibrary(
   root: FileSystemDirectoryHandle,
   systems: readonly System[],
+  onProgress?: (filesSeen: number) => void,
 ): Promise<LibraryFile[]> {
   const systemByExtension = new Map<string, System>();
   for (const system of systems) {
@@ -344,6 +348,7 @@ export async function scanLibrary(
     }
   }
 
+  let filesSeen = 0;
   const results: LibraryFile[] = [];
   async function walk(dir: FileSystemDirectoryHandle, path: readonly string[]): Promise<void> {
     for await (const handle of dir.values()) {
@@ -365,6 +370,10 @@ export async function scanLibrary(
           }
         }
         continue;
+      }
+      filesSeen += 1;
+      if (filesSeen % 50 === 0) {
+        onProgress?.(filesSeen);
       }
       if (path.length === 0 && handle.name.toLowerCase() === LAUNCHER_FILE) {
         continue;
@@ -392,6 +401,7 @@ export async function scanLibrary(
     }
   }
   await walk(root, []);
+  onProgress?.(filesSeen);
 
   // group per system in `systems` order; the sort is stable, so files keep
   // their walk order within a system
