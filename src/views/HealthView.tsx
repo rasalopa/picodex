@@ -170,12 +170,14 @@ export function HealthView() {
     [scan, games, libraryEmpty],
   );
 
-  const deletableJunkDirs = useMemo(
-    () => (scan === null ? [] : scan.junkDirs.filter((dir) => !dir.preventionOnly)),
-    [scan],
-  );
+  // macOS recreates .Trashes / .Spotlight-V100 / .fseventsd every time the
+  // card is mounted, so deleting them is a losing battle — they are shown as
+  // an informational note, not as junk to clean.
+  const macosDirs = useMemo(() => scan?.junkDirs.map((dir) => dir.name) ?? [], [scan]);
   const keptFsevents = scan?.junkDirs.some((dir) => dir.preventionOnly) ?? false;
-  const junkCount = (scan?.junkFiles.length ?? 0) + deletableJunkDirs.length;
+  // only files are actionable junk: ._* and .DS_Store are created on copy/view
+  // (not on mount), so cleaning them actually sticks.
+  const junkCount = scan?.junkFiles.length ?? 0;
   const junkSize = scan?.junkFiles.reduce((sum, file) => sum + file.size, 0) ?? 0;
 
   const selectedSaves = orphanSaves.filter((save) =>
@@ -200,17 +202,10 @@ export function HealthView() {
         failed.push([...file.path, file.name].join('/'));
       }
     }
-    for (const junkDir of deletableJunkDirs) {
-      try {
-        await root.removeEntry(junkDir.name, { recursive: true });
-      } catch {
-        failed.push(junkDir.name);
-      }
-    }
     if (failed.length > 0) {
       setJunkError(
         `Could not delete: ${failed.join(', ')}. macOS protects some of its own ` +
-          'folders (such as .Trashes) from other apps — they are harmless to the launcher.',
+          'files from other apps — they are harmless to the launcher.',
       );
     }
     setJunkConfirm(false);
@@ -317,7 +312,7 @@ export function HealthView() {
           <section className={sectionClass(junkCount === 0)}>
             <h3 className="section-title">macOS junk</h3>
             {junkCount === 0 ? (
-              <p className="health-view__ok">No macOS junk found.</p>
+              <p className="health-view__ok">No macOS junk files found.</p>
             ) : (
               <>
                 <p>
@@ -325,21 +320,7 @@ export function HealthView() {
                     {scan.junkFiles.length} junk {scan.junkFiles.length === 1 ? 'file' : 'files'} (
                     {formatSize(junkSize)})
                   </span>{' '}
-                  — <code>._*</code> AppleDouble files and <code>.DS_Store</code>
-                  {deletableJunkDirs.length > 0 && (
-                    <>
-                      , plus {deletableJunkDirs.length} junk{' '}
-                      {deletableJunkDirs.length === 1 ? 'folder' : 'folders'} at the root (
-                      {deletableJunkDirs.map((dir, index) => (
-                        <span key={dir.name}>
-                          {index > 0 && ', '}
-                          <code>{dir.name}</code>
-                        </span>
-                      ))}
-                      )
-                    </>
-                  )}
-                  .
+                  — <code>._*</code> AppleDouble files and <code>.DS_Store</code>.
                 </p>
                 {scan.junkFiles.length > 0 && (
                   <details className="health-view__details">
@@ -367,10 +348,23 @@ export function HealthView() {
                 </div>
               </>
             )}
+            {macosDirs.length > 0 && (
+              <p className="health-view__dim">
+                macOS keeps{' '}
+                {macosDirs.map((name, index) => (
+                  <span key={name}>
+                    {index > 0 && ', '}
+                    <code>{name}</code>
+                  </span>
+                ))}{' '}
+                on the card. It recreates them every time you plug it into a Mac, so they are left
+                alone — they are harmless to the launcher.
+              </p>
+            )}
             {keptFsevents && (
               <p className="health-view__dim">
-                <code>.fseventsd</code> holds only a <code>no_log</code> marker — that is an
-                intentional logging-prevention setup, so it is left alone.
+                <code>.fseventsd</code> holds only a <code>no_log</code> marker — an intentional
+                logging-prevention setup.
               </p>
             )}
             {junkError !== null && (
