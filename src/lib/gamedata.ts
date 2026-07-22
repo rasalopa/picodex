@@ -100,16 +100,20 @@ export interface GameDataTotals {
 /**
  * Whether a game code can serve as a stable identity (and is safe inside the
  * JSON file). Homebrew headers can hold garbage where retail games keep their
- * code, so only non-empty printable-ASCII codes are usable. Mirrors the
- * launcher's `isUsableGameCode`.
+ * code, so only non-empty printable-ASCII codes are usable — and `####`, the
+ * toolchain placeholder every homebrew without its own code carries, is not
+ * an identity either (matching by it would make them all share one entry).
+ * Mirrors the launcher's `isUsableGameCode`.
  */
 export function isUsableGameCode(gameCode: string | undefined): gameCode is string {
   if (gameCode === undefined || gameCode.length === 0) return false;
+  let allPlaceholder = true;
   for (let i = 0; i < gameCode.length; i++) {
     const c = gameCode.charCodeAt(i);
     if (c < 0x20 || c >= 0x7f) return false;
+    if (gameCode[i] !== '#') allPlaceholder = false;
   }
-  return true;
+  return !allPlaceholder;
 }
 
 function readString(value: unknown): string {

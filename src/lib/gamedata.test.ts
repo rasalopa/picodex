@@ -429,6 +429,13 @@ describe('isUsableGameCode', () => {
     expect(isUsableGameCode('AB C')).toBe(false);
     expect(isUsableGameCode('ABÿC')).toBe(false);
   });
+
+  it('rejects the homebrew placeholder code ####', () => {
+    // every homebrew built without its own code carries it: not an identity
+    expect(isUsableGameCode('####')).toBe(false);
+    expect(isUsableGameCode('#')).toBe(false);
+    expect(isUsableGameCode('#A##')).toBe(true); // a real code with a # is fine
+  });
 });
 
 describe('stats helpers', () => {
