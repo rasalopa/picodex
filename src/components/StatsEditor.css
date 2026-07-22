@@ -1,0 +1,93 @@
+/* fullscreen overlay + centered dialog (shares the modal recipe with CoverPicker) */
+
+.stats-editor__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.stats-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: min(22rem, 100%);
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-modal);
+  animation: stats-editor-enter 0.18s ease;
+}
+
+@keyframes stats-editor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.stats-editor__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stats-editor__title {
+  margin: 0 auto 0 0;
+  font-size: 1.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-editor__close {
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.stats-editor__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.stats-editor__label {
+  color: var(--text-dim);
+}
+
+.stats-editor__field input[type='number'] {
+  width: 5rem;
+  padding: 0.35rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stats-editor__time {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.stats-editor__time input[type='number'] {
+  width: 3.5rem;
+}
+
+.stats-editor__unit {
+  color: var(--text-dim);
+}
+
+.stats-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}

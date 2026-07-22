@@ -234,6 +234,34 @@
   opacity: 0.3;
 }
 
+/* the badges pill doubles as the "edit play stats" button */
+.system-gallery__badges--button {
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.system-gallery__badges--button:hover:not(:disabled),
+.system-gallery__badges--button:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* never-played games: the clock badge is dim until hovered, to keep the grid
+   calm, then invites the edit (:not(:disabled) so the disabled dim below wins
+   when the cover has not resolved yet) */
+.system-gallery__badges--button:not(:disabled):has(> .system-gallery__play > [aria-hidden]) {
+  opacity: 0.55;
+}
+
+.system-gallery__badges--button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
 .system-gallery__play {
   color: var(--text);
   font-variant-numeric: tabular-nums;

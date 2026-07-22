@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import {
   parseGameData,
   serializeGameData,
+  setGameStats,
   toggleFlag,
   type GameData,
-  type GameFlag,
+  type GameStats,
 } from '../lib/gamedata';
 import { parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
@@ -76,6 +77,11 @@ export interface SdState {
   toggleFavorite(fileName: string, gameCode?: string | null): Promise<void>;
   /** Same contract as {@link toggleFavorite}, for the completed flag. */
   toggleCompleted(fileName: string, gameCode?: string | null): Promise<void>;
+  /**
+   * Overwrites a game's launch count and play time, same write contract as
+   * {@link toggleFavorite} (queued, never rejects, no-op on stock launchers).
+   */
+  setStats(fileName: string, gameCode: string | null | undefined, stats: GameStats): Promise<void>;
 }
 
 const SdContext = createContext<SdState | null>(null);
@@ -227,19 +233,21 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [root, loadFrom]);
 
-  const toggleGameFlag = useCallback(
-    (fileName: string, gameCode: string | null | undefined, flag: GameFlag): Promise<void> => {
+  // Serialized gamedata.json write: applies `mutate` to the current data,
+  // writes the result to the card, then commits it to state (write-then-state
+  // so a failed write never desyncs us). Each call queues behind the last on
+  // writeChain. Stock launcher (no gamedata.json) is a no-op: PicoDex never
+  // creates the file (see the SdState doc above).
+  const runGameDataWrite = useCallback(
+    (mutate: (data: GameData) => GameData): Promise<void> => {
       const run = async (): Promise<void> => {
-        // stock launcher: no gamedata.json on the card means nothing to
-        // toggle — never create the file (see the SdState doc above)
         if (root === null || gameDataRef.current === null) return;
         try {
-          const next = toggleFlag(gameDataRef.current, fileName, gameCode, flag);
+          const next = mutate(gameDataRef.current);
           const text = serializeGameData(next);
           const picoDir = await getDir(root, [PICO_DIR]);
           if (picoDir === null) throw new Error('No /_pico directory on the SD card');
           await writeFileText(picoDir, GAMEDATA_FILE, text);
-          // write-then-state: a failed write never desyncs us from the card
           gameDataRef.current = next;
           setGameData(next);
         } catch (e) {
@@ -247,7 +255,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
         }
       };
       // queue, don't reject: `run` handles its own failures, so the chain
-      // always settles and later toggles still go through
+      // always settles and later writes still go through
       const queued = writeChain.current.then(run);
       writeChain.current = queued;
       return queued;
@@ -257,14 +265,20 @@ export function SdProvider({ children }: { children: ReactNode }) {
 
   const toggleFavorite = useCallback(
     (fileName: string, gameCode?: string | null): Promise<void> =>
-      toggleGameFlag(fileName, gameCode, 'favorite'),
-    [toggleGameFlag],
+      runGameDataWrite((data) => toggleFlag(data, fileName, gameCode, 'favorite')),
+    [runGameDataWrite],
   );
 
   const toggleCompleted = useCallback(
     (fileName: string, gameCode?: string | null): Promise<void> =>
-      toggleGameFlag(fileName, gameCode, 'completed'),
-    [toggleGameFlag],
+      runGameDataWrite((data) => toggleFlag(data, fileName, gameCode, 'completed')),
+    [runGameDataWrite],
+  );
+
+  const setStats = useCallback(
+    (fileName: string, gameCode: string | null | undefined, stats: GameStats): Promise<void> =>
+      runGameDataWrite((data) => setGameStats(data, fileName, gameCode, stats)),
+    [runGameDataWrite],
   );
 
   const value = useMemo(
@@ -282,6 +296,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       refresh,
       toggleFavorite,
       toggleCompleted,
+      setStats,
     }),
     [
       root,
@@ -297,6 +312,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       refresh,
       toggleFavorite,
       toggleCompleted,
+      setStats,
     ],
   );
 

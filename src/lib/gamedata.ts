@@ -361,6 +361,98 @@ export function toggleCompleted(
   return toggleFlag(data, fileName, gameCode, 'completed');
 }
 
+/** Explicit play-stat values a manual edit sets (non-negative integers). */
+export interface GameStats {
+  launchCount: number;
+  playMinutes: number;
+}
+
+/**
+ * Overwrites a game's launch count and play time with explicit values, for
+ * manual correction (e.g. time played on hardware before tracking existed).
+ * The entry is resolved exactly like {@link toggleFlag} — code-first with
+ * name healing and code-less-duplicate merge, then by name, else created —
+ * but the counts are SET rather than toggled, and flags / lastPlayed / path /
+ * gameCode are preserved on the returned entry. Negative, fractional or
+ * non-finite inputs are clamped to non-negative integers. Returns a new
+ * {@link GameData}; the input is never mutated. Setting both counts to 0
+ * makes the entry default-valued, so — unless a flag (favorite/completed)
+ * keeps it — {@link serializeGameData} prunes it on write, dropping its
+ * lastPlayed/path too (the game leaves recents). That mirrors the launcher,
+ * which prunes the same entry on its next save, so preserving those fields
+ * here would only diverge from it for a single reload.
+ */
+export function setGameStats(
+  data: GameData,
+  fileName: string,
+  gameCode: string | null | undefined,
+  stats: GameStats,
+): GameData {
+  const clampCount = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+  const launchCount = clampCount(stats.launchCount);
+  const playMinutes = clampCount(stats.playMinutes);
+  const code = gameCode ?? undefined;
+  const usable = isUsableGameCode(code);
+  const entries = [...data.entries];
+
+  if (usable) {
+    const lowerCode = code.toLowerCase();
+    const index = entries.findIndex(
+      (entry) => entry.gameCode !== undefined && entry.gameCode.toLowerCase() === lowerCode,
+    );
+    const found = index >= 0 ? entries[index] : undefined;
+    if (found !== undefined) {
+      let healed: GameDataEntry = { ...found, fileName, launchCount, playMinutes };
+      // same code-less-duplicate merge as toggleFlag: the counts are being
+      // overwritten anyway, so only the swallowed entry's flags and newer
+      // lastPlayed need to survive
+      const lowerName = fileName.toLowerCase();
+      const duplicateIndex = entries.findIndex(
+        (entry, i) =>
+          i !== index && entry.gameCode === undefined && entry.fileName.toLowerCase() === lowerName,
+      );
+      if (duplicateIndex >= 0) {
+        const duplicate = entries[duplicateIndex];
+        healed = {
+          ...healed,
+          favorite: healed.favorite || duplicate.favorite,
+          completed: healed.completed || duplicate.completed,
+          lastPlayed:
+            healed.lastPlayed !== undefined &&
+            (duplicate.lastPlayed === undefined || duplicate.lastPlayed <= healed.lastPlayed)
+              ? healed.lastPlayed
+              : duplicate.lastPlayed,
+        };
+        entries.splice(duplicateIndex, 1);
+      }
+      const healedIndex = entries.indexOf(found);
+      entries[healedIndex] = healed;
+      return { ...data, entries };
+    }
+  }
+
+  const lowerName = fileName.toLowerCase();
+  const index = entries.findIndex((entry) => entry.fileName.toLowerCase() === lowerName);
+  const found = index >= 0 ? entries[index] : undefined;
+  if (found !== undefined) {
+    const next: GameDataEntry = { ...found, launchCount, playMinutes };
+    if (usable && next.gameCode === undefined) next.gameCode = code;
+    entries[index] = next;
+    return { ...data, entries };
+  }
+
+  const created: GameDataEntry = {
+    fileName,
+    favorite: false,
+    completed: false,
+    launchCount,
+    playMinutes,
+  };
+  if (usable) created.gameCode = code;
+  entries.push(created);
+  return { ...data, entries };
+}
+
 /**
  * Aggregate totals, mirroring the launcher's `StatisticsViewModel`:
  * favorites are counted over all entries, while launches and play minutes

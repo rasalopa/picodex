@@ -5,6 +5,7 @@ import {
   isUsableGameCode,
   parseGameData,
   serializeGameData,
+  setGameStats,
   sortedByLastPlayed,
   sortedByMostPlayed,
   toggleCompleted,
@@ -652,5 +653,160 @@ describe('toggleCompleted', () => {
     // toggled back off it becomes all-default and is pruned
     const off = toggleCompleted(on, 'keep.nds', null);
     expect(serializeGameData(off)).toBe(crlf('{', '  "games": {}', '}'));
+  });
+});
+
+describe('setGameStats', () => {
+  it('overwrites launch count and play time on an existing entry, keeping flags', () => {
+    const data: GameData = {
+      entries: [
+        {
+          fileName: 'Mario.nds',
+          gameCode: 'AMCE',
+          favorite: true,
+          completed: true,
+          launchCount: 3,
+          playMinutes: 125,
+          lastPlayed: '2026-07-16 21:30',
+        },
+      ],
+    };
+    const next = setGameStats(data, 'Mario.nds', 'AMCE', { launchCount: 10, playMinutes: 600 });
+    expect(next.entries[0]).toEqual({
+      fileName: 'Mario.nds',
+      gameCode: 'AMCE',
+      favorite: true,
+      completed: true,
+      launchCount: 10,
+      playMinutes: 600,
+      lastPlayed: '2026-07-16 21:30',
+    });
+  });
+
+  it('creates a fresh entry when nothing matches', () => {
+    const next = setGameStats({ entries: [] }, 'New.gba', 'BXYZ', {
+      launchCount: 2,
+      playMinutes: 45,
+    });
+    expect(next.entries).toEqual([
+      {
+        fileName: 'New.gba',
+        gameCode: 'BXYZ',
+        favorite: false,
+        completed: false,
+        launchCount: 2,
+        playMinutes: 45,
+      },
+    ]);
+  });
+
+  it('clamps negative and fractional inputs to non-negative integers', () => {
+    const next = setGameStats({ entries: [] }, 'x.nds', null, {
+      launchCount: -5,
+      playMinutes: 12.9,
+    });
+    expect(next.entries[0]?.launchCount).toBe(0);
+    expect(next.entries[0]?.playMinutes).toBe(12);
+  });
+
+  it('heals a renamed file by code and merges a code-less duplicate, keeping its flags', () => {
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old.gba': { gameCode: 'APAE', launchCount: 1, lastPlayed: '2026-01-01 10:00' },
+          'New.gba': { completed: true, lastPlayed: '2026-07-01 10:00' },
+        },
+      }),
+    );
+    const next = setGameStats(data, 'New.gba', 'APAE', { launchCount: 9, playMinutes: 300 });
+    const matches = next.entries.filter((e) => e.fileName.toLowerCase() === 'new.gba');
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      fileName: 'New.gba',
+      gameCode: 'APAE',
+      completed: true, // survived the merge from the code-less duplicate
+      launchCount: 9, // overwritten
+      playMinutes: 300,
+      lastPlayed: '2026-07-01 10:00', // newer of the two
+    });
+  });
+
+  it('leaves an all-default entry for serialize-side pruning when cleared to 0', () => {
+    const data: GameData = {
+      entries: [
+        { fileName: 'x.nds', favorite: false, completed: false, launchCount: 3, playMinutes: 50 },
+      ],
+    };
+    const next = setGameStats(data, 'x.nds', null, { launchCount: 0, playMinutes: 0 });
+    expect(next.entries).toHaveLength(1);
+    expect(serializeGameData(next)).toBe(crlf('{', '  "games": {}', '}'));
+  });
+
+  it('prunes a played entry (dropping lastPlayed/path) when cleared to 0, unless a flag keeps it', () => {
+    const played: GameData = {
+      entries: [
+        {
+          fileName: 'Zelda.nds',
+          gameCode: 'AZLE',
+          favorite: false,
+          completed: false,
+          launchCount: 5,
+          playMinutes: 300,
+          lastPlayed: '2026-07-01 10:00',
+          path: '/roms/nds/Zelda.nds',
+        },
+      ],
+    };
+    const zeroed = setGameStats(played, 'Zelda.nds', 'AZLE', { launchCount: 0, playMinutes: 0 });
+    // the returned entry still carries lastPlayed/path in memory...
+    expect(zeroed.entries[0]).toMatchObject({
+      lastPlayed: '2026-07-01 10:00',
+      path: '/roms/nds/Zelda.nds',
+    });
+    // ...but on disk the now-default entry is pruned entirely, matching the launcher
+    expect(serializeGameData(zeroed)).toBe(crlf('{', '  "games": {}', '}'));
+
+    // a flag keeps the entry, so lastPlayed/path survive the write
+    const favorited: GameData = { entries: [{ ...played.entries[0], favorite: true }] };
+    const zeroedFav = setGameStats(favorited, 'Zelda.nds', 'AZLE', {
+      launchCount: 0,
+      playMinutes: 0,
+    });
+    const serialized = serializeGameData(zeroedFav);
+    expect(serialized).toContain('"lastPlayed": "2026-07-01 10:00"');
+    expect(serialized).toContain('"path": "/roms/nds/Zelda.nds"');
+  });
+
+  it('clamps non-finite inputs to 0', () => {
+    const next = setGameStats({ entries: [] }, 'x.nds', 'AXXE', {
+      launchCount: Number.NaN,
+      playMinutes: Number.POSITIVE_INFINITY,
+    });
+    expect(next.entries[0]?.launchCount).toBe(0);
+    expect(next.entries[0]?.playMinutes).toBe(0);
+    // an all-zero entry is default-valued, so it prunes rather than persisting a phantom
+    expect(serializeGameData(next)).toBe(crlf('{', '  "games": {}', '}'));
+  });
+
+  it('keeps a favorite flag carried by the merged code-less duplicate', () => {
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Old.gba': { gameCode: 'APAE', launchCount: 1 },
+          'New.gba': { favorite: true },
+        },
+      }),
+    );
+    const next = setGameStats(data, 'New.gba', 'APAE', { launchCount: 4, playMinutes: 20 });
+    const matches = next.entries.filter((e) => e.fileName.toLowerCase() === 'new.gba');
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({ gameCode: 'APAE', favorite: true, launchCount: 4 });
+  });
+
+  it('does not mutate the input', () => {
+    const data = parseGameData(launcherSample);
+    const snapshot = structuredClone(data);
+    setGameStats(data, 'Mario Kart DS.nds', 'AMCE', { launchCount: 99, playMinutes: 9999 });
+    expect(data).toEqual(snapshot);
   });
 });

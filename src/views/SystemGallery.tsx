@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CoverPicker } from '../components/CoverPicker';
+import { StatsEditor } from '../components/StatsEditor';
 import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
@@ -72,6 +73,12 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   const [togglePending, setTogglePending] = useState(false);
   /** Card whose cover is being hand-picked, `null` while the modal is closed. */
   const [picking, setPicking] = useState<{ game: LibraryFile; cover: ResolvedCover } | null>(null);
+  const [editingStats, setEditingStats] = useState<{
+    game: LibraryFile;
+    gameCode: string | null;
+    launchCount: number;
+    playMinutes: number;
+  } | null>(null);
   /**
    * gameData snapshot from when the gallery mounted, used only for ordering:
    * favorites sort first, so sorting on the live data would re-order the grid
@@ -344,10 +351,29 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       <span aria-hidden="true">✓</span>
                     </button>
                   )}
-                  {badge !== null && (
-                    <span className="system-gallery__badges">
-                      <span className="system-gallery__play">{badge}</span>
-                    </span>
+                  {gameData !== null && (
+                    <button
+                      type="button"
+                      className="system-gallery__badges system-gallery__badges--button"
+                      aria-label={`Edit play stats for ${title}`}
+                      title={cover === undefined ? 'Resolving game…' : 'Edit play stats'}
+                      // same gate as the heart: the gamecode must resolve
+                      // before we can key the write to the right entry
+                      disabled={cover === undefined}
+                      onClick={() => {
+                        if (cover === undefined) return;
+                        setEditingStats({
+                          game,
+                          gameCode: cover.code ?? null,
+                          launchCount: entry?.launchCount ?? 0,
+                          playMinutes: entry?.playMinutes ?? 0,
+                        });
+                      }}
+                    >
+                      <span className="system-gallery__play">
+                        {badge ?? <span aria-hidden="true">🕓</span>}
+                      </span>
+                    </button>
                   )}
                 </span>
                 <span className="system-gallery__name" title={game.fileName}>
@@ -371,6 +397,20 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             // the gallery effect re-resolves covers off the refreshed
             // coverIndex; the frozen favorites sort stays put by design
             void refresh();
+          }}
+        />
+      )}
+
+      {editingStats !== null && (
+        <StatsEditor
+          game={editingStats.game}
+          gameCode={editingStats.gameCode}
+          launchCount={editingStats.launchCount}
+          playMinutes={editingStats.playMinutes}
+          onClose={() => {
+            // setStats commits to gameData directly, so the badge updates
+            // from live state; no refresh needed
+            setEditingStats(null);
           }}
         />
       )}
