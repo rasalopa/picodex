@@ -103,7 +103,10 @@ export interface GameDataTotals {
  * code, so only non-empty printable-ASCII codes are usable — and `####`, the
  * toolchain placeholder every homebrew without its own code carries, is not
  * an identity either (matching by it would make them all share one entry).
- * Mirrors the launcher's `isUsableGameCode`.
+ * Mirrors the launcher's `JsonGameDataService::isUsableGameCode`. NOTE: this
+ * is a different rule from {@link import('./rom').isUsableGameCode}, which
+ * governs ROM-header extraction and deliberately keeps `####` — do not
+ * unify them.
  */
 export function isUsableGameCode(gameCode: string | undefined): gameCode is string {
   if (gameCode === undefined || gameCode.length === 0) return false;

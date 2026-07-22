@@ -172,8 +172,12 @@ export function HealthView() {
 
   // macOS recreates .Trashes / .Spotlight-V100 / .fseventsd every time the
   // card is mounted, so deleting them is a losing battle — they are shown as
-  // an informational note, not as junk to clean.
-  const macosDirs = useMemo(() => scan?.junkDirs.map((dir) => dir.name) ?? [], [scan]);
+  // an informational note, not as junk to clean. A no_log-only .fseventsd is
+  // excluded here: it gets its own dedicated note below.
+  const macosDirs = useMemo(
+    () => scan?.junkDirs.filter((dir) => !dir.preventionOnly).map((dir) => dir.name) ?? [],
+    [scan],
+  );
   const keptFsevents = scan?.junkDirs.some((dir) => dir.preventionOnly) ?? false;
   // only files are actionable junk: ._* and .DS_Store are created on copy/view
   // (not on mount), so cleaning them actually sticks.
