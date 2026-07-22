@@ -63,6 +63,26 @@
   gap: 0.75rem;
 }
 
+.stats-view__tile {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* decorative watermark in the bottom-right corner; z-index:-1 keeps it behind
+   the label/number (see isolation:isolate), matching the other stat cards */
+.stats-view__tile-icon {
+  position: absolute;
+  z-index: -1;
+  right: -0.85rem;
+  bottom: -0.9rem;
+  width: 4.25rem;
+  height: 4.25rem;
+  color: var(--text-dim);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
 .stats-view__tile-label {
   margin: 0 0 0.25rem;
   font-size: 0.78rem;
@@ -79,6 +99,41 @@
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
   color: var(--text-strong);
+}
+
+/* --- game thumbnails in the lists --- */
+
+/* fixed small height, natural width: every cover keeps its real proportion
+   (no forced aspect / crop) while rows stay a uniform height */
+.stats-view__thumb {
+  display: block;
+  flex: none;
+  height: 2rem;
+  width: auto;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--bg);
+  image-rendering: pixelated;
+}
+
+/* placeholders are spans with no intrinsic size, so give them an explicit box */
+.stats-view__thumb--skeleton,
+.stats-view__thumb--missing {
+  width: 1.5rem;
+}
+
+.stats-view__thumb--skeleton {
+  opacity: 0.5;
+}
+
+.stats-view__thumb--missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* --- most played table --- */
@@ -119,6 +174,13 @@
   background: var(--bg-hover);
 }
 
+.stats-view__name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
 .stats-view__table .stats-view__name {
   max-width: 24rem;
   overflow: hidden;
@@ -149,7 +211,7 @@
 
 .stats-view__recent-item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.5rem 0.75rem;
@@ -158,6 +220,14 @@
 
 .stats-view__recent-item + .stats-view__recent-item {
   border-top: 1px solid var(--border);
+}
+
+.stats-view__recent-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .stats-view__recent-item .stats-view__name {
@@ -173,28 +243,27 @@
   white-space: nowrap;
 }
 
-/* --- favorites chips (the library-view__chip pattern) --- */
+/* --- favorites: small cover cards --- */
 
 .stats-view__favorites {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
   gap: 0.5rem;
 }
 
 .stats-view__favorite {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  max-width: 100%;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
 }
 
 .stats-view__favorite .stats-view__name {

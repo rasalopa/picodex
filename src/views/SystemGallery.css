@@ -46,6 +46,58 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* controls: per-system name search + favorite/completed filter chips */
+
+.system-gallery__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.system-gallery__search {
+  flex: 1 1 14rem;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+.system-gallery__filters {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.system-gallery__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.system-gallery__filter:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.system-gallery__filter--fav-on,
+.system-gallery__filter--fav-on:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.system-gallery__filter--done-on,
+.system-gallery__filter--done-on:hover:not(:disabled) {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
 /* status lines */
 
 .system-gallery__progress {
@@ -94,12 +146,15 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   padding: 0.5rem;
-  transition: border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
-/* hover lifts the border only: the fill stays put under the cover art */
+/* hover lift matches the dashboard system cards: fill + border both shift */
 .system-gallery__card:hover,
 .system-gallery__card:focus-within {
+  background: var(--bg-hover);
   border-color: var(--border-strong);
 }
 

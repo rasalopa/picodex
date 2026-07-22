@@ -6,6 +6,7 @@ import { loaderApiCapabilities } from '../lib/loader';
 import { GAMES_DIR, PICO_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
+import { IconCartridge, IconClock, IconHeart, IconLayers } from '../components/icons';
 import { SystemGallery } from './SystemGallery';
 import './LibraryView.css';
 
@@ -170,20 +171,24 @@ export function LibraryView() {
     <section className="library-view" aria-label="Library overview">
       <dl className="library-view__summary">
         <div className="library-view__stat card">
+          <IconCartridge className="library-view__stat-icon" />
           <dt>Games</dt>
           <dd>{games.length}</dd>
         </div>
         <div className="library-view__stat card">
+          <IconLayers className="library-view__stat-icon" />
           <dt>Systems</dt>
           <dd>{groups.length}</dd>
         </div>
         {totals !== null && (
           <>
             <div className="library-view__stat card">
+              <IconHeart className="library-view__stat-icon" />
               <dt>Favorites</dt>
               <dd>{totals.favoriteCount}</dd>
             </div>
             <div className="library-view__stat card">
+              <IconClock className="library-view__stat-icon" />
               <dt>Play time</dt>
               <dd>{formatPlayTime(totals.totalPlayMinutes)}</dd>
             </div>
@@ -257,7 +262,7 @@ export function LibraryView() {
                 type="button"
                 className="library-view__card-edit"
                 aria-label={`Edit folder banner for ${system.label}`}
-                title="Edit folder banner"
+                title={`Edit the ${system.label} folder banner (icon and display name shown in the launcher)`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setBannerTarget({ gamesDir: system.gamesDir, label: system.label });

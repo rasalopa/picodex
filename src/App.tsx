@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { isFileSystemAccessSupported } from './lib/sdcard';
 import { SdProvider, useSd } from './state/SdContext';
@@ -8,16 +8,60 @@ import { StatsView } from './views/StatsView';
 import { AssociationsView } from './views/AssociationsView';
 import { HealthView } from './views/HealthView';
 import { DropImport } from './components/DropImport';
+import { Changelog } from './components/Changelog';
+import {
+  IconChart,
+  IconFolder,
+  IconGrid,
+  IconImage,
+  IconLink,
+  IconPulse,
+} from './components/icons';
 import './App.css';
 
 type Tab = 'library' | 'covers' | 'stats' | 'associations' | 'health';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'library', label: 'Library' },
-  { id: 'covers', label: 'Covers' },
-  { id: 'stats', label: 'Pico Enhanced' },
-  { id: 'associations', label: 'Associations' },
-  { id: 'health', label: 'Health' },
+type IconComponent = ComponentType<{ className?: string }>;
+
+const TABS: { id: Tab; label: string; Icon: IconComponent }[] = [
+  { id: 'library', label: 'Library', Icon: IconGrid },
+  { id: 'covers', label: 'Covers', Icon: IconImage },
+  { id: 'stats', label: 'Pico Enhanced', Icon: IconChart },
+  { id: 'associations', label: 'Associations', Icon: IconLink },
+  { id: 'health', label: 'Health', Icon: IconPulse },
+];
+
+const FEATURES: { title: string; body: string; Icon: IconComponent }[] = [
+  {
+    title: 'Box art',
+    body: 'Finds games without covers and fetches launcher-ready art.',
+    Icon: IconImage,
+  },
+  {
+    title: 'Your library',
+    body: 'Every system on the card at a glance, with cover coverage.',
+    Icon: IconGrid,
+  },
+  {
+    title: 'Play stats',
+    body: 'Favorites, most played and recents from Pico Enhanced.',
+    Icon: IconChart,
+  },
+  {
+    title: 'Card health',
+    body: 'Spots macOS junk, missing loader files and orphaned saves.',
+    Icon: IconPulse,
+  },
+  {
+    title: 'Folder banners',
+    body: 'Give each system folder a proper icon and display name.',
+    Icon: IconFolder,
+  },
+  {
+    title: 'File associations',
+    body: 'Point each ROM extension at its emulator, no JSON editing.',
+    Icon: IconLink,
+  },
 ];
 
 /** Small cartridge mark that echoes the favicon. */
@@ -43,7 +87,7 @@ function Wordmark() {
 }
 
 /** Landing hero shown before an SD card is opened. */
-function Welcome() {
+function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
   const { openSd, loading, progress, error } = useSd();
   const supported = isFileSystemAccessSupported();
   return (
@@ -73,19 +117,17 @@ function Welcome() {
       )}
       {error && <p className="app__error">{error}</p>}
       <ul className="app__features">
-        <li>
-          <span className="app__feature-title">Box art</span>
-          Finds games without covers and fetches launcher-ready art.
-        </li>
-        <li>
-          <span className="app__feature-title">Your library</span>
-          Every system on the card at a glance, with cover coverage.
-        </li>
-        <li>
-          <span className="app__feature-title">Play stats</span>
-          Favorites, most played and recents from Pico Enhanced.
-        </li>
+        {FEATURES.map(({ title, body, Icon }) => (
+          <li key={title}>
+            <Icon className="app__feature-icon" />
+            <span className="app__feature-title">{title}</span>
+            {body}
+          </li>
+        ))}
       </ul>
+      <button type="button" className="app__whatsnew" onClick={onWhatsNew}>
+        What's new in PicoDex
+      </button>
     </div>
   );
 }
@@ -97,13 +139,15 @@ function Workspace() {
   return (
     <>
       <nav className="app__tabs" aria-label="Sections">
-        {TABS.map((t) => (
+        {TABS.map(({ id, label, Icon }) => (
           <button
-            key={t.id}
-            className={tab === t.id ? 'app__tab app__tab--active' : 'app__tab'}
-            onClick={() => setTab(t.id)}
+            key={id}
+            className={tab === id ? 'app__tab app__tab--active' : 'app__tab'}
+            aria-current={tab === id ? 'page' : undefined}
+            onClick={() => setTab(id)}
           >
-            {t.label}
+            <Icon className="app__tab-icon" />
+            {label}
           </button>
         ))}
         <span className="app__sd-name" title="Open SD card folder">
@@ -135,6 +179,7 @@ function Workspace() {
 
 function Shell() {
   const { root } = useSd();
+  const [showChangelog, setShowChangelog] = useState(false);
   return (
     <div className="app">
       {root ? (
@@ -145,15 +190,20 @@ function Shell() {
           <Workspace />
         </>
       ) : (
-        <Welcome />
+        <Welcome onWhatsNew={() => setShowChangelog(true)} />
       )}
       <footer className="app__footer">
         <a href="https://github.com/rasalopa/picodex" target="_blank" rel="noreferrer">
           GitHub
         </a>
-        <span>·</span>
+        <span aria-hidden="true">·</span>
+        <button type="button" className="app__footer-link" onClick={() => setShowChangelog(true)}>
+          What's new
+        </button>
+        <span aria-hidden="true">·</span>
         <span>MIT licensed · no telemetry</span>
       </footer>
+      {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
     </div>
   );
 }

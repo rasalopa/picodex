@@ -1,0 +1,124 @@
+.changelog__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.changelog {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-modal);
+  animation: changelog-in 0.18s ease;
+}
+
+/* the dialog takes programmatic focus on open (tabIndex -1), so no focus ring */
+.changelog:focus {
+  outline: none;
+}
+
+@keyframes changelog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.changelog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.changelog__title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.changelog__close {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.45rem;
+}
+
+.changelog__close:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: transparent;
+}
+
+.changelog__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 1.1rem;
+  overflow-y: auto;
+}
+
+.changelog__entry {
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.changelog__entry:first-child {
+  border-top: 0;
+}
+
+.changelog__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.changelog__version {
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.changelog__date {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.changelog__changes {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.changelog__issue {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.changelog__footer {
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+}

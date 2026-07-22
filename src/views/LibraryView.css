@@ -18,7 +18,25 @@
 }
 
 .library-view__stat {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   flex: 1 1 10rem;
+}
+
+/* decorative watermark in the bottom-right corner; z-index:-1 keeps it behind
+   the label/number (see isolation:isolate) at low opacity so it reads as
+   texture, matching the landing feature cards */
+.library-view__stat-icon {
+  position: absolute;
+  z-index: -1;
+  right: -0.85rem;
+  bottom: -0.9rem;
+  width: 4.25rem;
+  height: 4.25rem;
+  color: var(--text-dim);
+  opacity: 0.07;
+  pointer-events: none;
 }
 
 .library-view__stat dt {
@@ -118,13 +136,15 @@
   opacity: 1;
 }
 
-/* folder banner edit affordance: a sibling overlaid on the card's corner,
-   never nested inside the card <button> (nested buttons are invalid HTML) */
+/* folder banner edit affordance: a sibling overlaid on the card's bottom-right,
+   sitting on the same row as the "View games" CTA (View games on the left, this
+   on the right). Never nested inside the card <button> (nested buttons are
+   invalid HTML), so it stays absolutely positioned. */
 
 .library-view__card-edit {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+  bottom: 0.9rem;
+  right: 0.85rem;
   padding: 0.15rem 0.5rem;
   font-size: 0.9rem;
   line-height: 1.4;

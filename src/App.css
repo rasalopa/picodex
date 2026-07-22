@@ -77,7 +77,8 @@
 .app__features {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  /* min(15rem, 100%) so a single column never overflows a very narrow viewport */
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   gap: 0.75rem;
   padding: 0;
   margin: 2.5rem 0 0;
@@ -85,13 +86,19 @@
   width: 100%;
 }
 
-/* card pattern, non-interactive: no hover state on purpose */
+/* card pattern, non-interactive: no hover state on purpose. isolation:isolate
+   makes the card a stacking context so the z-index:-1 watermark paints on the
+   card surface but behind the text */
 .app__features li {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   padding: 1rem;
+  min-height: 5.75rem;
   text-align: left;
   color: var(--text-dim);
   font-size: 0.875rem;
@@ -103,6 +110,36 @@
   color: var(--text);
   font-weight: 600;
   margin-bottom: 0.15rem;
+}
+
+/* decorative watermark tucked into the bottom-right corner; z-index:-1 keeps it
+   behind the text (see the card's isolation:isolate) at low opacity so it reads
+   as texture. The negative offsets bleed it into the corner, never mid-card */
+.app__feature-icon {
+  position: absolute;
+  z-index: -1;
+  right: -0.9rem;
+  bottom: -0.95rem;
+  width: 5rem;
+  height: 5rem;
+  color: var(--text-dim);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.app__whatsnew {
+  margin-top: 1.5rem;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+
+.app__whatsnew:hover:not(:disabled) {
+  background: var(--bg-raised);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 /* ---- workspace ---- */
@@ -131,6 +168,9 @@
 }
 
 .app__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-dim);
@@ -140,6 +180,12 @@
     background 0.15s ease,
     color 0.15s ease,
     transform 0.05s ease;
+}
+
+.app__tab-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
 }
 
 .app__tab:hover:not(:disabled) {
@@ -192,6 +238,23 @@
 
 .app__footer a {
   color: var(--text-dim);
+}
+
+/* footer "What's new" trigger: styled as a text link, not a button */
+.app__footer-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.app__footer-link:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+  text-decoration: underline;
 }
 
 /* loading bar + phase text (welcome and workspace) */

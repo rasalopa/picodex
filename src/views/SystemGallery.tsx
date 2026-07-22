@@ -39,6 +39,14 @@ function titleOf(fileName: string): string {
   return dot > 0 ? fileName.slice(0, dot) : fileName;
 }
 
+/** Lowercased and accent-folded, for accent-insensitive name search. */
+function normalize(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
+
 /** Formats a minute total as "Xh Ym" (e.g. 125 → "2h 5m"). */
 function formatPlayTime(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
@@ -79,6 +87,10 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     launchCount: number;
     playMinutes: number;
   } | null>(null);
+  /** Live search + flag filters, scoped to this system's gallery. */
+  const [query, setQuery] = useState('');
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [onlyCompleted, setOnlyCompleted] = useState(false);
   /**
    * gameData snapshot from when the gallery mounted, used only for ordering:
    * favorites sort first, so sorting on the live data would re-order the grid
@@ -231,6 +243,22 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   const total = systemGames.length;
   const loading = root !== null && total > 0 && resolved.size < total;
 
+  // client-side filtering over the already-built cards: name search (accent
+  // insensitive) plus the favorite/completed toggles, all combined with AND
+  const normalizedQuery = normalize(query.trim());
+  const visibleCards = cards.filter(({ game, entry }) => {
+    if (
+      normalizedQuery.length > 0 &&
+      !normalize(titleOf(game.fileName)).includes(normalizedQuery)
+    ) {
+      return false;
+    }
+    if (onlyFavorites && entry?.favorite !== true) return false;
+    if (onlyCompleted && entry?.completed !== true) return false;
+    return true;
+  });
+  const filtering = normalizedQuery.length > 0 || onlyFavorites || onlyCompleted;
+
   return (
     <section className="system-gallery" aria-label={`${system.label} games`}>
       <header className="system-gallery__header">
@@ -239,9 +267,61 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
         </button>
         <h2 className="system-gallery__title">{system.label}</h2>
         <p className="system-gallery__count">
-          {total} {total === 1 ? 'game' : 'games'}
+          {filtering
+            ? `${String(visibleCards.length)} of ${String(total)}`
+            : `${String(total)} ${total === 1 ? 'game' : 'games'}`}
         </p>
       </header>
+
+      {total > 0 && (
+        <div className="system-gallery__controls">
+          <input
+            type="search"
+            className="system-gallery__search"
+            placeholder={`Search ${system.label}…`}
+            aria-label={`Search ${system.label} games`}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setQuery('');
+            }}
+          />
+          {gameData !== null && (
+            <div className="system-gallery__filters" role="group" aria-label="Filters">
+              <button
+                type="button"
+                className={
+                  onlyFavorites
+                    ? 'system-gallery__filter system-gallery__filter--fav-on'
+                    : 'system-gallery__filter'
+                }
+                aria-pressed={onlyFavorites}
+                onClick={() => {
+                  setOnlyFavorites((value) => !value);
+                }}
+              >
+                <span aria-hidden="true">♥</span> Favorites
+              </button>
+              <button
+                type="button"
+                className={
+                  onlyCompleted
+                    ? 'system-gallery__filter system-gallery__filter--done-on'
+                    : 'system-gallery__filter'
+                }
+                aria-pressed={onlyCompleted}
+                onClick={() => {
+                  setOnlyCompleted((value) => !value);
+                }}
+              >
+                <span aria-hidden="true">✓</span> Completed
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {error !== null && <p className="system-gallery__error">Could not load covers: {error}</p>}
 
@@ -256,9 +336,11 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
 
       {total === 0 ? (
         <p className="system-gallery__empty">No {system.label} games on this SD card.</p>
+      ) : visibleCards.length === 0 ? (
+        <p className="system-gallery__empty">No games match your search.</p>
       ) : (
         <ul className="system-gallery__grid">
-          {cards.map(({ game, cover, entry }) => {
+          {visibleCards.map(({ game, cover, entry }) => {
             const title = titleOf(game.fileName);
             const badge = entry === undefined ? null : playBadge(entry);
             return (
@@ -286,7 +368,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                     type="button"
                     className="system-gallery__edit"
                     aria-label={`Change cover for ${title}`}
-                    title={cover === undefined ? 'Resolving game…' : 'Fix cover'}
+                    title={cover === undefined ? 'Resolving game…' : 'Pick the correct box art'}
                     // disabled until the cover/gamecode resolves: without the
                     // code the picker could not target covers/<nds|gba>/
                     disabled={cover === undefined}
@@ -310,8 +392,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                         cover === undefined
                           ? 'Resolving game…'
                           : entry?.favorite === true
-                            ? 'Remove favorite'
-                            : 'Add favorite'
+                            ? 'Remove from favorites'
+                            : 'Mark as a favorite'
                       }
                       // disabled until the cover/gamecode resolves: a
                       // name-only toggle on a renamed rom would split its
@@ -338,8 +420,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                         cover === undefined
                           ? 'Resolving game…'
                           : entry?.completed === true
-                            ? 'Unmark completed'
-                            : 'Mark completed'
+                            ? 'Unmark as completed'
+                            : 'Mark as completed'
                       }
                       // same gate as the heart: a name-only toggle on a
                       // renamed rom would split its gamedata entry in two
@@ -356,7 +438,11 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       type="button"
                       className="system-gallery__badges system-gallery__badges--button"
                       aria-label={`Edit play stats for ${title}`}
-                      title={cover === undefined ? 'Resolving game…' : 'Edit play stats'}
+                      title={
+                        cover === undefined
+                          ? 'Resolving game…'
+                          : 'Correct launch count and play time'
+                      }
                       // same gate as the heart: the gamecode must resolve
                       // before we can key the write to the right entry
                       disabled={cover === undefined}
