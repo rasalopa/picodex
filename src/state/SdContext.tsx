@@ -9,6 +9,7 @@ import {
   type GameStats,
 } from '../lib/gamedata';
 import { parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
+import { parseApList, parsePatchList, parseSaveList, type LoaderLists } from '../lib/loaderlists';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
 import {
   COVERS,
@@ -60,6 +61,12 @@ export interface SdState {
   settings: ParsedSettings | null;
   /** Launcher/loader component info detected on the card. */
   cardInfo: CardInfo;
+  /**
+   * Parsed loader compatibility lists (`/_pico/aplist.bin`, `savelist.bin`,
+   * `patchlist.bin`), or `null` until a card is open. Once open, each per-list
+   * field is `null` when its file is absent or unparseable.
+   */
+  loaderLists: LoaderLists | null;
   openSd: () => Promise<void>;
   /**
    * Re-reads library, covers and launcher files from the open SD. Resolves
@@ -130,6 +137,7 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
   const picoDir = await getDir(root, [PICO_DIR]);
   let gameData: GameData | null = null;
   let settings: ParsedSettings | null = null;
+  const loaderLists: LoaderLists = { ap: null, save: null, patch: null };
   if (picoDir) {
     const gameDataText = await readFileText(picoDir, GAMEDATA_FILE);
     if (gameDataText !== null) {
@@ -147,8 +155,18 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
         settings = null;
       }
     }
+    // Loader compatibility lists. An absent file leaves its list null. When a
+    // file is present, the tolerant ap/save parsers always produce an array
+    // (floored to whole entries, mirroring the loader's factories); only the
+    // patchlist parser can still return null, for a structurally broken file.
+    const apBytes = await readFileBytes(picoDir, 'aplist.bin');
+    if (apBytes !== null) loaderLists.ap = parseApList(apBytes);
+    const saveBytes = await readFileBytes(picoDir, 'savelist.bin');
+    if (saveBytes !== null) loaderLists.save = parseSaveList(saveBytes);
+    const patchBytes = await readFileBytes(picoDir, 'patchlist.bin');
+    if (patchBytes !== null) loaderLists.patch = parsePatchList(patchBytes);
   }
-  return { gameData, settings };
+  return { gameData, settings, loaderLists };
 }
 
 export function SdProvider({ children }: { children: ReactNode }) {
@@ -165,6 +183,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [settings, setSettings] = useState<ParsedSettings | null>(null);
   const [cardInfo, setCardInfo] = useState<CardInfo>(EMPTY_CARD_INFO);
+  const [loaderLists, setLoaderLists] = useState<LoaderLists | null>(null);
   /**
    * Mirror of `gameData` for the write queue: a queued toggle must build on
    * the data of the toggle that just finished, not on the (possibly stale)
@@ -192,6 +211,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
     gameDataRef.current = launcher.gameData;
     setGameData(launcher.gameData);
     setSettings(launcher.settings);
+    setLoaderLists(launcher.loaderLists);
     setCardInfo(await readCardInfo(rootHandle));
     setProgress(null);
   }, []);
@@ -292,6 +312,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       gameData,
       settings,
       cardInfo,
+      loaderLists,
       openSd,
       refresh,
       toggleFavorite,
@@ -308,6 +329,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       gameData,
       settings,
       cardInfo,
+      loaderLists,
       openSd,
       refresh,
       toggleFavorite,

@@ -1,0 +1,184 @@
+/* fullscreen overlay + centered dialog (shares the modal recipe with Changelog/StatsEditor) */
+
+.compat-sheet__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.compat-sheet {
+  /* --warn at the same alpha as index.css's --ok-soft (no global warn-soft yet) */
+  --warn-soft: #e0a84b22;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(27rem, 100%);
+  max-height: 80vh;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-modal);
+  animation: compat-sheet-enter 0.18s ease;
+}
+
+/* the dialog takes programmatic focus on open (tabIndex -1), so no focus ring */
+.compat-sheet:focus {
+  outline: none;
+}
+
+@keyframes compat-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.compat-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* two-line heading: a small kicker line, then the game title on its own line */
+.compat-sheet__heading {
+  min-width: 0;
+  margin-right: auto;
+}
+
+.compat-sheet__kicker {
+  margin: 0 0 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.compat-sheet__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.compat-sheet__close {
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* gamecode + revision line under the title */
+.compat-sheet__meta {
+  margin: -0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* homebrew / missing-lists single-line body */
+.compat-sheet__note {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* the three verdict rows */
+
+.compat-sheet__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+}
+
+.compat-sheet__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+}
+
+/* version mismatch is the standout state: amber (a heads-up), never red */
+.compat-sheet__row--warn {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.compat-sheet__status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compat-sheet__status--ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.compat-sheet__status--neutral {
+  color: var(--text-dim);
+  background: var(--bg-hover);
+}
+
+.compat-sheet__status--warn {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.compat-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.compat-sheet__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.compat-sheet__row--warn .compat-sheet__label {
+  color: var(--warn);
+}
+
+.compat-sheet__text {
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+/* plain-words explanation of what the row means, for non-experts */
+.compat-sheet__hint {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}

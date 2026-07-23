@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CompatSheet } from '../components/CompatSheet';
 import { CoverPicker } from '../components/CoverPicker';
 import { StatsEditor } from '../components/StatsEditor';
 import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
-import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
+import {
+  parseGbaGameCode,
+  parseNdsGameCode,
+  parseNdsNandBackupRegionStart,
+  parseNdsSoftwareVersion,
+  parseNdsSupportsDsiMode,
+} from '../lib/rom';
 import { COVERS, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
@@ -16,12 +23,30 @@ const MAX_CONCURRENCY = 6;
 /** Header slice size covering both NDS (0xC) and GBA (0xAC) gamecode offsets. */
 const HEADER_BYTES = 0xb0;
 
-/** Outcome of resolving one game's cover on the SD card. */
-interface ResolvedCover {
-  /** Cropped preview object URL, or `null` when the game has no cover. */
-  url: string | null;
+/** Header fields PicoDex reads from a ROM (cover, stats and loader-compat keys). */
+interface HeaderInfo {
   /** Header gamecode (NDS/GBA), `null` when not applicable or unreadable. */
   code: string | null;
+  /** NDS header software revision (byte 0x1E), `null` elsewhere/unreadable. */
+  version: number | null;
+  /** NDS `nandBackupRegionStart` (header 0x96), `null` elsewhere/unreadable. */
+  nandBackupRegionStart: number | null;
+  /** NDS DSi-mode (TWL) capability (unitCode bit), `null` elsewhere/unreadable. */
+  twl: boolean | null;
+}
+
+/** All-null header, for non-gamecode systems and unreadable ROMs. */
+const EMPTY_HEADER: HeaderInfo = {
+  code: null,
+  version: null,
+  nandBackupRegionStart: null,
+  twl: null,
+};
+
+/** Outcome of resolving one game's cover on the SD card: its header plus art. */
+interface ResolvedCover extends HeaderInfo {
+  /** Cropped preview object URL, or `null` when the game has no cover. */
+  url: string | null;
 }
 
 /** One rendered gallery card: the game plus its resolved cover and stats. */
@@ -71,10 +96,21 @@ function playBadge(entry: GameDataEntry): string | null {
  * carry play-time badges plus heart and check buttons that toggle the
  * favorite/completed flags on the card (writing gamedata.json back), and
  * favorites sort first. A pencil button on each card opens the manual cover
- * picker for when the automatic matcher chose the wrong box art.
+ * picker for when the automatic matcher chose the wrong box art. On NDS —
+ * the only system pico-loader boots — an info button opens the per-game
+ * loader-compatibility sheet when the card carries loader lists.
  */
 export function SystemGallery({ system, onBack }: { system: System; onBack: () => void }) {
-  const { root, games, coverIndex, gameData, toggleFavorite, toggleCompleted, refresh } = useSd();
+  const {
+    root,
+    games,
+    coverIndex,
+    gameData,
+    loaderLists,
+    toggleFavorite,
+    toggleCompleted,
+    refresh,
+  } = useSd();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
   const [error, setError] = useState<string | null>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
@@ -86,6 +122,13 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     gameCode: string | null;
     launchCount: number;
     playMinutes: number;
+  } | null>(null);
+  /** Game whose loader-compat sheet is open, `null` while closed. */
+  const [compatFor, setCompatFor] = useState<{
+    title: string;
+    gameCode: string | null;
+    romVersion: number | null;
+    nand: { backupRegionStart: number; twl: boolean } | null;
   } | null>(null);
   /** Live search + flag filters, scoped to this system's gallery. */
   const [query, setQuery] = useState('');
@@ -126,48 +169,63 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
        *  path and cached (lowercased key — FAT ignores case). */
       const dirCache = new Map<string, FileSystemDirectoryHandle | null>();
 
-      /** Reads the 4-char gamecode from a ROM header (first bytes only). */
-      async function readCode(game: LibraryFile): Promise<string | null> {
-        if (system.coverKeying !== 'gamecode') return null;
+      /** Reads the gamecode and, for NDS, the software revision plus the
+       *  NAND-save header fields from a ROM header (first bytes only). */
+      async function readHeader(game: LibraryFile): Promise<HeaderInfo> {
+        if (system.coverKeying !== 'gamecode') return EMPTY_HEADER;
         const dirKey = game.path.join('/').toLowerCase();
         let dir = dirCache.get(dirKey);
         if (dir === undefined) {
           dir = await getDir(rootHandle, game.path);
           dirCache.set(dirKey, dir);
         }
-        if (dir === null) return null;
+        if (dir === null) return EMPTY_HEADER;
         try {
           const handle = await dir.getFileHandle(game.fileName);
           const file = await handle.getFile();
           const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
-          return system.id === 'nds' ? parseNdsGameCode(header) : parseGbaGameCode(header);
+          return system.id === 'nds'
+            ? {
+                code: parseNdsGameCode(header),
+                version: parseNdsSoftwareVersion(header),
+                nandBackupRegionStart: parseNdsNandBackupRegionStart(header),
+                twl: parseNdsSupportsDsiMode(header),
+              }
+            : {
+                code: parseGbaGameCode(header),
+                version: null,
+                nandBackupRegionStart: null,
+                twl: null,
+              };
         } catch {
-          return null;
+          return EMPTY_HEADER;
         }
       }
 
       /** Finds a game's cover file, reads it and decodes a cropped preview. */
       async function resolveCover(game: LibraryFile): Promise<ResolvedCover> {
-        // the gamecode also keys the play-stats lookup, so read it for
-        // gamecode systems even when a user-folder cover short-circuits
-        const code = codeKey === null ? null : await readCode(game);
+        // the gamecode also keys the play-stats lookup and the loader-compat
+        // sheet (which needs the revision and the NAND-save header fields), so
+        // read the header for gamecode systems even when a user-folder cover
+        // short-circuits
+        const header = codeKey === null ? EMPTY_HEADER : await readHeader(game);
         let bytes: Uint8Array | null = null;
         const userName = `${game.fileName}.bmp`;
         if (userDir !== null && coverIndex.user.has(userName.toLowerCase())) {
           bytes = await readFileBytes(userDir, userName);
         }
-        if (bytes === null && codeKey !== null && code !== null && codeDir !== null) {
-          const codeName = `${code.toUpperCase()}.bmp`;
+        if (bytes === null && codeKey !== null && header.code !== null && codeDir !== null) {
+          const codeName = `${header.code.toUpperCase()}.bmp`;
           if (coverIndex[codeKey].has(codeName.toLowerCase())) {
             bytes = await readFileBytes(codeDir, codeName);
           }
         }
-        if (bytes === null) return { url: null, code };
+        if (bytes === null) return { ...header, url: null };
         try {
-          return { url: await coverBmpCroppedPreviewUrl(bytes), code };
+          return { ...header, url: await coverBmpCroppedPreviewUrl(bytes) };
         } catch {
           // corrupt/unsupported BMP on the card: show the placeholder
-          return { url: null, code };
+          return { ...header, url: null };
         }
       }
 
@@ -180,7 +238,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             // a hard I/O failure (SD yanked mid-read) must not kill the
             // worker: fall back to the placeholder and keep going
             const result = await resolveCover(game).catch((): ResolvedCover => {
-              return { url: null, code: null };
+              return { ...EMPTY_HEADER, url: null };
             });
             if (cancelled) {
               if (result.url !== null) URL.revokeObjectURL(result.url);
@@ -242,6 +300,13 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
 
   const total = systemGames.length;
   const loading = root !== null && total > 0 && resolved.size < total;
+
+  // loader-compat info exists only for NDS (pico-loader boots nothing else)
+  // and only when the card actually carries at least one loader list
+  const showCompat =
+    system.id === 'nds' &&
+    loaderLists !== null &&
+    (loaderLists.ap !== null || loaderLists.save !== null || loaderLists.patch !== null);
 
   // client-side filtering over the already-built cards: name search (accent
   // insensitive) plus the favorite/completed toggles, all combined with AND
@@ -461,6 +526,40 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                       </span>
                     </button>
                   )}
+                  {showCompat && (
+                    <button
+                      type="button"
+                      className="system-gallery__compat"
+                      aria-label={`Loader compatibility for ${title}`}
+                      title={
+                        cover === undefined
+                          ? 'Resolving game…'
+                          : 'What the loader does for this game'
+                      }
+                      // disabled until the header resolves: the sheet keys
+                      // its lookups on the gamecode and revision
+                      disabled={cover === undefined}
+                      onClick={() => {
+                        if (cover === undefined) return;
+                        setCompatFor({
+                          title,
+                          gameCode: cover.code,
+                          romVersion: cover.version,
+                          // a readable NAND start (non-null) always comes with
+                          // a readable twl bit from the same header slice
+                          nand:
+                            cover.nandBackupRegionStart === null
+                              ? null
+                              : {
+                                  backupRegionStart: cover.nandBackupRegionStart,
+                                  twl: cover.twl ?? false,
+                                },
+                        });
+                      }}
+                    >
+                      <span aria-hidden="true">ⓘ</span>
+                    </button>
+                  )}
                 </span>
                 <span className="system-gallery__name" title={game.fileName}>
                   {title}
@@ -497,6 +596,18 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             // setStats commits to gameData directly, so the badge updates
             // from live state; no refresh needed
             setEditingStats(null);
+          }}
+        />
+      )}
+
+      {compatFor !== null && (
+        <CompatSheet
+          title={compatFor.title}
+          gameCode={compatFor.gameCode}
+          romVersion={compatFor.romVersion}
+          nand={compatFor.nand}
+          onClose={() => {
+            setCompatFor(null);
           }}
         />
       )}

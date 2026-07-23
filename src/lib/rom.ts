@@ -12,6 +12,34 @@
 /** Byte offset of the 4-character game code inside an NDS ROM header. */
 const NDS_GAME_CODE_OFFSET = 0x0c;
 
+/**
+ * Byte offset of the software version (ROM revision) inside an NDS ROM
+ * header: the `softwareVersion` field of `nds_header_ntr_t` in the loader's
+ * `common/ndsHeader.h`.
+ */
+const NDS_SOFTWARE_VERSION_OFFSET = 0x1e;
+
+/**
+ * Byte offset of the `unitCode` byte in an NDS ROM header (`nds_header_ntr_t`,
+ * `common/ndsHeader.h`).
+ */
+const NDS_UNIT_CODE_OFFSET = 0x12;
+
+/**
+ * `unitCode` bit that marks DSi-mode (TWL) capability:
+ * `NDS_HEADER_UNIT_CODE_SUPPORTS_DSI_MODE` (`1 << 1`) in `common/ndsHeader.h`.
+ * Note bit 0 is a different flag (`NOT_SUPPORTS_DS_MODE`), so the check is
+ * this specific bit, not merely "unitCode is non-zero".
+ */
+const NDS_UNIT_CODE_SUPPORTS_DSI_MODE = 1 << 1;
+
+/**
+ * Byte offset of the u16 `nandBackupRegionStart` field in an NDS ROM header
+ * (`nds_header_ntr_t`, `common/ndsHeader.h`): it sits right before `gap98`,
+ * at 0x96.
+ */
+const NDS_NAND_BACKUP_REGION_START_OFFSET = 0x96;
+
 /** Byte offset of the 4-character game code inside a GBA ROM header. */
 const GBA_GAME_CODE_OFFSET = 0xac;
 
@@ -67,6 +95,71 @@ function parseGameCodeAt(bytes: Uint8Array, offset: number): string | null {
  */
 export function parseNdsGameCode(bytes: Uint8Array): string | null {
   return parseGameCodeAt(bytes, NDS_GAME_CODE_OFFSET);
+}
+
+/**
+ * Extracts the software version (ROM revision) from an NDS ROM header: the
+ * single byte at offset 0x1E, `softwareVersion` in the loader's
+ * `common/ndsHeader.h`. Retail carts almost always ship revision 0; re-issues
+ * bump it (e.g. `v1.1` prints as revision 1). The loader keys its AP and
+ * patch lists on this byte, so PicoDex needs it to mirror those lookups.
+ *
+ * @param bytes ROM bytes; only the first 0x1F bytes are needed, so passing
+ *   just a header slice is fine.
+ * @returns The revision byte (0–255), or `null` when the buffer is shorter
+ *   than 0x1F bytes.
+ */
+export function parseNdsSoftwareVersion(bytes: Uint8Array): number | null {
+  if (bytes.length < NDS_SOFTWARE_VERSION_OFFSET + 1) {
+    return null;
+  }
+  return bytes[NDS_SOFTWARE_VERSION_OFFSET];
+}
+
+/**
+ * Tells whether an NDS ROM header advertises DSi-mode (TWL) capability: bit 1
+ * of the `unitCode` byte at offset 0x12, exactly as `SupportsDsiMode()` in the
+ * loader's `common/ndsHeader.h` tests it (`unitCode &
+ * NDS_HEADER_UNIT_CODE_SUPPORTS_DSI_MODE`, `1 << 1`). The loader reads this to
+ * pick the NAND save block size — 0x80000 in TWL mode, 0x20000 in NTR mode
+ * (`CardSaveArranger::SetupCardSave`) — so a NAND-save size can only be
+ * computed correctly alongside this bit.
+ *
+ * @param bytes ROM bytes; only the first 0x13 bytes are needed, so passing
+ *   just a header slice is fine.
+ * @returns `true` for DSi-capable (TWL) carts, `false` for DS-only ones, or
+ *   `null` when the buffer is shorter than 0x13 bytes.
+ */
+export function parseNdsSupportsDsiMode(bytes: Uint8Array): boolean | null {
+  if (bytes.length < NDS_UNIT_CODE_OFFSET + 1) {
+    return null;
+  }
+  return (bytes[NDS_UNIT_CODE_OFFSET] & NDS_UNIT_CODE_SUPPORTS_DSI_MODE) !== 0;
+}
+
+/**
+ * Reads the `nandBackupRegionStart` field from an NDS ROM header: the u16 at
+ * offset 0x96, little-endian (`nds_header_ntr_t`, `common/ndsHeader.h`). A
+ * non-zero value marks a NAND-backed save, and the loader
+ * (`CardSaveArranger::SetupCardSave`) sizes that save straight from this field
+ * — ignoring `savelist.bin` entirely — as `NAND_RW_REGION_END -
+ * nandBackupRegionStart * blockSize`. Retail cartridge saves (EEPROM/Flash)
+ * leave it 0; only a handful of NAND-save titles (e.g. WarioWare D.I.Y.) set
+ * it.
+ *
+ * @param bytes ROM bytes; only the first 0x98 bytes are needed, so passing
+ *   just a header slice is fine.
+ * @returns The u16 value (0 for the common non-NAND case), or `null` when the
+ *   buffer is shorter than 0x98 bytes.
+ */
+export function parseNdsNandBackupRegionStart(bytes: Uint8Array): number | null {
+  if (bytes.length < NDS_NAND_BACKUP_REGION_START_OFFSET + 2) {
+    return null;
+  }
+  return (
+    bytes[NDS_NAND_BACKUP_REGION_START_OFFSET] |
+    (bytes[NDS_NAND_BACKUP_REGION_START_OFFSET + 1] << 8)
+  );
 }
 
 /**

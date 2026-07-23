@@ -366,3 +366,49 @@
 .system-gallery__card:focus-within .system-gallery__edit:disabled {
   opacity: 0.3;
 }
+
+/* loader-compat info button: bottom-right of the cover (NDS cards only, when
+   the card carries loader lists), opposite the stats pill; revealed on card
+   hover/focus like the pencil so the grid stays calm */
+
+.system-gallery__compat {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(10 12 16 / 0.78);
+  backdrop-filter: blur(2px);
+  color: var(--text-dim);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.system-gallery__card:hover .system-gallery__compat,
+.system-gallery__card:focus-within .system-gallery__compat {
+  opacity: 0.7;
+}
+
+.system-gallery__card .system-gallery__compat:hover:not(:disabled),
+.system-gallery__card .system-gallery__compat:focus-visible {
+  opacity: 1;
+  color: var(--text);
+}
+
+.system-gallery__compat:disabled {
+  cursor: default;
+}
+
+.system-gallery__card:hover .system-gallery__compat:disabled,
+.system-gallery__card:focus-within .system-gallery__compat:disabled {
+  opacity: 0.3;
+}
