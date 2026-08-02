@@ -69,6 +69,40 @@ function mismatchText(kind: 'fix' | 'patch', entryVersions: number[], romVersion
   return `A ${kind} exists for ${noun} ${revs}, but ${romPart} — the loader only applies exact matches.`;
 }
 
+/**
+ * Explanatory hints, per row and per ROM kind. They cannot be fixed strings:
+ * the retail wording talks about the list this row reads, which is meaningless
+ * for a ROM whose kind means the loader never reaches that step, and the save
+ * hint describes recreating a cartridge chip, which flatly contradicts
+ * "creates no save file for homebrew" sitting right above it.
+ */
+const HINTS: Record<'ap' | 'save' | 'patch', Record<RomKind, string>> = {
+  ap: {
+    retail:
+      'Some games freeze on purpose when they notice a flashcard, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here.',
+    dsiware:
+      'Anti-piracy protection is a cartridge thing. DSiWare titles were never on a cartridge, so the loader does not run that step for them at all.',
+    homebrew:
+      'Anti-piracy protection is something retail games do. The loader runs none of that machinery for homebrew, so there is nothing to check.',
+  },
+  save: {
+    retail:
+      'Original cartridges have a save chip inside; the loader recreates it as a file on the SD card, sized for this game.',
+    dsiware:
+      'DSiWare saves to files rather than to a cartridge chip. The loader creates them next to the ROM at the sizes the ROM itself declares, so no list is involved.',
+    homebrew:
+      'Homebrew manages its own files on the SD card, so the loader does not create a save for it. Anything this ROM saves, it saves by itself.',
+  },
+  patch: {
+    retail:
+      'A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
+    dsiware:
+      'These fixes exist to make retail cartridge games run from a flashcard. DSiWare does not go through that path, so the loader applies none of them.',
+    homebrew:
+      'These fixes exist to make retail games run from a flashcard. The loader applies none of them to homebrew, which runs as built.',
+  },
+};
+
 /** Tone + text for the anti-piracy row. */
 function apRow(ap: GameCompat['ap'], romVersion: number | null): { tone: Tone; text: string } {
   switch (ap.status) {
@@ -292,17 +326,13 @@ export function CompatSheet({
             <ul className="compat-sheet__rows">
               <Row
                 label="Anti-piracy fix"
-                hint="Some games freeze on purpose when they notice a flashcard, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here."
+                hint={HINTS.ap[compat.kind]}
                 {...apRow(compat.ap, romVersion)}
               />
-              <Row
-                label="Save"
-                hint="Original cartridges have a save chip inside; the loader recreates it as a file on the SD card, sized for this game."
-                {...saveRow(compat.save)}
-              />
+              <Row label="Save" hint={HINTS.save[compat.kind]} {...saveRow(compat.save)} />
               <Row
                 label="Game-specific patch"
-                hint="A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here."
+                hint={HINTS.patch[compat.kind]}
                 {...patchRow(compat.patch, romVersion)}
               />
             </ul>
