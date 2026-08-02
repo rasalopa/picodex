@@ -6,6 +6,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
 import {
+  NDS_HEADER_PARSE_BYTES,
   parseGbaGameCode,
   parseNdsDsiWareSaveSizes,
   parseNdsGameCode,
@@ -24,8 +25,12 @@ import './SystemGallery.css';
 /** Maximum covers read and decoded simultaneously. */
 const MAX_CONCURRENCY = 6;
 
-/** Header slice size covering both NDS (0xC) and GBA (0xAC) gamecode offsets. */
-const HEADER_BYTES = 0xb0;
+/**
+ * Header slice size, taken from rom.ts so it cannot drift behind the parsers.
+ * Reading short does not fail loudly: the deepest parsers just return null and
+ * the sheet then reports every game's header as unreadable.
+ */
+const HEADER_BYTES = NDS_HEADER_PARSE_BYTES;
 
 /** Header fields PicoDex reads from a ROM (cover, stats and loader-compat keys). */
 interface HeaderInfo {

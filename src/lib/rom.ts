@@ -67,6 +67,16 @@ const NDS_TWL_PRIVATE_SAV_SIZE_OFFSET = 0x23c;
 const GBA_GAME_CODE_OFFSET = 0xac;
 
 /**
+ * Bytes a caller must read for every parser in this module to be able to
+ * answer. Exported so callers slice against the parsers rather than against a
+ * number of their own: reading short does not fail loudly, it just makes the
+ * deepest parsers return `null`, which reads downstream as "unreadable header"
+ * for every ROM. Driven by {@link parseNdsDsiWareSaveSizes}, the deepest one
+ * (the TWL private save size ends at 0x240).
+ */
+export const NDS_HEADER_PARSE_BYTES = NDS_TWL_PRIVATE_SAV_SIZE_OFFSET + 4;
+
+/**
  * Tells whether a game code is usable as a game's identity.
  *
  * Usable means exactly 4 characters, each printable ASCII (0x21–0x7E).

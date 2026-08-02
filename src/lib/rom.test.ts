@@ -9,6 +9,7 @@ import {
   parseNdsIsHomebrew,
   parseNdsIsDsiWare,
   parseNdsDsiWareSaveSizes,
+  NDS_HEADER_PARSE_BYTES,
 } from './rom.ts';
 
 /** Builds a synthetic ROM buffer with `code` bytes written at `offset`. */
@@ -323,5 +324,28 @@ describe('parseNdsDsiWareSaveSizes', () => {
 
   it('returns null when the header is too short', () => {
     expect(parseNdsDsiWareSaveSizes(new Uint8Array(0x200))).toBeNull();
+  });
+});
+
+describe('NDS_HEADER_PARSE_BYTES', () => {
+  it('is enough for every parser here to answer', () => {
+    // Guard for a real bug: the gallery used to read 0xb0 bytes, which is past
+    // both gamecodes but short of the TWL block, so parseNdsIsDsiWare returned
+    // null and the compat sheet declared every ROM's header unreadable. Unit
+    // tests missed it because they all pass generous buffers.
+    const header = headerWith();
+    const slice = header.slice(0, NDS_HEADER_PARSE_BYTES);
+    expect(parseNdsGameCode(romWithCode(0x0c, 'BO5E', NDS_HEADER_PARSE_BYTES))).toBe('BO5E');
+    expect(parseNdsSoftwareVersion(slice)).not.toBeNull();
+    expect(parseNdsSupportsDsiMode(slice)).not.toBeNull();
+    expect(parseNdsNandBackupRegionStart(slice)).not.toBeNull();
+    expect(parseNdsIsHomebrew(slice)).not.toBeNull();
+    expect(parseNdsIsDsiWare(slice)).not.toBeNull();
+    expect(parseNdsDsiWareSaveSizes(slice)).not.toBeNull();
+  });
+
+  it('is the minimum: one byte less and the deepest parser gives up', () => {
+    const short = headerWith().slice(0, NDS_HEADER_PARSE_BYTES - 1);
+    expect(parseNdsDsiWareSaveSizes(short)).toBeNull();
   });
 });
