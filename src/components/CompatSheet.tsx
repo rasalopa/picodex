@@ -78,7 +78,7 @@ function apRow(ap: GameCompat['ap'], romVersion: number | null): { tone: Tone; t
       // (Arm9Patcher::AddGamePatches) that is deliberately kept out of the
       // list, so a claim about the game would be false for exactly those
       // titles. Say what we actually checked, and nothing more.
-      return { tone: 'neutral', text: 'Not in the loader’s AP list.' };
+      return { tone: 'neutral', text: 'Not listed, which is not the same as “no fix needed”.' };
     case 'not-applicable':
       return { tone: 'neutral', text: 'The loader skips anti-piracy for this kind of ROM.' };
     case 'applies':
@@ -134,7 +134,7 @@ function patchRow(
       // patchlist.bin covers only the ARM7-applied patches; the ARM9 side has
       // its own hardcoded table (Arm9Patcher::AddGameSpecificPatches), so
       // "none needed" would overstate what this checked
-      return { tone: 'neutral', text: 'Not in the loader’s patch list.' };
+      return { tone: 'neutral', text: 'Not listed, which is not the same as “nothing to fix”.' };
     case 'not-applicable':
       return { tone: 'neutral', text: 'The loader skips game patches for this kind of ROM.' };
     case 'applies':
@@ -292,7 +292,7 @@ export function CompatSheet({
             <ul className="compat-sheet__rows">
               <Row
                 label="Anti-piracy fix"
-                hint="Some retail games detect flashcards and freeze on purpose. This row only reads aplist.bin; the loader also has fixes built into itself for games that are not in that file."
+                hint="Some games freeze on purpose when they notice a flashcard, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here."
                 {...apRow(compat.ap, romVersion)}
               />
               <Row
@@ -302,7 +302,7 @@ export function CompatSheet({
               />
               <Row
                 label="Game-specific patch"
-                hint="A few games need small one-off fixes to run correctly from a flashcard. This row only reads patchlist.bin, which does not cover every fix the loader carries."
+                hint="A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here."
                 {...patchRow(compat.patch, romVersion)}
               />
             </ul>
