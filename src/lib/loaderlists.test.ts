@@ -293,6 +293,7 @@ describe('compatForGame', () => {
     // A null list means "could not check", not a positive "nothing needed" —
     // that distinction is the whole point of the list-unavailable status.
     expect(compatForGame(lists(), 'ADAE', 0)).toEqual({
+      kind: 'retail',
       save: { saveType: null, sizeBytes: DEFAULT_SAVE_SIZE_BYTES, source: 'default' },
       ap: { status: 'list-unavailable', dsProtectVersion: null, entryVersions: [], romVersion: 0 },
       patch: { status: 'list-unavailable', patchCount: 0, entryVersions: [] },
@@ -302,8 +303,8 @@ describe('compatForGame', () => {
   it('distinguishes an empty (present) list from a null one', () => {
     // Present-but-empty aplist/patchlist is a real "no entry for this game".
     const compat = compatForGame({ ap: [], save: [], patch: [] }, 'ZZZZ', 0);
-    expect(compat.ap.status).toBe('not-needed');
-    expect(compat.patch.status).toBe('none');
+    expect(compat.ap.status).toBe('not-listed');
+    expect(compat.patch.status).toBe('not-listed');
     expect(compat.save).toEqual({
       saveType: null,
       sizeBytes: DEFAULT_SAVE_SIZE_BYTES,
@@ -368,10 +369,10 @@ describe('compatForGame', () => {
     expect(compat.save).toEqual({ saveType: 'flash', sizeBytes: 512 * 1024, source: 'list' });
   });
 
-  it('reports ap not-needed when no entry exists for the game code', () => {
+  it('reports ap not-listed when no entry exists for the game code', () => {
     const compat = compatForGame(lists({ ap }), 'ZZZZ', 0);
     expect(compat.ap).toEqual({
-      status: 'not-needed',
+      status: 'not-listed',
       dsProtectVersion: null,
       entryVersions: [],
       romVersion: 0,
@@ -428,9 +429,9 @@ describe('compatForGame', () => {
     });
   });
 
-  it('reports patch none when no entry exists for the game code', () => {
+  it('reports patch not-listed when no entry exists for the game code', () => {
     const compat = compatForGame(lists({ patch }), 'ZZZZ', 0);
-    expect(compat.patch).toEqual({ status: 'none', patchCount: 0, entryVersions: [] });
+    expect(compat.patch).toEqual({ status: 'not-listed', patchCount: 0, entryVersions: [] });
   });
 
   it('reports patch applies with the entry patch count on an exact match', () => {
@@ -455,5 +456,64 @@ describe('compatForGame', () => {
   it('falls back to version 0 for the patch list when the ROM version is unreadable', () => {
     const compat = compatForGame(lists({ patch }), 'ADAE', null);
     expect(compat.patch).toEqual({ status: 'applies', patchCount: 3, entryVersions: [0] });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// non-retail ROM kinds
+//
+// The loader wraps its whole save/AP/patch block in `if (!isHomebrew)` and
+// routes DSiWare to DsiWareSaveArranger (NdsLoader.cpp:201-239), so for these
+// two kinds the lists describe code that never runs on the ROM. Answering from
+// them would be a confident falsehood, which is worse than saying nothing.
+// ---------------------------------------------------------------------------
+
+describe('compatForGame, non-retail ROMs', () => {
+  /** Lists that WOULD answer, so a leak shows up as a wrong verdict. */
+  const loaded = {
+    ap: [{ gameCode: 'ADAE', gameVersion: 0, dsProtectVersion: 'v1.26' }],
+    save: [{ gameCode: 'ADAE', saveType: 'flash' as const, saveSizeBytes: 256 * 1024 }],
+    patch: [{ gameCode: 'ADAE', gameVersion: 0, patchCount: 3 }],
+  };
+
+  it('reports nothing from the lists for homebrew, even when they match', () => {
+    const compat = compatForGame(loaded, 'ADAE', 0, null, { kind: 'homebrew' });
+    expect(compat.kind).toBe('homebrew');
+    expect(compat.ap.status).toBe('not-applicable');
+    expect(compat.patch.status).toBe('not-applicable');
+    // the loader creates no save file at all for homebrew, so neither the
+    // matching savelist row nor the 512 KB default may leak through
+    expect(compat.save).toEqual({ saveType: null, sizeBytes: 0, source: 'homebrew-none' });
+  });
+
+  it('sizes a DSiWare save from the TWL header, never from the savelist', () => {
+    const compat = compatForGame(loaded, 'ADAE', 0, null, {
+      kind: 'dsiware',
+      dsiWareSaveBytes: { publicBytes: 0x4000, privateBytes: 0 },
+    });
+    expect(compat.kind).toBe('dsiware');
+    expect(compat.save).toEqual({
+      saveType: null,
+      sizeBytes: 0x4000,
+      privateSizeBytes: 0,
+      source: 'dsiware-header',
+    });
+    expect(compat.ap.status).toBe('not-applicable');
+    expect(compat.patch.status).toBe('not-applicable');
+  });
+
+  it('keeps the retail path unchanged when no kind is given', () => {
+    const compat = compatForGame(loaded, 'ADAE', 0);
+    expect(compat.kind).toBe('retail');
+    expect(compat.ap.status).toBe('applies');
+    expect(compat.save.source).toBe('list');
+  });
+
+  it('does not claim a game needs no AP fix, only that the list has no entry', () => {
+    // Regression guard for the hardcoded ARM9 table (Arm9Patcher::AddGamePatches):
+    // BO5E (Golden Sun - Dark Dawn) is patched by the loader but is deliberately
+    // absent from aplist.bin, so this status must never be read as reassurance.
+    const compat = compatForGame(loaded, 'BO5E', 0);
+    expect(compat.ap.status).toBe('not-listed');
   });
 });

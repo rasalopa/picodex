@@ -319,8 +319,19 @@ export function parsePatchList(bytes: Uint8Array): PatchListEntry[] | null {
   return entries;
 }
 
+/**
+ * Which of the loader's three ROM paths applies, because that decides whether
+ * the lists say anything at all. `NdsLoader.cpp:201-239` wraps the whole
+ * save/anti-piracy/patch block in `if (!isHomebrew)`, and inside it routes
+ * `IsDsiWare()` titles to DsiWareSaveArranger rather than CardSaveArranger.
+ * Only `'retail'` goes through the list-driven path this module models.
+ */
+export type RomKind = 'retail' | 'homebrew' | 'dsiware';
+
 /** Per-game compatibility summary derived from the three loader lists. */
 export interface GameCompat {
+  /** Which loader path applies. Everything below is scoped to it. */
+  kind: RomKind;
   /**
    * Save handling, resolved in `CardSaveArranger::SetupCardSave`'s order.
    * `source` says where the size came from: `'nand-header'` when the ROM
@@ -328,24 +339,38 @@ export interface GameCompat {
    * from the header and never reads `savelist.bin`), `'list'` for a
    * `savelist.bin` row, `'default'` when the game is unlisted or the savelist
    * is missing (the loader falls back to {@link DEFAULT_SAVE_SIZE_BYTES}).
-   * `saveType` is `null` only for the `'default'` source.
+   *
+   * The last two are not list outcomes at all: `'dsiware-header'` is the
+   * `.pub`/`.prv` pair DsiWareSaveArranger creates from the TWL header, and
+   * `'homebrew-none'` records that the loader creates no save file whatsoever.
+   * `saveType` is `null` for all three of `'default'`, `'dsiware-header'` and
+   * `'homebrew-none'`.
    */
   save: {
     saveType: SaveType | null;
     sizeBytes: number;
-    source: 'nand-header' | 'list' | 'default';
+    /** Second DSiWare save file, 0 when the title declares none. */
+    privateSizeBytes?: number;
+    source: 'nand-header' | 'list' | 'default' | 'dsiware-header' | 'homebrew-none';
   };
   /**
-   * Anti-piracy patching. `'not-needed'` when no aplist entry exists for the
-   * game code (the game boots without AP handling); `'applies'` when an
-   * entry matches the ROM's exact revision; `'version-mismatch'` when
-   * entries exist for the code but none for this revision — the loader will
-   * not patch it; `'list-unavailable'` when `aplist.bin` is absent, so there
-   * is nothing to check against (distinct from `'not-needed'`, which is a
-   * positive "the list has no entry for this game").
+   * Anti-piracy patching. `'not-listed'` when no aplist entry exists for the
+   * game code; `'applies'` when an entry matches the ROM's exact revision;
+   * `'version-mismatch'` when entries exist for the code but none for this
+   * revision — the loader will not patch it; `'list-unavailable'` when
+   * `aplist.bin` is absent, so there is nothing to check against;
+   * `'not-applicable'` when the loader's AP step does not run for this ROM
+   * kind at all.
+   *
+   * `'not-listed'` deliberately does NOT mean "this game needs no fix". The
+   * loader also carries a hardcoded per-gamecode AP table on the ARM9 side
+   * (`Arm9Patcher::AddGamePatches`, e.g. Golden Sun Dark Dawn and Dragon Ball
+   * Origins 2) whose entries are absent from `aplist.bin` on purpose, and this
+   * module cannot see it. Callers must word this status as a statement about
+   * the list, never as reassurance about the game.
    */
   ap: {
-    status: 'not-needed' | 'applies' | 'version-mismatch' | 'list-unavailable';
+    status: 'not-listed' | 'applies' | 'version-mismatch' | 'list-unavailable' | 'not-applicable';
     /** DS Protect version of the matching entry, `null` unless 'applies'. */
     dsProtectVersion: string | null;
     /** Revisions listed for this game code, in file order. */
@@ -354,13 +379,13 @@ export interface GameCompat {
     romVersion: number | null;
   };
   /**
-   * Binary patching (patchlist.bin). Statuses mirror `ap`: `'none'` when the
-   * code is unlisted, `'applies'` on an exact revision match,
-   * `'version-mismatch'` otherwise, and `'list-unavailable'` when
-   * `patchlist.bin` is absent or unreadable (nothing to check against).
+   * Binary patching (patchlist.bin). Statuses mirror `ap`, and so does the
+   * caveat: `patchlist.bin` holds only the ARM7-applied patches, while
+   * `Arm9Patcher::AddGameSpecificPatches` hardcodes a second, larger table
+   * this module cannot see. `'not-listed'` is a fact about the list only.
    */
   patch: {
-    status: 'none' | 'applies' | 'version-mismatch' | 'list-unavailable';
+    status: 'not-listed' | 'applies' | 'version-mismatch' | 'list-unavailable' | 'not-applicable';
     /** Patch count of the matching entry, 0 unless 'applies'. */
     patchCount: number;
     /** Revisions listed for this game code, in file order. */
@@ -382,7 +407,7 @@ export interface GameCompat {
  *
  * @param lists The parsed lists. A `null` `ap`/`patch` list yields status
  *   `'list-unavailable'` (nothing to check against), never a false
- *   `'not-needed'` / `'none'`; a `null`/absent savelist falls through to the
+ *   `'not-listed'`; a `null`/absent savelist falls through to the
  *   default save size.
  * @param gameCode 4-character game code from the ROM header.
  * @param romVersion ROM revision (header byte 0x1E), or `null` when the
@@ -400,7 +425,34 @@ export function compatForGame(
   gameCode: string,
   romVersion: number | null,
   nand?: { backupRegionStart: number; twl: boolean } | null,
+  rom?: { kind: RomKind; dsiWareSaveBytes?: { publicBytes: number; privateBytes: number } } | null,
 ): GameCompat {
+  const kind = rom?.kind ?? 'retail';
+
+  // The loader runs none of the list-driven steps for these two, so answering
+  // from the lists would describe code that never executes on this ROM.
+  if (kind !== 'retail') {
+    const dsi = kind === 'dsiware';
+    return {
+      kind,
+      save: dsi
+        ? {
+            saveType: null,
+            sizeBytes: rom?.dsiWareSaveBytes?.publicBytes ?? 0,
+            privateSizeBytes: rom?.dsiWareSaveBytes?.privateBytes ?? 0,
+            source: 'dsiware-header',
+          }
+        : { saveType: null, sizeBytes: 0, source: 'homebrew-none' },
+      ap: {
+        status: 'not-applicable',
+        dsProtectVersion: null,
+        entryVersions: [],
+        romVersion,
+      },
+      patch: { status: 'not-applicable', patchCount: 0, entryVersions: [] },
+    };
+  }
+
   const matchVersion = romVersion ?? 0;
 
   let save: GameCompat['save'];
@@ -426,7 +478,7 @@ export function compatForGame(
     const apEntries = lists.ap.filter((entry) => entry.gameCode === gameCode);
     const apMatch = apEntries.find((entry) => entry.gameVersion === matchVersion);
     ap = {
-      status: apEntries.length === 0 ? 'not-needed' : apMatch ? 'applies' : 'version-mismatch',
+      status: apEntries.length === 0 ? 'not-listed' : apMatch ? 'applies' : 'version-mismatch',
       dsProtectVersion: apMatch ? apMatch.dsProtectVersion : null,
       entryVersions: apEntries.map((entry) => entry.gameVersion),
       romVersion,
@@ -440,11 +492,12 @@ export function compatForGame(
     const patchEntries = lists.patch.filter((entry) => entry.gameCode === gameCode);
     const patchMatch = patchEntries.find((entry) => entry.gameVersion === matchVersion);
     patch = {
-      status: patchEntries.length === 0 ? 'none' : patchMatch ? 'applies' : 'version-mismatch',
+      status:
+        patchEntries.length === 0 ? 'not-listed' : patchMatch ? 'applies' : 'version-mismatch',
       patchCount: patchMatch ? patchMatch.patchCount : 0,
       entryVersions: patchEntries.map((entry) => entry.gameVersion),
     };
   }
 
-  return { save, ap, patch };
+  return { kind, save, ap, patch };
 }

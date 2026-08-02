@@ -40,6 +40,29 @@ const NDS_UNIT_CODE_SUPPORTS_DSI_MODE = 1 << 1;
  */
 const NDS_NAND_BACKUP_REGION_START_OFFSET = 0x96;
 
+/**
+ * The four fields the loader's homebrew test reads (`NdsLoader.cpp:171-173`):
+ * `makerCode` (u16), the two autoload-done hook addresses (u32) and
+ * `arm7LoadAddress` (u32). Verified against real ROMs: retail carts carry a
+ * printable maker code and non-zero hooks, devkitPro homebrew zeroes both.
+ */
+const NDS_MAKER_CODE_OFFSET = 0x10;
+const NDS_ARM7_LOAD_ADDRESS_OFFSET = 0x38;
+const NDS_ARM9_AUTOLOAD_HOOK_OFFSET = 0x70;
+const NDS_ARM7_AUTOLOAD_HOOK_OFFSET = 0x74;
+
+/** At or above this, the loader considers the ARM7 binary homebrew-placed. */
+const NDS_ARM7_LOAD_ADDRESS_HOMEBREW_MIN = 0x03000000;
+
+/**
+ * TWL header fields behind `IsDsiWare()` (`common/ndsHeader.h:142-146`) and the
+ * DSiWare save sizes the loader's DsiWareSaveArranger uses.
+ */
+const NDS_TWL_FLAGS_OFFSET = 0x1bf;
+const NDS_TITLE_ID_OFFSET = 0x230;
+const NDS_TWL_PUBLIC_SAV_SIZE_OFFSET = 0x238;
+const NDS_TWL_PRIVATE_SAV_SIZE_OFFSET = 0x23c;
+
 /** Byte offset of the 4-character game code inside a GBA ROM header. */
 const GBA_GAME_CODE_OFFSET = 0xac;
 
@@ -160,6 +183,95 @@ export function parseNdsNandBackupRegionStart(bytes: Uint8Array): number | null 
     bytes[NDS_NAND_BACKUP_REGION_START_OFFSET] |
     (bytes[NDS_NAND_BACKUP_REGION_START_OFFSET + 1] << 8)
   );
+}
+
+/** Little-endian u32 read, `null` when the buffer is too short. */
+function readU32(bytes: Uint8Array, offset: number): number | null {
+  if (bytes.length < offset + 4) {
+    return null;
+  }
+  return (
+    (bytes[offset] |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16) |
+      (bytes[offset + 3] << 24)) >>>
+    0
+  );
+}
+
+/**
+ * Tells whether the loader will treat this ROM as homebrew, using its own test
+ * verbatim (`NdsLoader.cpp:171-173`): a zero maker code, OR both autoload-done
+ * hooks zero, OR an ARM7 load address at 0x03000000 or above.
+ *
+ * This matters because the loader wraps its whole save/anti-piracy/patch block
+ * in `if (!isHomebrew)`. For homebrew it creates no save file and applies no
+ * patches, so every verdict drawn from `savelist.bin`, `aplist.bin` or
+ * `patchlist.bin` is about code that never runs. Note the test is not "the game
+ * code is unreadable": devkitPro homebrew commonly ships the printable
+ * placeholder `####`, which {@link parseNdsGameCode} accepts.
+ *
+ * @param bytes ROM bytes; the first 0x78 are enough.
+ * @returns `true` when the loader's homebrew path applies, or `null` when the
+ *   buffer is too short to tell.
+ */
+export function parseNdsIsHomebrew(bytes: Uint8Array): boolean | null {
+  const arm7LoadAddress = readU32(bytes, NDS_ARM7_LOAD_ADDRESS_OFFSET);
+  const arm9Hook = readU32(bytes, NDS_ARM9_AUTOLOAD_HOOK_OFFSET);
+  const arm7Hook = readU32(bytes, NDS_ARM7_AUTOLOAD_HOOK_OFFSET);
+  if (
+    bytes.length < NDS_MAKER_CODE_OFFSET + 2 ||
+    arm7LoadAddress === null ||
+    arm9Hook === null ||
+    arm7Hook === null
+  ) {
+    return null;
+  }
+  return (
+    (bytes[NDS_MAKER_CODE_OFFSET] === 0 && bytes[NDS_MAKER_CODE_OFFSET + 1] === 0) ||
+    (arm9Hook === 0 && arm7Hook === 0) ||
+    arm7LoadAddress >= NDS_ARM7_LOAD_ADDRESS_HOMEBREW_MIN
+  );
+}
+
+/**
+ * Tells whether this is a DSiWare title, using `IsDsiWare()` from the loader's
+ * `common/ndsHeader.h` verbatim: bit 0 of `twlFlags` set AND bit 2 of the high
+ * half of `titleId` set. Deliberately not the same as DSi-mode capability (see
+ * {@link parseNdsSupportsDsiMode}); DS-mode DSiWare exists.
+ *
+ * The loader routes these to DsiWareSaveArranger instead of CardSaveArranger,
+ * so they never touch `savelist.bin`, `aplist.bin` or `patchlist.bin`.
+ *
+ * @param bytes ROM bytes; the first 0x238 are enough.
+ * @returns `true` for DSiWare, or `null` when the buffer is too short.
+ */
+export function parseNdsIsDsiWare(bytes: Uint8Array): boolean | null {
+  const titleIdHigh = readU32(bytes, NDS_TITLE_ID_OFFSET + 4);
+  if (bytes.length < NDS_TWL_FLAGS_OFFSET + 1 || titleIdHigh === null) {
+    return null;
+  }
+  return (bytes[NDS_TWL_FLAGS_OFFSET] & 1) !== 0 && (titleIdHigh & 4) !== 0;
+}
+
+/**
+ * Reads the DSiWare save sizes a title declares in its TWL header
+ * (`twlPublicSavSize` and `twlPrivateSavSize`). The loader creates a `.pub`
+ * and, when non-zero, a `.prv` of exactly these sizes, which is why a DSiWare
+ * title's real save has nothing to do with `savelist.bin`.
+ *
+ * @param bytes ROM bytes; the first 0x240 are enough.
+ * @returns The two sizes in bytes, or `null` when the buffer is too short.
+ */
+export function parseNdsDsiWareSaveSizes(
+  bytes: Uint8Array,
+): { publicBytes: number; privateBytes: number } | null {
+  const publicBytes = readU32(bytes, NDS_TWL_PUBLIC_SAV_SIZE_OFFSET);
+  const privateBytes = readU32(bytes, NDS_TWL_PRIVATE_SAV_SIZE_OFFSET);
+  if (publicBytes === null || privateBytes === null) {
+    return null;
+  }
+  return { publicBytes, privateBytes };
 }
 
 /**

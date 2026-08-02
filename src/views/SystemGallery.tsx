@@ -7,11 +7,15 @@ import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
 import {
   parseGbaGameCode,
+  parseNdsDsiWareSaveSizes,
   parseNdsGameCode,
+  parseNdsIsDsiWare,
+  parseNdsIsHomebrew,
   parseNdsNandBackupRegionStart,
   parseNdsSoftwareVersion,
   parseNdsSupportsDsiMode,
 } from '../lib/rom';
+import type { RomKind } from '../lib/loaderlists';
 import { COVERS, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
@@ -33,6 +37,14 @@ interface HeaderInfo {
   nandBackupRegionStart: number | null;
   /** NDS DSi-mode (TWL) capability (unitCode bit), `null` elsewhere/unreadable. */
   twl: boolean | null;
+  /**
+   * Which loader path this ROM takes. `null` means the header could not be
+   * read, which is deliberately distinct from 'homebrew': the sheet must not
+   * turn a failed read into a claim about the ROM.
+   */
+  kind: RomKind | null;
+  /** DSiWare `.pub`/`.prv` sizes from the TWL header, when applicable. */
+  dsiWareSaveBytes: { publicBytes: number; privateBytes: number } | null;
 }
 
 /** All-null header, for non-gamecode systems and unreadable ROMs. */
@@ -41,6 +53,8 @@ const EMPTY_HEADER: HeaderInfo = {
   version: null,
   nandBackupRegionStart: null,
   twl: null,
+  kind: null,
+  dsiWareSaveBytes: null,
 };
 
 /** Outcome of resolving one game's cover on the SD card: its header plus art. */
@@ -127,6 +141,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   const [compatFor, setCompatFor] = useState<{
     title: string;
     gameCode: string | null;
+    kind: RomKind | null;
+    dsiWareSaveBytes: { publicBytes: number; privateBytes: number } | null;
     romVersion: number | null;
     nand: { backupRegionStart: number; twl: boolean } | null;
   } | null>(null);
@@ -184,19 +200,35 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
           const handle = await dir.getFileHandle(game.fileName);
           const file = await handle.getFile();
           const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
-          return system.id === 'nds'
-            ? {
-                code: parseNdsGameCode(header),
-                version: parseNdsSoftwareVersion(header),
-                nandBackupRegionStart: parseNdsNandBackupRegionStart(header),
-                twl: parseNdsSupportsDsiMode(header),
-              }
-            : {
-                code: parseGbaGameCode(header),
-                version: null,
-                nandBackupRegionStart: null,
-                twl: null,
-              };
+          if (system.id !== 'nds') {
+            return {
+              code: parseGbaGameCode(header),
+              version: null,
+              nandBackupRegionStart: null,
+              twl: null,
+              kind: null,
+              dsiWareSaveBytes: null,
+            };
+          }
+          // order matters: the loader tests isHomebrew first and only reaches
+          // its IsDsiWare() branch for non-homebrew ROMs (NdsLoader.cpp:201)
+          const homebrew = parseNdsIsHomebrew(header);
+          const dsiWare = parseNdsIsDsiWare(header);
+          return {
+            code: parseNdsGameCode(header),
+            version: parseNdsSoftwareVersion(header),
+            nandBackupRegionStart: parseNdsNandBackupRegionStart(header),
+            twl: parseNdsSupportsDsiMode(header),
+            kind:
+              homebrew === null || dsiWare === null
+                ? null
+                : homebrew
+                  ? 'homebrew'
+                  : dsiWare
+                    ? 'dsiware'
+                    : 'retail',
+            dsiWareSaveBytes: dsiWare === true ? parseNdsDsiWareSaveSizes(header) : null,
+          };
         } catch {
           return EMPTY_HEADER;
         }
@@ -544,6 +576,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                         setCompatFor({
                           title,
                           gameCode: cover.code,
+                          kind: cover.kind,
+                          dsiWareSaveBytes: cover.dsiWareSaveBytes,
                           romVersion: cover.version,
                           // a readable NAND start (non-null) always comes with
                           // a readable twl bit from the same header slice
@@ -604,6 +638,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
         <CompatSheet
           title={compatFor.title}
           gameCode={compatFor.gameCode}
+          kind={compatFor.kind}
+          dsiWareSaveBytes={compatFor.dsiWareSaveBytes}
           romVersion={compatFor.romVersion}
           nand={compatFor.nand}
           onClose={() => {
