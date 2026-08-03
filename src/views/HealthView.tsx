@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSd } from '../state/SdContext';
 import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
+import { fetchLatestLoaderTag, LOADER_MANIFEST, scanLoaderFiles } from '../lib/loaderScan';
+import {
+  identifyLoader,
+  isNewerThanManifest,
+  LOADER_RELEASES_URL,
+  type LoaderVersionResult,
+} from '../lib/loaderVersion';
 import { scanCard, type ScanResult } from '../lib/scan';
 import { COVERS, friendlyFsError, getDir } from '../lib/sdcard';
 import './HealthView.css';
-
-/** URL of the Pico Loader releases page (source of the required .bin files). */
-const LOADER_RELEASES_URL = 'https://github.com/LNH-team/pico-loader/releases';
 
 /** Section card class with its ok/warn status edge modifier. */
 function sectionClass(ok: boolean): string {
@@ -101,6 +105,19 @@ export function HealthView() {
   const [savesBusy, setSavesBusy] = useState(false);
   const [savesError, setSavesError] = useState<string | null>(null);
 
+  /**
+   * Which pico-loader release the card's loader files came from, hashed during
+   * the scan. `null` until a scan has run.
+   */
+  const [loaderVersion, setLoaderVersion] = useState<LoaderVersionResult | null>(null);
+  /** Loader files that are on the card but would not open, so were not hashed. */
+  const [loaderUnreadable, setLoaderUnreadable] = useState<readonly string[]>([]);
+  /**
+   * Newest release tag GitHub reports, when it could be reached. Only used to
+   * notice that the committed manifest is behind; never part of the verdict.
+   */
+  const [liveLatestTag, setLiveLatestTag] = useState<string | null>(null);
+
   /** UNselected orphan covers — covers default to checked (regenerable). */
   const [coversDeselected, setCoversDeselected] = useState<ReadonlySet<string>>(new Set());
   const [coversConfirm, setCoversConfirm] = useState(false);
@@ -126,6 +143,20 @@ export function HealthView() {
       }
       const result = await scanCard(root, setFilesSeen);
       setScan(result);
+      // Hashing the loader files is part of inspecting the card, so it shares this
+      // scan's spinner and re-runs on rescan. Its own try/catch: a loader file
+      // that will not open must not cost the user the rest of the report.
+      try {
+        const { hashes, unreadable } = await scanLoaderFiles(root);
+        setLoaderVersion(identifyLoader(LOADER_MANIFEST, hashes));
+        setLoaderUnreadable(unreadable);
+      } catch {
+        setLoaderVersion(null);
+        setLoaderUnreadable([]);
+      }
+      // Deliberately not awaited: the report is complete without it, so a slow or
+      // blocked network must not hold it up. Resolves to null on any failure.
+      void fetchLatestLoaderTag().then(setLiveLatestTag);
       // fresh scan, fresh choices: selections and pending confirms reset
       setSavesSelected(new Set());
       setCoversDeselected(new Set());
@@ -149,6 +180,13 @@ export function HealthView() {
       void runScan();
     }
   }, [root, loading, runScan]);
+
+  /**
+   * Whether GitHub has a release this build's manifest never saw. It cannot change
+   * the verdict, but it does change what the verdict is allowed to claim: calling a
+   * release "the newest" is false once we know a newer one exists.
+   */
+  const manifestIsStale = isNewerThanManifest(LOADER_MANIFEST, liveLatestTag);
 
   const loader = useMemo(
     () => (scan === null ? null : missingLoaderFiles(scan.picoEntries)),
@@ -378,7 +416,11 @@ export function HealthView() {
             )}
           </section>
 
-          <section className={sectionClass(loader !== null && loader.required.length === 0)}>
+          <section
+            className={sectionClass(
+              loader !== null && loader.required.length === 0 && loaderVersion?.status !== 'mixed',
+            )}
+          >
             <h3 className="section-title">Loader files</h3>
             {loader !== null && loader.required.length === 0 ? (
               <p className="health-view__ok">All required loader files are present.</p>
@@ -402,6 +444,108 @@ export function HealthView() {
                 </>
               )
             )}
+            {loaderVersion !== null && loaderVersion.status === 'identified' && (
+              <p
+                className={
+                  loaderVersion.releasesBehind === 0 && !manifestIsStale
+                    ? 'health-view__ok'
+                    : undefined
+                }
+              >
+                {loaderVersion.candidates.length > 1 ? (
+                  <>
+                    Loader <strong>{loaderVersion.candidates.join(' or ')}</strong> — those releases
+                    ship identical files, so they cannot be told apart.
+                  </>
+                ) : (
+                  <>
+                    Loader <strong>{loaderVersion.candidates[0]}</strong>
+                  </>
+                )}
+                {loaderVersion.releasesBehind > 0
+                  ? `, ${String(loaderVersion.releasesBehind)} release${
+                      loaderVersion.releasesBehind === 1 ? '' : 's'
+                    } behind ${loaderVersion.latestKnown}.`
+                  : manifestIsStale
+                    ? // A newer release exists that this build has never seen, so
+                      // "the newest release" would be a claim we cannot make.
+                      ', the newest one PicoDex knows of.'
+                    : ', the newest release.'}
+              </p>
+            )}
+
+            {loaderVersion !== null &&
+              loaderVersion.status === 'mixed' &&
+              loaderVersion.mismatch !== null && (
+                <>
+                  <p className="health-view__warn">
+                    The loader is only half updated: {loaderVersion.mismatch.agreeing} of these
+                    files are from <strong>{loaderVersion.mismatch.bestFit}</strong>, but{' '}
+                    {loaderVersion.mismatch.oddOnesOut.map((name, index) => (
+                      <span key={name}>
+                        {index > 0 &&
+                          (index === loaderVersion.mismatch!.oddOnesOut.length - 1
+                            ? ' and '
+                            : ', ')}
+                        <code>{name}</code>
+                      </span>
+                    ))}{' '}
+                    {loaderVersion.mismatch.oddOnesOut.length === 1 ? 'is' : 'are'} not. That
+                    usually happens after copying some of the files over but not the rest.
+                  </p>
+                  <p>
+                    Copy all five again from a single{' '}
+                    <a href={LOADER_RELEASES_URL} target="_blank" rel="noreferrer">
+                      pico-loader release
+                    </a>
+                    .
+                  </p>
+                </>
+              )}
+
+            {loaderVersion !== null && loaderVersion.status === 'unrecognised' && (
+              <p className="health-view__dim">
+                None of these files match a release PicoDex knows about. They may be from a release
+                newer than this build, or edited by hand. Nothing is wrong on the card as far as
+                this check can tell.
+              </p>
+            )}
+
+            {loaderVersion !== null &&
+              loaderVersion.status === 'identified' &&
+              loaderVersion.unrecognisedFiles.length > 0 && (
+                <p className="health-view__dim">
+                  Not from any release PicoDex knows, so they were left out of the answer above:{' '}
+                  {loaderVersion.unrecognisedFiles.map((name, index) => (
+                    <span key={name}>
+                      {index > 0 && ', '}
+                      <code>{name}</code>
+                    </span>
+                  ))}
+                  . Editing these by hand is a normal thing to do.
+                </p>
+              )}
+
+            {isNewerThanManifest(LOADER_MANIFEST, liveLatestTag) && (
+              <p className="health-view__dim">
+                GitHub reports <strong>{liveLatestTag}</strong> as the newest pico-loader release,
+                which this build of PicoDex does not know about yet. Everything above still holds:
+                it just cannot tell you whether {liveLatestTag} is newer than what your card has.
+              </p>
+            )}
+
+            {loaderUnreadable.length > 0 && (
+              <p className="health-view__dim">
+                Could not be read, so they were not checked:{' '}
+                {loaderUnreadable.map((name, index) => (
+                  <span key={name}>
+                    {index > 0 && ', '}
+                    <code>{name}</code>
+                  </span>
+                ))}
+              </p>
+            )}
+
             {loader !== null && loader.optional.length > 0 && (
               <p className="health-view__dim">
                 Optional files not on the card:{' '}
