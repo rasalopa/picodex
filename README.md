@@ -16,7 +16,11 @@
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/stats.png" alt="Play statistics from Pico Launcher Enhanced" /></td>
-    <td width="50%"><img src="docs/screenshots/health.png" alt="SD health check finding macOS junk and orphaned saves" /></td>
+    <td width="50%"><img src="docs/screenshots/health.png" alt="Card health check reporting which Pico Loader release the card is running" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/compat.jpg" alt="Per-game loader compatibility: anti-piracy fix, save type and size, game patches" /></td>
+    <td width="50%"><img src="docs/screenshots/landing.png" alt="PicoDex landing page with its feature cards" /></td>
   </tr>
 </table>
 

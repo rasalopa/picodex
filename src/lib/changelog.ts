@@ -33,7 +33,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: 'A compatibility sheet for every NDS game: what the loader does for it at boot, the save type and size it will create, and whether an anti-piracy fix or a game patch applies to your exact ROM revision.',
       },
       {
-        text: 'The folder banner editor now says up front when a folder is shared by two systems, because one banner serves both.',
+        text: 'Clearer warning in the folder banner editor when two systems share a folder: it now says that saving changes the icon and name of both, instead of only mentioning that they share one.',
       },
     ],
   },
