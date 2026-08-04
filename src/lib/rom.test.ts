@@ -230,7 +230,7 @@ describe('isUsableGameCode', () => {
 
 /**
  * Builds a header from the fields the loader's homebrew and DSiWare tests
- * read. Defaults reproduce a retail cart; the golden values below are the real
+ * read. Note `twlFlags` goes at 0x1C: 0x1BF is the unrelated `twlFlags2`. Defaults reproduce a retail cart; the golden values below are the real
  * bytes of Golden Sun - Dark Dawn (BO5E), Mario Clock (KWBE, DSiWare) and a
  * devkitPro homebrew build, read off a DSpico card.
  */
@@ -259,7 +259,7 @@ function headerWith({
   view.setUint32(0x38, arm7LoadAddress, true);
   view.setUint32(0x70, arm9Hook, true);
   view.setUint32(0x74, arm7Hook, true);
-  bytes[0x1bf] = twlFlags;
+  bytes[0x1c] = twlFlags;
   view.setUint32(0x234, titleIdHigh, true);
   view.setUint32(0x238, publicSav, true);
   view.setUint32(0x23c, privateSav, true);

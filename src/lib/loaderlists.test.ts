@@ -499,7 +499,29 @@ describe('compatForGame, non-retail ROMs', () => {
       source: 'dsiware-header',
     });
     expect(compat.ap.status).toBe('not-applicable');
-    expect(compat.patch.status).toBe('not-applicable');
+    // NOT not-applicable: the loader's patch step is a separate !isHomebrew block
+    // that never checks IsDsiWare, so a listed DSiWare title really is patched.
+    expect(compat.patch.status).toBe('applies');
+  });
+
+  it('runs the patch lookup for DSiWare, which the loader does not skip', () => {
+    // NdsLoader.cpp:299-311 calls HandleGameSpecificPatches() inside its own
+    // `if (!isHomebrew)` block; only the save and anti-piracy steps sit inside the
+    // IsDsiWare branch. Reporting not-applicable here told DSiWare owners the
+    // loader skips patches when it does not.
+    const dsiware = {
+      kind: 'dsiware' as const,
+      dsiWareSaveBytes: { publicBytes: 0x4000, privateBytes: 0 },
+    };
+    expect(compatForGame(loaded, 'ADAE', 0, null, dsiware).patch.status).toBe('applies');
+    expect(compatForGame(loaded, 'ZZZZ', 0, null, dsiware).patch.status).toBe('not-listed');
+    expect(compatForGame({ ...loaded, patch: null }, 'ADAE', 0, null, dsiware).patch.status).toBe(
+      'list-unavailable',
+    );
+    // homebrew still skips it, because that whole block is behind !isHomebrew
+    expect(compatForGame(loaded, 'ADAE', 0, null, { kind: 'homebrew' }).patch.status).toBe(
+      'not-applicable',
+    );
   });
 
   it('keeps the retail path unchanged when no kind is given', () => {

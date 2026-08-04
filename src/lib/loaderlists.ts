@@ -420,6 +420,32 @@ export interface GameCompat {
  *   `backupRegionStart > 0` changes the save verdict.
  * @returns The {@link GameCompat} for the game.
  */
+/**
+ * The patchlist.bin lookup, shared by retail AND DSiWare.
+ *
+ * The loader runs `HandleGameSpecificPatches()` inside a second, separate
+ * `if (!isHomebrew)` block (`NdsLoader.cpp:299-311`) that does NOT consult
+ * `IsDsiWare()` - only the save and anti-piracy steps are inside that branch.
+ * So a DSiWare title whose (gameCode, revision) is listed really does get those
+ * patches at boot, and reporting `not-applicable` for it would be false.
+ */
+function patchForGame(
+  patchList: PatchListEntry[] | null,
+  gameCode: string,
+  matchVersion: number,
+): GameCompat['patch'] {
+  if (patchList === null) {
+    return { status: 'list-unavailable', patchCount: 0, entryVersions: [] };
+  }
+  const entries = patchList.filter((entry) => entry.gameCode === gameCode);
+  const match = entries.find((entry) => entry.gameVersion === matchVersion);
+  return {
+    status: entries.length === 0 ? 'not-listed' : match ? 'applies' : 'version-mismatch',
+    patchCount: match ? match.patchCount : 0,
+    entryVersions: entries.map((entry) => entry.gameVersion),
+  };
+}
+
 export function compatForGame(
   lists: LoaderLists,
   gameCode: string,
@@ -431,6 +457,8 @@ export function compatForGame(
 
   // The loader runs none of the list-driven steps for these two, so answering
   // from the lists would describe code that never executes on this ROM.
+  const matchVersion = romVersion ?? 0;
+
   if (kind !== 'retail') {
     const dsi = kind === 'dsiware';
     return {
@@ -449,11 +477,14 @@ export function compatForGame(
         entryVersions: [],
         romVersion,
       },
-      patch: { status: 'not-applicable', patchCount: 0, entryVersions: [] },
+      // Homebrew skips everything. DSiWare does NOT skip the patch step: it lives
+      // in a separate `if (!isHomebrew)` block that never checks IsDsiWare, so a
+      // listed DSiWare title is patched at boot like any other. See patchForGame.
+      patch: dsi
+        ? patchForGame(lists.patch, gameCode, matchVersion)
+        : { status: 'not-applicable', patchCount: 0, entryVersions: [] },
     };
   }
-
-  const matchVersion = romVersion ?? 0;
 
   let save: GameCompat['save'];
   if (nand && nand.backupRegionStart > 0) {
@@ -485,19 +516,7 @@ export function compatForGame(
     };
   }
 
-  let patch: GameCompat['patch'];
-  if (lists.patch === null) {
-    patch = { status: 'list-unavailable', patchCount: 0, entryVersions: [] };
-  } else {
-    const patchEntries = lists.patch.filter((entry) => entry.gameCode === gameCode);
-    const patchMatch = patchEntries.find((entry) => entry.gameVersion === matchVersion);
-    patch = {
-      status:
-        patchEntries.length === 0 ? 'not-listed' : patchMatch ? 'applies' : 'version-mismatch',
-      patchCount: patchMatch ? patchMatch.patchCount : 0,
-      entryVersions: patchEntries.map((entry) => entry.gameVersion),
-    };
-  }
+  const patch = patchForGame(lists.patch, gameCode, matchVersion);
 
   return { kind, save, ap, patch };
 }

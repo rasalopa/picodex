@@ -97,7 +97,7 @@ const HINTS: Record<'ap' | 'save' | 'patch', Record<RomKind, string>> = {
     retail:
       'A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
     dsiware:
-      'These fixes exist to make retail cartridge games run from a flashcard. DSiWare does not go through that path, so the loader applies none of them.',
+      'A few games need small one-off fixes to run correctly from a flashcard. The loader applies these to DSiWare too - unlike the save and anti-piracy steps, this one is not skipped. It can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
     homebrew:
       'These fixes exist to make retail games run from a flashcard. The loader applies none of them to homebrew, which runs as built.',
   },

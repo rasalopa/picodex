@@ -57,8 +57,21 @@ const NDS_ARM7_LOAD_ADDRESS_HOMEBREW_MIN = 0x03000000;
 /**
  * TWL header fields behind `IsDsiWare()` (`common/ndsHeader.h:142-146`) and the
  * DSiWare save sizes the loader's DsiWareSaveArranger uses.
+ *
+ * `twlFlags` is at 0x1C, NOT 0x1BF. The header carries two similarly named bytes
+ * and `IsDsiWare()` reads the first one, so this offset comes from counting the
+ * struct in `common/ndsHeader.h` rather than from sampling ROMs:
+ *
+ *     gameTitle[12] 0x00 | gameCode 0x0C | makerCode[2] 0x10 | unitCode 0x12
+ *     encryptionSeedSelect 0x13 | deviceCapacity 0x14 | gap15[7] 0x15
+ *     twlFlags 0x1C | flags 0x1D | softwareVersion 0x1E
+ *
+ * 0x1BF is `twlFlags2`, a different field. It was used here first and looked
+ * right because bit 0 happens to agree with `twlFlags` on every DSiWare title on
+ * the test card - a two-ROM sample that could not discriminate. Do not verify
+ * offsets by sampling.
  */
-const NDS_TWL_FLAGS_OFFSET = 0x1bf;
+const NDS_TWL_FLAGS_OFFSET = 0x1c;
 const NDS_TITLE_ID_OFFSET = 0x230;
 const NDS_TWL_PUBLIC_SAV_SIZE_OFFSET = 0x238;
 const NDS_TWL_PRIVATE_SAV_SIZE_OFFSET = 0x23c;

@@ -18,6 +18,7 @@ import {
   PICO_DIR,
   friendlyFsError,
   getDir,
+  isAccessError,
   listEntries,
   looksLikeDspicoSd,
   pickSdRoot,
@@ -159,12 +160,31 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
     // file is present, the tolerant ap/save parsers always produce an array
     // (floored to whole entries, mirroring the loader's factories); only the
     // patchlist parser can still return null, for a structurally broken file.
-    const apBytes = await readFileBytes(picoDir, 'aplist.bin');
-    if (apBytes !== null) loaderLists.ap = parseApList(apBytes);
-    const saveBytes = await readFileBytes(picoDir, 'savelist.bin');
-    if (saveBytes !== null) loaderLists.save = parseSaveList(saveBytes);
-    const patchBytes = await readFileBytes(picoDir, 'patchlist.bin');
-    if (patchBytes !== null) loaderLists.patch = parsePatchList(patchBytes);
+    //
+    // Guarded one by one. readFileBytes only swallows a missing entry and rethrows
+    // the rest, so a list that exists but will not open (macOS lock, antivirus, a
+    // failing card) would throw out of this function and discard the gamedata.json
+    // and settings.json already parsed above - taking every heart, completed mark
+    // and play badge with it, over a file that only feeds the compat sheet. A null
+    // list is exactly the "cannot tell" that sheet already knows how to report.
+    try {
+      const apBytes = await readFileBytes(picoDir, 'aplist.bin');
+      if (apBytes !== null) loaderLists.ap = parseApList(apBytes);
+    } catch (error) {
+      if (!isAccessError(error)) throw error;
+    }
+    try {
+      const saveBytes = await readFileBytes(picoDir, 'savelist.bin');
+      if (saveBytes !== null) loaderLists.save = parseSaveList(saveBytes);
+    } catch (error) {
+      if (!isAccessError(error)) throw error;
+    }
+    try {
+      const patchBytes = await readFileBytes(picoDir, 'patchlist.bin');
+      if (patchBytes !== null) loaderLists.patch = parsePatchList(patchBytes);
+    } catch (error) {
+      if (!isAccessError(error)) throw error;
+    }
   }
   return { gameData, settings, loaderLists };
 }

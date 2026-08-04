@@ -445,33 +445,46 @@ export function HealthView() {
               )
             )}
             {loaderVersion !== null && loaderVersion.status === 'identified' && (
-              <p
-                className={
-                  loaderVersion.releasesBehind === 0 && !manifestIsStale
-                    ? 'health-view__ok'
-                    : undefined
-                }
-              >
-                {loaderVersion.candidates.length > 1 ? (
-                  <>
-                    Loader <strong>{loaderVersion.candidates.join(' or ')}</strong> — those releases
-                    ship identical files, so they cannot be told apart.
-                  </>
+              // Two statements, not one sentence. Which release the card is on, and
+              // whether that is current, are independently true or false, and every
+              // attempt to carry both in one clause has ended up claiming something
+              // the data did not support - "the newest release" while admitting it
+              // cannot tell which of two releases you have, most recently.
+              <>
+                <p
+                  className={loaderVersion.candidates.length === 1 ? 'health-view__ok' : undefined}
+                >
+                  Loader <strong>{loaderVersion.candidates.join(' or ')}</strong>.
+                  {loaderVersion.ambiguity === 'identical-releases'
+                    ? ' Those two ship byte-identical files, so nothing can tell them apart.'
+                    : loaderVersion.ambiguity === 'incomplete-evidence'
+                      ? // NOT "identical files": v1.7.0 and v1.7.1 differ in exactly
+                        // picoLoader7.bin, the file most likely to be the missing one
+                        // when this branch is reached.
+                        ' It could not be narrowed further, because the files that differ between those releases were not among the ones read.'
+                      : ''}
+                </p>
+                {loaderVersion.releasesBehind > 0 ? (
+                  <p>
+                    {loaderVersion.candidates.length > 1 ? 'At least ' : ''}
+                    {loaderVersion.releasesBehind} release
+                    {loaderVersion.releasesBehind === 1 ? '' : 's'} behind{' '}
+                    <strong>{loaderVersion.latestKnown}</strong>.
+                  </p>
+                ) : loaderVersion.candidates.length > 1 ? (
+                  // Saying "the newest" here would pick one of the candidates.
+                  <p className="health-view__dim">
+                    {loaderVersion.latestKnown} is the newest release PicoDex knows of, and one of
+                    those candidates is it.
+                  </p>
+                ) : manifestIsStale || loaderVersion.unrecognisedFiles.length > 0 ? (
+                  <p className="health-view__dim">
+                    That is the newest release PicoDex knows of. Something newer may exist.
+                  </p>
                 ) : (
-                  <>
-                    Loader <strong>{loaderVersion.candidates[0]}</strong>
-                  </>
+                  <p className="health-view__ok">That is the newest release.</p>
                 )}
-                {loaderVersion.releasesBehind > 0
-                  ? `, ${String(loaderVersion.releasesBehind)} release${
-                      loaderVersion.releasesBehind === 1 ? '' : 's'
-                    } behind ${loaderVersion.latestKnown}.`
-                  : manifestIsStale
-                    ? // A newer release exists that this build has never seen, so
-                      // "the newest release" would be a claim we cannot make.
-                      ', the newest one PicoDex knows of.'
-                    : ', the newest release.'}
-              </p>
+              </>
             )}
 
             {loaderVersion !== null &&
@@ -494,11 +507,13 @@ export function HealthView() {
                     usually happens after copying some of the files over but not the rest.
                   </p>
                   <p>
-                    Copy all five again from a single{' '}
+                    Copy them all again from a single{' '}
                     <a href={LOADER_RELEASES_URL} target="_blank" rel="noreferrer">
                       pico-loader release
                     </a>
-                    .
+                    {loaderVersion.unrecognisedFiles.length > 0
+                      ? ' — note that also overwrites the hand-edited files listed below.'
+                      : '.'}
                   </p>
                 </>
               )}
@@ -511,8 +526,11 @@ export function HealthView() {
               </p>
             )}
 
+            {/* Also on a mixed card: the sentence above counts only the files that
+                could be placed, so without this the rest are never mentioned at all
+                and its numbers do not add up to what was hashed. */}
             {loaderVersion !== null &&
-              loaderVersion.status === 'identified' &&
+              (loaderVersion.status === 'identified' || loaderVersion.status === 'mixed') &&
               loaderVersion.unrecognisedFiles.length > 0 && (
                 <p className="health-view__dim">
                   Not from any release PicoDex knows, so they were left out of the answer above:{' '}

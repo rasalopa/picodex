@@ -95,6 +95,68 @@ describe('identifyLoader, real releases', () => {
   });
 });
 
+describe('why more than one release survives', () => {
+  it('says identical-releases only for the pair that really is byte-identical', () => {
+    for (const tag of ['v1.3.0', 'v1.3.1']) {
+      const r = identifyLoader(manifest, cardOn(tag));
+      expect(r.candidates).toEqual(['v1.3.0', 'v1.3.1']);
+      expect(r.ambiguity).toBe('identical-releases');
+    }
+  });
+
+  it('says incomplete-evidence when the discriminating file was not read', () => {
+    // The regression this guards: the UI used to explain EVERY multi-candidate
+    // result as "those releases ship identical files". v1.7.0 and v1.7.1 differ in
+    // exactly picoLoader7.bin, so on a card missing that one file the sentence was
+    // false about both the releases and the card.
+    const { 'picoLoader7.bin': _dropped, ...withoutLoader7 } = REAL_V171;
+    const r = identifyLoader(manifest, withoutLoader7);
+    expect(r.candidates).toEqual(['v1.7.0', 'v1.7.1']);
+    expect(r.ambiguity).toBe('incomplete-evidence');
+  });
+
+  it('says incomplete-evidence when the discriminating file is unrecognised', () => {
+    const r = identifyLoader(manifest, { ...REAL_V171, 'picoLoader7.bin': 'ab'.repeat(32) });
+    expect(r.ambiguity).toBe('incomplete-evidence');
+  });
+
+  it('is null when a single release was pinned, and on every other status', () => {
+    expect(identifyLoader(manifest, REAL_V171).ambiguity).toBeNull();
+    expect(identifyLoader(manifest, {}).ambiguity).toBeNull();
+    const mixed = identifyLoader(manifest, {
+      ...REAL_V171,
+      'picoLoader7.bin': cardOn('v1.6.0')['picoLoader7.bin'],
+    });
+    expect(mixed.status).toBe('mixed');
+    expect(mixed.ambiguity).toBeNull();
+  });
+
+  it('never claims identical-releases for a set that is not', () => {
+    // Exhaustive: degrade every release by dropping each subset of its files and
+    // assert the label matches whether the candidates really share every hash.
+    const files = Object.keys(manifest.files);
+    for (const tag of allTags) {
+      const full = cardOn(tag);
+      const present = files.filter((f) => full[f as LoaderFileName]);
+      for (let mask = 0; mask < 1 << present.length; mask++) {
+        const partial: Partial<Record<LoaderFileName, string>> = {};
+        present.forEach((f, i) => {
+          if (mask & (1 << i)) partial[f as LoaderFileName] = full[f as LoaderFileName];
+        });
+        const r = identifyLoader(manifest, partial);
+        if (r.ambiguity !== 'identical-releases') continue;
+        // claimed identical: prove every file agrees across the candidates
+        for (const f of files) {
+          const covering = Object.entries(manifest.files[f])
+            .filter(([, tags]) => r.candidates.some((c) => tags.includes(c)))
+            .map(([h]) => h);
+          expect(covering.length, `${tag} mask ${String(mask)} ${f}`).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+  });
+});
+
 describe('identifyLoader, mixed cards', () => {
   it('detects one file left behind from an older release', () => {
     const r = identifyLoader(manifest, {

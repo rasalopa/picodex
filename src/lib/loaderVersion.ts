@@ -94,6 +94,18 @@ export interface LoaderMismatch {
   agreeing: number;
 }
 
+/**
+ * Why more than one release survived, which the UI must not guess at.
+ *
+ * - `identical-releases`: the candidates really do ship byte-identical files, so
+ *   nothing could ever tell them apart. Only the v1.3.0/v1.3.1 pair, today.
+ * - `incomplete-evidence`: the files that would have discriminated them were
+ *   missing or unrecognised, so this is a limit of what was read, not of the
+ *   releases. Saying "they ship identical files" here is false: v1.7.0 and v1.7.1
+ *   differ in exactly picoLoader7.bin, which is the file most likely to be absent.
+ */
+export type LoaderAmbiguity = 'identical-releases' | 'incomplete-evidence';
+
 export interface LoaderVersionResult {
   status: LoaderVersionStatus;
   /**
@@ -118,6 +130,12 @@ export interface LoaderVersionResult {
   latestKnown: string;
   /** Set only when the status is `mixed`; see {@link LoaderMismatch}. */
   mismatch: LoaderMismatch | null;
+  /**
+   * Why {@link candidates} holds more than one release. `null` when it holds one
+   * or none. See {@link LoaderAmbiguity}: the two reasons need different wording
+   * and only one of them is about the releases themselves.
+   */
+  ambiguity: LoaderAmbiguity | null;
 }
 
 /**
@@ -163,6 +181,7 @@ export function identifyLoader(
       releasesBehind: 0,
       latestKnown,
       mismatch: null,
+      ambiguity: null,
     };
   }
   if (recognised.length === 0) {
@@ -175,6 +194,7 @@ export function identifyLoader(
       releasesBehind: 0,
       latestKnown,
       mismatch: null,
+      ambiguity: null,
     };
   }
 
@@ -208,12 +228,28 @@ export function identifyLoader(
       releasesBehind: 0,
       latestKnown,
       mismatch: { bestFit, oddOnesOut, agreeing },
+      ambiguity: null,
     };
   }
 
   const candidates = order.filter((tag) => candidateSet.has(tag));
   const newest = candidates[candidates.length - 1];
   const releasesBehind = order.length - 1 - order.indexOf(newest);
+
+  // Several candidates mean either that nothing could ever separate them, or that
+  // what would have separated them was not read. Only the first is a fact about
+  // the releases, and the UI has to say which.
+  let ambiguity: LoaderAmbiguity | null = null;
+  if (candidates.length > 1) {
+    const identical = Object.values(manifest.files).every((byHash) => {
+      const hashesCoveringCandidates = Object.entries(byHash)
+        .filter(([, tags]) => candidates.some((tag) => tags.includes(tag)))
+        .map(([hash]) => hash);
+      // one hash covering all of them, or the file is in none of them
+      return hashesCoveringCandidates.length <= 1;
+    });
+    ambiguity = identical ? 'identical-releases' : 'incomplete-evidence';
+  }
 
   return {
     status: 'identified',
@@ -224,6 +260,7 @@ export function identifyLoader(
     releasesBehind,
     latestKnown,
     mismatch: null,
+    ambiguity,
   };
 }
 
