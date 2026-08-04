@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SYSTEMS, systemById, systemForExtension } from './systems.ts';
+import { SYSTEMS, systemById, systemForExtension, systemsSharingGamesDir } from './systems.ts';
 
 describe('SYSTEMS registry', () => {
   it('contains the 13 launcher systems with unique ids', () => {
@@ -141,5 +141,28 @@ describe('systemForExtension', () => {
     expect(systemForExtension('')).toBeNull();
     expect(systemForExtension('.nds')).toBeNull(); // dotfile, no base name
     expect(systemForExtension('trailingdot.')).toBeNull();
+  });
+});
+
+describe('systemsSharingGamesDir', () => {
+  it('finds the three folders a base system shares with its Color variant', () => {
+    // One emulator runs both, so they live together and differ only by extension.
+    expect(systemsSharingGamesDir('gb').map((sys) => sys.id)).toEqual(['gb', 'gbc']);
+    expect(systemsSharingGamesDir('ws').map((sys) => sys.id)).toEqual(['ws', 'wsc']);
+    expect(systemsSharingGamesDir('ngp').map((sys) => sys.id)).toEqual(['ngp', 'ngc']);
+  });
+
+  it('returns a single system for every folder that is not shared', () => {
+    for (const dir of ['nds', 'gba', 'nes', 'snes', 'gen', 'sms', 'gg']) {
+      expect(systemsSharingGamesDir(dir), dir).toHaveLength(1);
+    }
+  });
+
+  it('matches case-insensitively, because the card is FAT', () => {
+    expect(systemsSharingGamesDir('GB').map((sys) => sys.id)).toEqual(['gb', 'gbc']);
+  });
+
+  it('returns nothing for a folder no system claims', () => {
+    expect(systemsSharingGamesDir('zzz')).toEqual([]);
   });
 });

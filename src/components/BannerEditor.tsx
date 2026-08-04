@@ -9,7 +9,7 @@ import {
 } from '../lib/banner';
 import { bannerIconRgbaPreviewUrl, composeIconRgba } from '../lib/coverart';
 import { GAMES_DIR, getDir, readFileBytes, writeFileBytes, type LibraryFile } from '../lib/sdcard';
-import { SYSTEMS } from '../lib/systems';
+import { systemsSharingGamesDir } from '../lib/systems';
 import { useSd } from '../state/SdContext';
 import './BannerEditor.css';
 
@@ -117,10 +117,11 @@ export function BannerEditor({
 
   /** ROMs whose banner icon can be reused (NDS-family files only). */
   const ndsGames = games.filter((game) => isNdsFile(game.fileName));
-  /** Systems storing their games in this folder (gb/gbc, ws/wsc, ngp/ngc). */
-  const sharingLabels = SYSTEMS.filter((system) => system.gamesDir === gamesDir).map(
-    (system) => system.label,
-  );
+  /**
+   * Systems storing their games in this folder (gb/gbc, ws/wsc, ngp/ngc). Via the
+   * helper so the comparison is case-insensitive like the rest of the FAT paths.
+   */
+  const sharingLabels = systemsSharingGamesDir(gamesDir).map((system) => system.label);
 
   const activeIcon = source === 'current' ? currentIcon : source === 'image' ? imageIcon : gameIcon;
 
@@ -337,9 +338,14 @@ export function BannerEditor({
         </header>
 
         {sharingLabels.length > 1 && (
+          // Saying "the launcher shows one banner for it" describes the launcher,
+          // not what the button about to be clicked will do, and people still got
+          // surprised when the icon of one system changed the other's. State the
+          // consequence of the action instead.
           <p className="banner-editor__note">
-            This folder is shared by {sharingLabels.join(', ')}; the launcher shows one banner for
-            it.
+            This folder holds {sharingLabels.slice(0, -1).join(', ')} and{' '}
+            {sharingLabels[sharingLabels.length - 1]}. They share one banner, so saving here changes
+            the icon and name of all of them.
           </p>
         )}
 

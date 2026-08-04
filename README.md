@@ -27,7 +27,8 @@
 - 🎮 **Library organizer**: drop ROM files onto the page — PicoDex detects the system, places them under `Games/`, and fetches their covers.
 - 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.
 - 🔗 **File association editor**: point each ROM extension at its emulator without hand-editing `settings.json`.
-- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers — nothing is deleted without confirmation.
+- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers — nothing is deleted without confirmation. It also identifies which [Pico Loader](https://github.com/LNH-team/pico-loader) release your card is running, and spots a card whose loader files came from different releases.
+- 🎮 **Per-game loader compatibility**: for any NDS game, what the loader will do for it at boot — anti-piracy fix, save type and size, game-specific patches — matched against your ROM's exact revision.
 
 Everything runs client-side. PicoDex has no server, no accounts and no telemetry.
 

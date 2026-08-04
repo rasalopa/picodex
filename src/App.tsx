@@ -49,7 +49,7 @@ const FEATURES: { title: string; body: string; Icon: IconComponent }[] = [
   },
   {
     title: 'Card health',
-    body: 'Spots macOS junk, missing loader files and orphaned saves.',
+    body: 'Spots macOS junk, orphaned saves, and a loader whose files came from different releases.',
     Icon: IconPulse,
   },
   {

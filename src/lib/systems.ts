@@ -174,6 +174,28 @@ export function systemForExtension(fileName: string): System | null {
  * @param id System slug such as `'nds'` or `'gba'`.
  * @returns The matching system, or `null` when unknown.
  */
+/**
+ * Every system whose games live in `Games/<gamesDir>`, normally one.
+ *
+ * Three folders are shared by a base system and its Color variant - `gb` by Game
+ * Boy and Game Boy Color, `ws` by WonderSwan and WonderSwan Color, `ngp` by Neo
+ * Geo Pocket and its Color - because one emulator runs both and they are told
+ * apart by file extension, not by folder.
+ *
+ * Anything that writes PER-FOLDER data needs this. `banner.bnr` above all: it
+ * lives inside the folder, so there is one banner for both systems and changing
+ * the icon of Game Boy necessarily changes Game Boy Color's too. That is not a
+ * defect and cannot be avoided with this layout, but it does surprise people, so
+ * the UI has to say it.
+ *
+ * @param gamesDir Folder name under `Games/`, matched case-insensitively (FAT).
+ * @returns The systems sharing that folder, in {@link SYSTEMS} order.
+ */
+export function systemsSharingGamesDir(gamesDir: string): readonly System[] {
+  const wanted = gamesDir.toLowerCase();
+  return SYSTEMS.filter((system) => system.gamesDir.toLowerCase() === wanted);
+}
+
 export function systemById(id: string): System | null {
   return SYSTEMS.find((system) => system.id === id) ?? null;
 }

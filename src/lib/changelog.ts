@@ -23,6 +23,21 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.5.0',
+    date: 'Aug 9, 2026',
+    changes: [
+      {
+        text: 'The health check now works out which Pico Loader release your card is running, and warns when its files came from different releases — a half-finished update the launcher gives no sign of.',
+      },
+      {
+        text: 'A compatibility sheet for every NDS game: what the loader does for it at boot, the save type and size it will create, and whether an anti-piracy fix or a game patch applies to your exact ROM revision.',
+      },
+      {
+        text: 'The folder banner editor now says up front when a folder is shared by two systems, because one banner serves both.',
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     date: 'Jul 24, 2026',
     changes: [
