@@ -24,7 +24,7 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.5.0',
-    date: 'Aug 9, 2026',
+    date: 'Aug 5, 2026',
     changes: [
       {
         text: 'The health check now works out which Pico Loader release your card is running, and warns when its files came from different releases — a half-finished update the launcher gives no sign of.',
