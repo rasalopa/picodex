@@ -1,3 +1,5 @@
+<img src="docs/logo.png" width="96" align="right" alt="" />
+
 # PicoDex
 
 [![CI](https://github.com/rasalopa/picodex/actions/workflows/ci.yml/badge.svg)](https://github.com/rasalopa/picodex/actions/workflows/ci.yml)
