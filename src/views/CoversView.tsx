@@ -7,6 +7,7 @@ import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
 import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
+import { readCachedCatalog, writeCachedCatalog } from '../lib/catalogCache';
 import { useSd, type CoverIndex } from '../state/SdContext';
 import './CoversView.css';
 
@@ -46,6 +47,13 @@ const JOB_STATUS_LABELS: Record<JobPhase, string> = {
 /** Maximum simultaneous boxart downloads. */
 const MAX_CONCURRENCY = 4;
 
+/**
+ * Maximum ROM headers read concurrently while scanning for missing covers.
+ * These are small local reads, so more than the download pool is fine; past a
+ * handful the card reader itself is the limit.
+ */
+const SCAN_CONCURRENCY = 8;
+
 /** Header slice size covering both NDS (0xC) and GBA (0xAC) gamecode offsets. */
 const HEADER_BYTES = 0xb0;
 
@@ -71,17 +79,19 @@ function errorMessage(e: unknown): string {
 async function readGameCode(
   root: FileSystemDirectoryHandle,
   game: LibraryFile,
-  dirCache: Map<string, FileSystemDirectoryHandle | null>,
+  dirCache: Map<string, Promise<FileSystemDirectoryHandle | null>>,
 ): Promise<string | null> {
   const { system, fileName } = game;
   // ROMs can live anywhere on the card; cache directories per game path
-  // (lowercased key — FAT ignores case)
+  // (lowercased key — FAT ignores case). The cache holds promises so that
+  // several games of one folder, classified concurrently, share one lookup.
   const dirKey = game.path.join('/').toLowerCase();
-  let dir = dirCache.get(dirKey);
-  if (dir === undefined) {
-    dir = await getDir(root, game.path);
-    dirCache.set(dirKey, dir);
+  let dirPromise = dirCache.get(dirKey);
+  if (dirPromise === undefined) {
+    dirPromise = getDir(root, game.path);
+    dirCache.set(dirKey, dirPromise);
   }
+  const dir = await dirPromise;
   if (dir === null) {
     return null;
   }
@@ -103,7 +113,7 @@ async function classifyGame(
   root: FileSystemDirectoryHandle,
   game: LibraryFile,
   coverIndex: CoverIndex,
-  dirCache: Map<string, FileSystemDirectoryHandle | null>,
+  dirCache: Map<string, Promise<FileSystemDirectoryHandle | null>>,
 ): Promise<MissingGame | null> {
   const { system, fileName } = game;
   if (coverIndex.user.has(`${fileName}.bmp`.toLowerCase())) {
@@ -146,17 +156,38 @@ export function CoversView() {
     async function scan() {
       setScanError(null);
       setScanProgress({ done: 0, total: games.length });
-      const found: MissingGame[] = [];
-      const dirCache = new Map<string, FileSystemDirectoryHandle | null>();
+      const dirCache = new Map<string, Promise<FileSystemDirectoryHandle | null>>();
       let done = 0;
-      for (const game of games) {
-        if (cancelled) return;
-        const entry = await classifyGame(rootHandle, game, coverIndex, dirCache);
-        if (entry !== null) found.push(entry);
-        done++;
-        setScanProgress({ done, total: games.length });
-      }
+
+      // Classifying a game means reading its ROM header off the card, and one
+      // header at a time made the wait grow with the library: reading them
+      // concurrently is what the card reader was idle for. Results land by
+      // index so the list keeps the library's order whatever finishes first.
+      const results: (MissingGame | null)[] = new Array<MissingGame | null>(games.length).fill(
+        null,
+      );
+      let next = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(SCAN_CONCURRENCY, games.length) }, async () => {
+          for (let i = next++; i < games.length; i = next++) {
+            if (cancelled) return;
+            // A read failure on one game must not abort the whole scan or leave
+            // its siblings running past the error, the way rejecting Promise.all
+            // would: treat it as "nothing to add" and keep going, like the
+            // gallery does when a cover fails to load.
+            results[i] = await classifyGame(rootHandle, games[i], coverIndex, dirCache).catch(
+              () => null,
+            );
+            // a superseded scan's straggler must not write progress over the
+            // scan that replaced it
+            if (cancelled) return;
+            done++;
+            setScanProgress({ done, total: games.length });
+          }
+        }),
+      );
       if (cancelled) return;
+      const found = results.filter((entry): entry is MissingGame => entry !== null);
       setMissing(found);
       setSelected(new Set(found.map((m) => m.id)));
       setScanProgress(null);
@@ -172,11 +203,13 @@ export function CoversView() {
     };
   }, [root, games, coverIndex]);
 
-  // Release preview object URLs when the view unmounts.
+  // Release preview object URLs when the view unmounts. The ref is read inside
+  // the cleanup, not captured at mount: fetchSelected reassigns it to a fresh
+  // array per batch, so a mount-time binding would revoke the wrong (empty) one
+  // and leak every preview the last batch produced.
   useEffect(() => {
-    const urls = previewUrlsRef.current;
     return () => {
-      for (const url of urls) URL.revokeObjectURL(url);
+      for (const url of previewUrlsRef.current) URL.revokeObjectURL(url);
     };
   }, []);
 
@@ -289,15 +322,29 @@ export function CoversView() {
     );
 
     try {
-      // One catalog fetch per distinct repo (cached across batches).
+      // One catalog per distinct repo, kept for this session and, through
+      // readCachedCatalog, for the next visits too.
       const repos = [...new Set(queue.map((m) => m.game.system.libretroRepo))];
       const repoErrors = new Map<string, string>();
       await Promise.all(
         repos.map(async (repo) => {
           if (catalogsRef.current.has(repo)) return;
+          const cached = await readCachedCatalog(repo);
+          if (cached !== null && cached.fresh) {
+            catalogsRef.current.set(repo, cached.names);
+            return;
+          }
           try {
-            catalogsRef.current.set(repo, await fetchCatalog(repo));
+            const names = await fetchCatalog(repo);
+            catalogsRef.current.set(repo, names);
+            void writeCachedCatalog(repo, names);
           } catch (e) {
+            // An old listing still finds art for almost everything, so it beats
+            // giving up when GitHub will not answer.
+            if (cached !== null) {
+              catalogsRef.current.set(repo, cached.names);
+              return;
+            }
             repoErrors.set(repo, errorMessage(e));
           }
         }),
