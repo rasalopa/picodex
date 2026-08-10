@@ -27,8 +27,67 @@ export interface CatalogResponse {
   status: number;
   /** HTTP status text (may be empty on HTTP/2 responses). */
   statusText: string;
+  /**
+   * Response headers, when the caller has them. Used to tell an exhausted
+   * request budget apart from any other refusal.
+   */
+  headers?: { get(name: string): string | null };
   /** Resolves to the parsed JSON body. */
   json(): Promise<unknown>;
+}
+
+/**
+ * Thrown when GitHub has no requests left for this caller. Separate from a
+ * plain failure because it is the one the user can do something about, and
+ * because an old stored catalog is a good answer to it.
+ */
+export class RateLimitedError extends Error {
+  /** When the budget refills, if GitHub said. */
+  readonly resetAt: Date | null;
+
+  constructor(resetAt: Date | null) {
+    super(
+      resetAt === null
+        ? 'GitHub is out of box art requests for now. It allows 60 an hour without an account, and they come back on the hour.'
+        : `GitHub is out of box art requests until ${resetAt.toLocaleTimeString()}. It allows 60 an hour without an account.`,
+    );
+    this.name = 'RateLimitedError';
+    this.resetAt = resetAt;
+  }
+}
+
+/**
+ * GitHub answers 403 for an exhausted budget, and also 429 more recently, but
+ * it answers 403 for other refusals too. Two things tell them apart: the
+ * remaining-requests header, and the body, which says so in words. Both are
+ * checked because the header is only readable when CORS exposes it, and neither
+ * is guessed at: an unexplained 403 stays a plain failure.
+ */
+async function rateLimitedFrom(response: CatalogResponse): Promise<RateLimitedError | null> {
+  if (response.status !== 403 && response.status !== 429) return null;
+
+  const remaining = response.headers?.get('x-ratelimit-remaining');
+  let limited = remaining === '0';
+
+  if (!limited) {
+    try {
+      const body = (await response.json()) as { message?: unknown };
+      limited =
+        typeof body?.message === 'string' && body.message.toLowerCase().includes('rate limit');
+    } catch {
+      // a body that will not parse says nothing either way
+    }
+  }
+  if (!limited) return null;
+
+  const resetHeader = response.headers?.get('x-ratelimit-reset');
+  // Number('') and Number('   ') are 0, which would date the reset to 1970;
+  // treat an empty or whitespace header as "not given" instead.
+  const resetSeconds =
+    resetHeader === null || resetHeader === undefined || resetHeader.trim() === ''
+      ? NaN
+      : Number(resetHeader);
+  return new RateLimitedError(Number.isFinite(resetSeconds) ? new Date(resetSeconds * 1000) : null);
 }
 
 /**
@@ -107,13 +166,15 @@ export function boxartUrl(repo: string, name: string): string {
  * @param fetchFn Fetch implementation; defaults to the global `fetch`.
  *   Injectable so tests run without network access.
  * @returns Boxart file names (prefix stripped), in repository tree order.
- * @throws {Error} On a non-2xx HTTP response (including GitHub API rate
- *   limiting, which answers 403) or on an unexpected payload shape.
+ * @throws {RateLimitedError} When GitHub has no requests left for this caller.
+ * @throws {Error} On any other non-2xx response or an unexpected payload shape.
  */
 export async function fetchCatalog(repo: string, fetchFn: CatalogFetch = fetch): Promise<string[]> {
   const url = catalogUrl(repo);
   const response = await fetchFn(url);
   if (!response.ok) {
+    const rateLimited = await rateLimitedFrom(response);
+    if (rateLimited !== null) throw rateLimited;
     const status =
       response.statusText === ''
         ? `${response.status}`

@@ -4,6 +4,7 @@ import {
   catalogUrl,
   fetchCatalog,
   parseCatalog,
+  RateLimitedError,
   type CatalogFetch,
   type CatalogResponse,
 } from './thumbnails.ts';
@@ -51,13 +52,17 @@ const TREES_PAYLOAD = {
 /** Builds a stub {@link CatalogResponse} around a JSON body. */
 function stubResponse(
   body: unknown,
-  init: { status?: number; statusText?: string } = {},
+  init: { status?: number; statusText?: string; headers?: Record<string, string> } = {},
 ): CatalogResponse {
   const status = init.status ?? 200;
   return {
     ok: status >= 200 && status < 300,
     status,
     statusText: init.statusText ?? '',
+    headers:
+      init.headers === undefined
+        ? undefined
+        : { get: (name: string) => init.headers?.[name.toLowerCase()] ?? null },
     json: () => Promise.resolve(body),
   };
 }
@@ -148,11 +153,62 @@ describe('fetchCatalog', () => {
     ]);
   });
 
-  it('throws a descriptive error on a non-200 response', async () => {
+  it('says the request budget is spent when GitHub says so in the body', async () => {
     const fetchFn: CatalogFetch = () =>
       Promise.resolve(
         stubResponse(
-          { message: 'API rate limit exceeded' },
+          { message: 'API rate limit exceeded for 1.2.3.4.' },
+          { status: 403, statusText: 'Forbidden' },
+        ),
+      );
+
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toBeInstanceOf(
+      RateLimitedError,
+    );
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toThrow('60 an hour');
+  });
+
+  it('says when the budget comes back, when GitHub says', async () => {
+    const resetAt = new Date('2026-08-10T13:00:00Z');
+    const fetchFn: CatalogFetch = () =>
+      Promise.resolve(
+        stubResponse(
+          {},
+          {
+            status: 403,
+            headers: {
+              'x-ratelimit-remaining': '0',
+              'x-ratelimit-reset': String(resetAt.getTime() / 1000),
+            },
+          },
+        ),
+      );
+
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toThrow(
+      resetAt.toLocaleTimeString(),
+    );
+  });
+
+  it('does not date the reset to 1970 when the reset header is empty', async () => {
+    const fetchFn: CatalogFetch = () =>
+      Promise.resolve(
+        stubResponse(
+          {},
+          { status: 403, headers: { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': '' } },
+        ),
+      );
+
+    // Number('') is 0, which would date the reset to the 1970 epoch; an empty
+    // header must fall back to the undated "for now" message instead. Without
+    // the fix the message reads "...until <epoch time>." and fails this.
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toThrow('for now');
+  });
+
+  it('keeps a 403 that is not about the budget as a plain failure', async () => {
+    const fetchFn: CatalogFetch = () =>
+      Promise.resolve(
+        stubResponse(
+          { message: 'Repository access blocked' },
           { status: 403, statusText: 'Forbidden' },
         ),
       );
@@ -161,6 +217,21 @@ describe('fetchCatalog', () => {
       'GitHub trees request for "Nintendo_-_Game_Boy" failed: HTTP 403 Forbidden ' +
         '(https://api.github.com/repos/libretro-thumbnails/Nintendo_-_Game_Boy/git/trees/master?recursive=1)',
     );
+  });
+
+  it('does not mistake a request budget with room left for an exhausted one', async () => {
+    const fetchFn: CatalogFetch = () =>
+      Promise.resolve(
+        stubResponse(
+          { message: 'Forbidden' },
+          {
+            status: 403,
+            headers: { 'x-ratelimit-remaining': '42' },
+          },
+        ),
+      );
+
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toThrow('HTTP 403');
   });
 
   it('omits the status text from the error when it is empty (HTTP/2)', async () => {
