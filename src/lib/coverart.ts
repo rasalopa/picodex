@@ -95,15 +95,19 @@ function bmpImageData(rgba: Uint8ClampedArray, width: number, height: number): I
   return new ImageData(data, width, height);
 }
 
-/** Exports a canvas as a PNG blob object URL (owned by the caller). */
-async function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
-  const blob = await new Promise<Blob>((resolve, reject) => {
+/** Exports a canvas as a PNG blob. */
+async function canvasPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error('Canvas preview export failed'))),
       'image/png',
     );
   });
-  return URL.createObjectURL(blob);
+}
+
+/** Exports a canvas as a PNG blob object URL (owned by the caller). */
+async function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
+  return URL.createObjectURL(await canvasPngBlob(canvas));
 }
 
 /**
@@ -137,12 +141,23 @@ export async function coverBmpPreviewUrl(bytes: Uint8Array): Promise<string> {
  * @throws {Error} When the BMP cannot be decoded or the canvas export fails.
  */
 export async function coverBmpCroppedPreviewUrl(bytes: Uint8Array): Promise<string> {
+  return URL.createObjectURL(await coverBmpCroppedPreviewBlob(bytes));
+}
+
+/**
+ * Like {@link coverBmpCroppedPreviewUrl} but returns the PNG blob itself, so it
+ * can be stored (and turned into a URL later) rather than only shown once.
+ *
+ * @param bytes Complete BMP file bytes (as produced by `encodeCoverBmp()`).
+ * @throws {Error} When the BMP cannot be decoded or the canvas export fails.
+ */
+export async function coverBmpCroppedPreviewBlob(bytes: Uint8Array): Promise<Blob> {
   const { width, height, rgba } = decodeBmp(bytes);
   // The canvas is only as wide as the visible area; putImageData clips the
   // padding columns off. Covers narrower than the visible width stay intact.
   const [canvas, ctx] = makeCanvas(Math.min(width, COVER_VISIBLE_WIDTH), height);
   ctx.putImageData(bmpImageData(rgba, width, height), 0, 0);
-  return canvasPngUrl(canvas);
+  return canvasPngBlob(canvas);
 }
 
 /**

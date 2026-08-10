@@ -3,7 +3,8 @@ import { CompatSheet } from '../components/CompatSheet';
 import { CoverPicker } from '../components/CoverPicker';
 import { StatsEditor } from '../components/StatsEditor';
 import { ProgressBar } from '../components/ProgressBar';
-import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
+import { coverBmpCroppedPreviewBlob } from '../lib/coverart';
+import { readCachedCover, writeCachedCover, type CoverSlot } from '../lib/coverCache';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
 import {
   NDS_HEADER_PARSE_BYTES,
@@ -17,7 +18,7 @@ import {
   parseNdsSupportsDsiMode,
 } from '../lib/rom';
 import type { RomKind } from '../lib/loaderlists';
-import { COVERS, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
+import { COVERS, getDir, readFile, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
 import './SystemGallery.css';
@@ -186,6 +187,9 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
       const userDir = await getDir(rootHandle, COVERS.user);
       const codeKey = system.id === 'nds' ? 'nds' : system.id === 'gba' ? 'gba' : null;
       const codeDir = codeKey === null ? null : await getDir(rootHandle, COVERS[codeKey]);
+      // best-effort identity for the cover cache, to keep two cards' previews
+      // apart even when they share a file name
+      const cardTag = rootHandle.name;
       /** ROMs can live anywhere on the card; directories are opened per game
        *  path and cached (lowercased key — FAT ignores case). */
       const dirCache = new Map<string, FileSystemDirectoryHandle | null>();
@@ -246,20 +250,40 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
         // read the header for gamecode systems even when a user-folder cover
         // short-circuits
         const header = codeKey === null ? EMPTY_HEADER : await readHeader(game);
-        let bytes: Uint8Array | null = null;
+
+        // work out which cover file applies (a user cover wins over a gamecode
+        // one) before touching it, so the cache can be checked by its identity
+        let coverDir: FileSystemDirectoryHandle | null = null;
+        let coverSlot: CoverSlot | null = null;
+        let coverName: string | null = null;
         const userName = `${game.fileName}.bmp`;
         if (userDir !== null && coverIndex.user.has(userName.toLowerCase())) {
-          bytes = await readFileBytes(userDir, userName);
-        }
-        if (bytes === null && codeKey !== null && header.code !== null && codeDir !== null) {
+          coverDir = userDir;
+          coverSlot = 'user';
+          coverName = userName;
+        } else if (codeKey !== null && header.code !== null && codeDir !== null) {
           const codeName = `${header.code.toUpperCase()}.bmp`;
           if (coverIndex[codeKey].has(codeName.toLowerCase())) {
-            bytes = await readFileBytes(codeDir, codeName);
+            coverDir = codeDir;
+            coverSlot = codeKey;
+            coverName = codeName;
           }
         }
-        if (bytes === null) return { ...header, url: null };
+        if (coverDir === null || coverSlot === null || coverName === null) {
+          return { ...header, url: null };
+        }
+
+        const file = await readFile(coverDir, coverName);
+        if (file === null) return { ...header, url: null };
         try {
-          return { ...header, url: await coverBmpCroppedPreviewUrl(bytes) };
+          // a stored preview means neither reading the whole BMP nor decoding
+          // it again; the file's size and time guard against a stale one
+          let blob = await readCachedCover(cardTag, coverSlot, coverName, file);
+          if (blob === null) {
+            blob = await coverBmpCroppedPreviewBlob(new Uint8Array(await file.arrayBuffer()));
+            void writeCachedCover(cardTag, coverSlot, coverName, file, blob);
+          }
+          return { ...header, url: URL.createObjectURL(blob) };
         } catch {
           // corrupt/unsupported BMP on the card: show the placeholder
           return { ...header, url: null };

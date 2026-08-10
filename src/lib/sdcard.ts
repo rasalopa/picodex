@@ -164,14 +164,14 @@ export async function getDir(
 }
 
 /**
- * Reads a file inside `dir` as raw bytes.
+ * Opens a file inside `dir`.
  *
- * @returns The file contents, or `null` when no file with that name exists.
+ * A `File` carries its size and last-modified time without its bytes being
+ * read, so a caller can check whether it has changed before paying to read it.
+ *
+ * @returns The file, or `null` when no file with that name exists.
  */
-export async function readFileBytes(
-  dir: FileSystemDirectoryHandle,
-  name: string,
-): Promise<Uint8Array | null> {
+export async function readFile(dir: FileSystemDirectoryHandle, name: string): Promise<File | null> {
   let handle: FileSystemFileHandle;
   try {
     handle = await dir.getFileHandle(name);
@@ -181,8 +181,20 @@ export async function readFileBytes(
     }
     throw error;
   }
-  const file = await handle.getFile();
-  return new Uint8Array(await file.arrayBuffer());
+  return handle.getFile();
+}
+
+/**
+ * Reads a file inside `dir` as raw bytes.
+ *
+ * @returns The file contents, or `null` when no file with that name exists.
+ */
+export async function readFileBytes(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+): Promise<Uint8Array | null> {
+  const file = await readFile(dir, name);
+  return file === null ? null : new Uint8Array(await file.arrayBuffer());
 }
 
 /**
