@@ -23,6 +23,24 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.6.0',
+    date: 'Aug 10, 2026',
+    changes: [
+      {
+        text: 'PicoDex remembers the card you had open last time and offers to reopen it, so coming back is one click instead of the folder picker and a full rescan.',
+      },
+      {
+        text: 'Cover galleries open from memory. The covers a system showed once are kept decoded, so reopening it, even after a reload, no longer reads and redraws every image off the card.',
+      },
+      {
+        text: 'Box art catalogs are kept for a week instead of downloaded every visit, and when GitHub is out of requests a stored catalog still finds art for nearly every game. The rate-limit message now says the budget is spent and when it comes back.',
+      },
+      {
+        text: 'Scanning a large library for missing covers is quicker: the ROM headers are read a few at a time instead of one after another.',
+      },
+    ],
+  },
+  {
     version: '0.5.0',
     date: 'Aug 5, 2026',
     changes: [
