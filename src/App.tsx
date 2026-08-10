@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useRef, useState, type ComponentType } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { isFileSystemAccessSupported } from './lib/sdcard';
 import { SdProvider, useSd } from './state/SdContext';
@@ -88,8 +88,15 @@ function Wordmark() {
 
 /** Landing hero shown before an SD card is opened. */
 function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
-  const { openSd, loading, progress, error } = useSd();
+  const { openSd, lastCard, openLastCard, dismissLastCard, loading, progress, error } = useSd();
   const supported = isFileSystemAccessSupported();
+  const pickButton = useRef<HTMLButtonElement>(null);
+  // Dismissing removes the button that was just clicked, so send focus to the
+  // one that replaces it instead of dropping it back to the document.
+  const handleDismiss = () => {
+    dismissLastCard();
+    requestAnimationFrame(() => pickButton.current?.focus());
+  };
   return (
     <div className="app__welcome">
       <h1 className="app__welcome-title">
@@ -99,16 +106,40 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
       <p className="app__tagline">
         Manage your DSpico SD card from the browser. Your files never leave your machine.
       </p>
-      {supported ? (
-        <button className="primary app__cta" onClick={() => void openSd()} disabled={loading}>
-          {loading ? 'Opening…' : 'Open SD card'}
-        </button>
-      ) : (
+      {supported && lastCard != null && (
+        <div className="app__last-card">
+          <button
+            className="primary app__cta"
+            onClick={() => void openLastCard()}
+            disabled={loading}
+          >
+            {loading ? 'Opening…' : `Open ${lastCard.name}`}
+          </button>
+          <p className="app__last-card-note">
+            {lastCard.ready
+              ? 'The card you had open last time.'
+              : 'The card you had open last time. Your browser will ask for access again.'}
+          </p>
+          <button className="app__last-card-forget" onClick={handleDismiss} disabled={loading}>
+            Pick a different card
+          </button>
+        </div>
+      )}
+      {!supported ? (
         <p className="app__unsupported">
           Your browser does not support the File System Access API. Please use a Chromium-based
           browser (Chrome, Edge, Brave, Opera).
         </p>
-      )}
+      ) : lastCard === null ? (
+        <button
+          ref={pickButton}
+          className="primary app__cta"
+          onClick={() => void openSd()}
+          disabled={loading}
+        >
+          {loading ? 'Opening…' : 'Open SD card'}
+        </button>
+      ) : null}
       {loading && (
         <span className="app__loading" role="status">
           <ProgressBar />

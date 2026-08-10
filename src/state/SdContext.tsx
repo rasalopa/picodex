@@ -1,5 +1,14 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
+import { forgetCard, loadLastCard, rememberCard } from '../lib/lastCard';
 import {
   parseGameData,
   serializeGameData,
@@ -22,6 +31,7 @@ import {
   listEntries,
   looksLikeDspicoSd,
   pickSdRoot,
+  ensureReadWritePermission,
   readFileBytes,
   readFileText,
   scanLibrary,
@@ -69,6 +79,19 @@ export interface SdState {
    */
   loaderLists: LoaderLists | null;
   openSd: () => Promise<void>;
+  /**
+   * The card from the last visit, offered so a return visit skips the picker.
+   * `undefined` while we are still looking, `null` when there is none or once
+   * one has been opened or dismissed.
+   */
+  lastCard: { name: string; ready: boolean } | null | undefined;
+  /**
+   * Opens the remembered card. Asks for permission when it has lapsed, so call
+   * this from a click. Forgets the card and resolves false if it is gone.
+   */
+  openLastCard: () => Promise<boolean>;
+  /** Stops offering the remembered card, without touching the open one. */
+  dismissLastCard: () => void;
   /**
    * Re-reads library, covers and launcher files from the open SD. Resolves
    * `false` when the re-read failed (the message lands in `error`) — callers
@@ -236,6 +259,72 @@ export function SdProvider({ children }: { children: ReactNode }) {
     setProgress(null);
   }, []);
 
+  // Card from the last visit. Only a query, never a prompt, so this is safe on
+  // load; opening it is a separate, user-initiated step. `undefined` while the
+  // lookup is still running, so the welcome screen can wait rather than offer
+  // the picker and swap it out from under the pointer a moment later.
+  const [lastCardHandle, setLastCardHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [lastCard, setLastCard] = useState<{ name: string; ready: boolean } | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadLastCard().then((remembered) => {
+      if (cancelled) return;
+      if (remembered === null) {
+        setLastCard(null);
+        return;
+      }
+      setLastCardHandle(remembered.handle);
+      setLastCard({ name: remembered.handle.name, ready: remembered.ready });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dismissLastCard = useCallback(() => {
+    setLastCard(null);
+    setLastCardHandle(null);
+    void forgetCard();
+  }, []);
+
+  const openLastCard = useCallback(async (): Promise<boolean> => {
+    if (lastCardHandle === null) return false;
+    setError(null);
+    setLoading(true);
+    try {
+      setProgress('Waiting for access to the card…');
+      if (!(await ensureReadWritePermission(lastCardHandle))) {
+        // Denying the prompt is a choice, not a failure, but saying nothing
+        // looks like a dead button. The card stays remembered so it can be
+        // opened on the next try.
+        setError(`PicoDex needs access to ${lastCardHandle.name} to open it.`);
+        return false;
+      }
+      if (!(await looksLikeDspicoSd(lastCardHandle))) {
+        // the folder is still there but is not a card any more
+        setError('That folder has no /_pico directory any more — pick a card.');
+        dismissLastCard();
+        return false;
+      }
+      setRoot(lastCardHandle);
+      setLastCard(null);
+      await loadFrom(lastCardHandle);
+      return true;
+    } catch (e) {
+      // Keep the card remembered: a read that failed once (a card pulled mid
+      // scan, a locked file) says nothing about whether it will work next time,
+      // and forgetting it would send the user back to the picker for good.
+      setError(friendlyFsError(e));
+      return false;
+    } finally {
+      setLoading(false);
+      setProgress(null);
+    }
+  }, [lastCardHandle, loadFrom, dismissLastCard]);
+
   const openSd = useCallback(async () => {
     setError(null);
     setLoading(true);
@@ -246,6 +335,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
         return;
       }
       setRoot(rootHandle);
+      setLastCard(null);
+      void rememberCard(rootHandle);
       await loadFrom(rootHandle);
     } catch (e) {
       // user cancelling the picker is not an error
@@ -334,6 +425,9 @@ export function SdProvider({ children }: { children: ReactNode }) {
       cardInfo,
       loaderLists,
       openSd,
+      lastCard,
+      openLastCard,
+      dismissLastCard,
       refresh,
       toggleFavorite,
       toggleCompleted,
@@ -351,6 +445,9 @@ export function SdProvider({ children }: { children: ReactNode }) {
       cardInfo,
       loaderLists,
       openSd,
+      lastCard,
+      openLastCard,
+      dismissLastCard,
       refresh,
       toggleFavorite,
       toggleCompleted,
