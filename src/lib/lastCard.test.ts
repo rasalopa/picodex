@@ -1,96 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forgetCard, loadLastCard, rememberCard } from './lastCard.ts';
-
-/**
- * A stand-in for the slice of IndexedDB this module uses: one store, one key,
- * holding a live object. The real thing is not available under vitest.
- *
- * Every way it can fail is switchable, because graceful degradation is the whole
- * reason this module exists — a fake that only ever succeeds would leave exactly
- * the interesting half untested. It also counts connections, so a test can catch
- * one being left open.
- */
-interface FakeOptions {
-  /** `open()` throws outright, as in Firefox private browsing. */
-  openThrows?: boolean;
-  /** `open()` fails asynchronously. */
-  openFails?: 'error' | 'blocked';
-  /** The database exists without our store, so it has to be created. */
-  needsUpgrade?: boolean;
-  /** Starting a transaction throws, e.g. on a closing connection. */
-  transactionThrows?: boolean;
-  /** Requests fail instead of succeeding, e.g. on a full disk. */
-  requestFails?: boolean;
-}
-
-function installFakeIndexedDb(options: FakeOptions = {}) {
-  const store = new Map<string, unknown>();
-  const created: string[] = [];
-  let openConnections = 0;
-
-  function request<T>(result: T): { result: T; onsuccess?: () => void; onerror?: () => void } {
-    const req = { result } as { result: T; onsuccess?: () => void; onerror?: () => void };
-    queueMicrotask(() => (options.requestFails ? req.onerror?.() : req.onsuccess?.()));
-    return req;
-  }
-
-  const db = {
-    objectStoreNames: { contains: () => options.needsUpgrade !== true },
-    createObjectStore: (name: string) => created.push(name),
-    close: () => {
-      openConnections--;
-    },
-    transaction: () => {
-      if (options.transactionThrows === true) {
-        throw new DOMException('store is gone', 'NotFoundError');
-      }
-      return {
-        objectStore: () => ({
-          get: (key: string) => request(store.get(key)),
-          put: (value: unknown, key: string) => {
-            store.set(key, value);
-            return request(undefined);
-          },
-          delete: (key: string) => {
-            store.delete(key);
-            return request(undefined);
-          },
-        }),
-      };
-    },
-  };
-
-  vi.stubGlobal('indexedDB', {
-    open: () => {
-      if (options.openThrows === true) {
-        throw new DOMException('storage is disabled', 'InvalidStateError');
-      }
-      const req = {
-        result: db,
-        onsuccess: undefined as (() => void) | undefined,
-        onerror: undefined as (() => void) | undefined,
-        onupgradeneeded: undefined as (() => void) | undefined,
-        onblocked: undefined as (() => void) | undefined,
-      };
-      queueMicrotask(() => {
-        if (options.openFails === 'error') {
-          req.onerror?.();
-          return;
-        }
-        if (options.openFails === 'blocked') {
-          req.onblocked?.();
-          return;
-        }
-        openConnections++;
-        if (options.needsUpgrade === true) req.onupgradeneeded?.();
-        req.onsuccess?.();
-      });
-      return req;
-    },
-  });
-
-  return { store, created, openConnections: () => openConnections };
-}
+import { installFakeIndexedDb } from './testing/fakeIndexedDb.ts';
 
 function handle(name: string, permission?: PermissionState): FileSystemDirectoryHandle {
   return {
@@ -210,11 +120,13 @@ describe('when storage misbehaves', () => {
     expect(await loadLastCard()).toBeNull();
   });
 
-  it('creates the store on the first visit', async () => {
+  it('creates the stores on the first visit', async () => {
     const fake = installFakeIndexedDb({ needsUpgrade: true });
     await loadLastCard();
 
-    expect(fake.created).toEqual(['handles']);
+    // every store is created on upgrade, so a database from an older version
+    // gains the newer ones without losing what it already holds
+    expect(fake.created).toEqual(['handles', 'catalogs', 'covers']);
   });
 
   it('leaves no database connection open behind it', async () => {
@@ -228,7 +140,7 @@ describe('when storage misbehaves', () => {
 
   it('ignores anything in the store that is not a folder, rather than passing it on', async () => {
     const fake = installFakeIndexedDb();
-    fake.store.set('lastCard', { name: 'DSPICO', kind: 'file' });
+    fake.store('handles').set('lastCard', { name: 'DSPICO', kind: 'file' });
 
     expect(await loadLastCard()).toBeNull();
   });
