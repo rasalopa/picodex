@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildFolderBanner, encodeBannerIcon } from './banner';
-import { loaderApiCapabilities, parseLoaderApiVersion, parseNdsRomTitle } from './loader';
+import {
+  isEnhancedLauncher,
+  loaderApiCapabilities,
+  parseLoaderApiVersion,
+  parseNdsRomTitle,
+} from './loader';
 
 /** Builds a minimal picoLoader7.bin-like header with the given api version. */
 function loader7Bytes(apiVersion: number): Uint8Array {
@@ -11,6 +16,17 @@ function loader7Bytes(apiVersion: number): Uint8Array {
   view.setUint16(8, 0, true); // bootDrive
   view.setUint16(0x0a, apiVersion, true);
   return bytes;
+}
+
+/** Builds a fake NDS ROM: header pointing at a real banner with `title`. */
+function fakeRom(title: string): Uint8Array {
+  const icon = encodeBannerIcon(new Uint8ClampedArray(32 * 32 * 4));
+  const banner = buildFolderBanner(icon, title);
+  const bannerOffset = 0x200;
+  const rom = new Uint8Array(bannerOffset + banner.length);
+  new DataView(rom.buffer).setUint32(0x68, bannerOffset, true);
+  rom.set(banner, bannerOffset);
+  return rom;
 }
 
 describe('parseLoaderApiVersion', () => {
@@ -44,17 +60,6 @@ describe('loaderApiCapabilities', () => {
 });
 
 describe('parseNdsRomTitle', () => {
-  /** Builds a fake ROM: header pointing at a real banner built by banner.ts. */
-  function fakeRom(title: string): Uint8Array {
-    const icon = encodeBannerIcon(new Uint8ClampedArray(32 * 32 * 4));
-    const banner = buildFolderBanner(icon, title);
-    const bannerOffset = 0x200;
-    const rom = new Uint8Array(bannerOffset + banner.length);
-    new DataView(rom.buffer).setUint32(0x68, bannerOffset, true);
-    rom.set(banner, bannerOffset);
-    return rom;
-  }
-
   it('reads the first banner title line', () => {
     expect(parseNdsRomTitle(fakeRom('Pico Launcher'))).toBe('Pico Launcher');
   });
@@ -66,5 +71,26 @@ describe('parseNdsRomTitle', () => {
 
   it('returns null for truncated roms', () => {
     expect(parseNdsRomTitle(new Uint8Array(0x10))).toBeNull();
+  });
+});
+
+describe('isEnhancedLauncher', () => {
+  it('detects the fork by its "Enhanced" banner subtitle', () => {
+    // matches the fork Makefile: GAME_TITLE "Pico Launcher", GAME_SUBTITLE "Enhanced"
+    expect(isEnhancedLauncher(fakeRom('Pico Launcher\nEnhanced\nLNH team'))).toBe(true);
+  });
+
+  it('treats stock Pico Launcher (no subtitle) as not the fork', () => {
+    expect(isEnhancedLauncher(fakeRom('Pico Launcher\nLNH team'))).toBe(false);
+    expect(isEnhancedLauncher(fakeRom('Pico Launcher'))).toBe(false);
+  });
+
+  it('requires the whole line to be the marker, not merely to contain it', () => {
+    expect(isEnhancedLauncher(fakeRom('Pico Launcher\nEnhanced Edition\nLNH team'))).toBe(false);
+  });
+
+  it('is false when there is no banner or the rom is truncated', () => {
+    expect(isEnhancedLauncher(new Uint8Array(0x1000))).toBe(false);
+    expect(isEnhancedLauncher(new Uint8Array(0x10))).toBe(false);
   });
 });

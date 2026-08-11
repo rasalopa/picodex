@@ -61,3 +61,32 @@ export function parseNdsRomTitle(rom: Uint8Array, lang = 1): string | null {
   const firstLine = title.split('\n')[0].trim();
   return firstLine.length > 0 ? firstLine : null;
 }
+
+/**
+ * The second banner line the Enhanced fork's build stamps into `_picoboot.nds`
+ * (its Makefile `GAME_SUBTITLE`). Stock Pico Launcher leaves it out.
+ */
+const ENHANCED_LAUNCHER_MARKER = 'Enhanced';
+
+/**
+ * Whether a launcher ROM is the Pico Launcher Enhanced fork, told from its
+ * banner rather than from any file it writes: the fork stamps a second title
+ * line "Enhanced" that stock Pico Launcher does not. Read straight from
+ * `_picoboot.nds`, so it holds whether or not the launcher has ever run, and
+ * on any flashcart. Companion features (favorites, play stats) are shown only
+ * when this is true.
+ *
+ * @param rom Complete `_picoboot.nds` bytes.
+ */
+export function isEnhancedLauncher(rom: Uint8Array, lang = 1): boolean {
+  if (rom.length < 0x6c) {
+    return false;
+  }
+  const view = new DataView(rom.buffer, rom.byteOffset, rom.byteLength);
+  const bannerOffset = view.getUint32(0x68, true);
+  if (bannerOffset === 0 || bannerOffset + BANNER_SIZE > rom.length) {
+    return false;
+  }
+  const title = parseBannerTitle(rom.subarray(bannerOffset, bannerOffset + BANNER_SIZE), lang);
+  return title.split('\n').some((line) => line.trim() === ENHANCED_LAUNCHER_MARKER);
+}

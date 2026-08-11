@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/rasalopa/picodex?color=e04b62)](https://github.com/rasalopa/picodex/releases)
 [![License](https://img.shields.io/github/license/rasalopa/picodex)](LICENSE)
 
-> Manage your [DSpico](https://github.com/LNH-team/dspico) SD card from the browser — covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
+> Manage your [Pico Launcher](https://github.com/LNH-team/pico-launcher) SD card from the browser — on the [DSpico](https://github.com/LNH-team/dspico) or any flashcart that runs it. Covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
 
 ![Library overview with per-system cover coverage](docs/screenshots/library.png)
 
@@ -41,7 +41,7 @@ Everything runs client-side. PicoDex has no server, no accounts and no telemetry
 ## Requirements
 
 - A Chromium-based browser (Chrome, Edge, Brave, Opera). Firefox and Safari do not yet ship the directory-write File System Access API.
-- A DSpico SD card (any card with a `/_pico` folder).
+- A Pico Launcher SD card: any flashcart with a `/_pico` folder — the DSpico, or an R4, DSTT, Acekard, etc. running Pico Launcher.
 
 ## Using it
 

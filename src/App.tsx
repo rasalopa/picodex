@@ -44,7 +44,7 @@ const FEATURES: { title: string; body: string; Icon: IconComponent }[] = [
   },
   {
     title: 'Play stats',
-    body: 'Favorites, most played and recents from Pico Enhanced.',
+    body: 'Favorites, most played and recents — with the Pico Launcher Enhanced fork.',
     Icon: IconChart,
   },
   {
@@ -104,7 +104,8 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
         Pico<span className="app__brand-accent">Dex</span>
       </h1>
       <p className="app__tagline">
-        Manage your DSpico SD card from the browser. Your files never leave your machine.
+        Manage your Pico Launcher SD card from the browser — on the DSpico or any flashcart that
+        runs it. Your files never leave your machine.
       </p>
       {supported && lastCard != null && (
         <div className="app__last-card">
@@ -165,16 +166,26 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
 
 /** Tabbed workspace shown once an SD card is open. */
 function Workspace() {
-  const { root, error, refresh, loading, progress } = useSd();
+  const { root, error, refresh, loading, progress, cardInfo, gameData } = useSd();
   const [tab, setTab] = useState<Tab>('library');
+  // The card is running the Enhanced fork if its launcher banner says so, or if
+  // it has written a gamedata.json (favorites/play time, which stock never does).
+  // Either signal counts, so a fork install from before the banner marker keeps
+  // its tab, while a stock Pico Launcher on any flashcart has neither and stays
+  // generic.
+  const runsEnhancedFork = cardInfo.isEnhancedFork || gameData !== null;
+  const tabs = TABS.filter((t) => t.id !== 'stats' || runsEnhancedFork);
+  // If the active tab is no longer available (switched to a stock card while on
+  // the Pico Enhanced tab), fall back to the library rather than show a phantom.
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : 'library';
   return (
     <>
       <nav className="app__tabs" aria-label="Sections">
-        {TABS.map(({ id, label, Icon }) => (
+        {tabs.map(({ id, label, Icon }) => (
           <button
             key={id}
-            className={tab === id ? 'app__tab app__tab--active' : 'app__tab'}
-            aria-current={tab === id ? 'page' : undefined}
+            className={activeTab === id ? 'app__tab app__tab--active' : 'app__tab'}
+            aria-current={activeTab === id ? 'page' : undefined}
             onClick={() => setTab(id)}
           >
             <Icon className="app__tab-icon" />
@@ -197,11 +208,11 @@ function Workspace() {
       )}
       {error && <p className="app__error">{error}</p>}
       <main className="app__content">
-        {tab === 'library' && <LibraryView />}
-        {tab === 'covers' && <CoversView />}
-        {tab === 'stats' && <StatsView />}
-        {tab === 'associations' && <AssociationsView />}
-        {tab === 'health' && <HealthView />}
+        {activeTab === 'library' && <LibraryView />}
+        {activeTab === 'covers' && <CoversView />}
+        {activeTab === 'stats' && <StatsView />}
+        {activeTab === 'associations' && <AssociationsView />}
+        {activeTab === 'health' && <HealthView />}
       </main>
       <DropImport />
     </>

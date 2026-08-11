@@ -17,7 +17,7 @@ import {
   type GameData,
   type GameStats,
 } from '../lib/gamedata';
-import { parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
+import { isEnhancedLauncher, parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
 import { parseApList, parsePatchList, parseSaveList, type LoaderLists } from '../lib/loaderlists';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
 import {
@@ -48,6 +48,8 @@ export interface CardInfo {
   launcherModified: number | null;
   /** Pico Loader ABI version from `picoLoader7.bin`, or `null`. */
   loaderApiVersion: number | null;
+  /** True when `_picoboot.nds` is the Pico Launcher Enhanced fork (banner marker). */
+  isEnhancedFork: boolean;
 }
 
 /** Names present in each cover folder, lowercased, extension included. */
@@ -135,6 +137,7 @@ const EMPTY_CARD_INFO: CardInfo = {
   launcherTitle: null,
   launcherModified: null,
   loaderApiVersion: null,
+  isEnhancedFork: false,
 };
 
 async function readCardInfo(root: FileSystemDirectoryHandle): Promise<CardInfo> {
@@ -143,7 +146,9 @@ async function readCardInfo(root: FileSystemDirectoryHandle): Promise<CardInfo> 
     const handle = await root.getFileHandle('_picoboot.nds');
     const file = await handle.getFile();
     info.launcherModified = file.lastModified;
-    info.launcherTitle = parseNdsRomTitle(new Uint8Array(await file.arrayBuffer()));
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    info.launcherTitle = parseNdsRomTitle(bytes);
+    info.isEnhancedFork = isEnhancedLauncher(bytes);
   } catch {
     // no launcher rom at the root: fields stay null
   }
@@ -331,7 +336,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
     try {
       const rootHandle = await pickSdRoot();
       if (!(await looksLikeDspicoSd(rootHandle))) {
-        setError('That folder has no /_pico directory — pick the root of a DSpico SD card.');
+        setError('That folder has no /_pico directory — pick the root of a Pico Launcher SD card.');
         return;
       }
       setRoot(rootHandle);

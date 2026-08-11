@@ -303,7 +303,9 @@ export function LibraryView() {
             <dt>Launcher</dt>
             <dd>
               {cardInfo.launcherTitle ?? 'Not found'}
-              {gameData !== null && <span className="library-view__chip">Pico Enhanced</span>}
+              {(cardInfo.isEnhancedFork || gameData !== null) && (
+                <span className="library-view__chip">Pico Enhanced</span>
+              )}
               {cardInfo.launcherModified !== null && (
                 <span className="library-view__card-info-dim">
                   {' '}

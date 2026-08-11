@@ -216,22 +216,17 @@ export function StatsView() {
           <p className="stats-view__info-icon" aria-hidden="true">
             ✨
           </p>
-          <h2>No play stats here yet</h2>
+          <h2>No play stats yet</h2>
           <p>
-            This section lights up when the SD card runs{' '}
             <a
               href="https://github.com/rasalopa/pico-launcher-enhanced"
               target="_blank"
               rel="noreferrer"
             >
               Pico Launcher Enhanced
-            </a>
-            , a launcher fork that tracks launches, play time and favorites for every game. It is a
-            drop-in replacement for the stock{' '}
-            <a href="https://github.com/LNH-team/pico-launcher" target="_blank" rel="noreferrer">
-              Pico Launcher
-            </a>
-            , which does not record play statistics.
+            </a>{' '}
+            records a launch count, play time and favorite for every game. Launch something from the
+            launcher and it shows up here.
           </p>
         </div>
       </section>

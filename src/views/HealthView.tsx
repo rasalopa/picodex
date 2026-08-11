@@ -459,9 +459,9 @@ export function HealthView() {
                     ? ' Those two ship byte-identical files, so nothing can tell them apart.'
                     : loaderVersion.ambiguity === 'incomplete-evidence'
                       ? // NOT "identical files": v1.7.0 and v1.7.1 differ in exactly
-                        // picoLoader7.bin, the file most likely to be the missing one
-                        // when this branch is reached.
-                        ' It could not be narrowed further, because the files that differ between those releases were not among the ones read.'
+                        // picoLoader7.bin, which reaching this branch means was either
+                        // absent or unrecognised (e.g. another flashcart's build).
+                        ' It could not be narrowed further: the files that differ between those releases are missing or not recognised here.'
                       : ''}
                 </p>
                 {loaderVersion.releasesBehind > 0 ? (
@@ -512,7 +512,7 @@ export function HealthView() {
                       pico-loader release
                     </a>
                     {loaderVersion.unrecognisedFiles.length > 0
-                      ? ' — note that also overwrites the hand-edited files listed below.'
+                      ? ' — note that also overwrites the unrecognised files listed below.'
                       : '.'}
                   </p>
                 </>
@@ -520,9 +520,10 @@ export function HealthView() {
 
             {loaderVersion !== null && loaderVersion.status === 'unrecognised' && (
               <p className="health-view__dim">
-                None of these files match a release PicoDex knows about. They may be from a release
-                newer than this build, or edited by hand. Nothing is wrong on the card as far as
-                this check can tell.
+                None of these files match a release PicoDex recognises. They may be a build for a
+                flashcart other than the DSpico (PicoDex only knows the DSpico builds for now), from
+                a release newer than this build, or edited by hand. Nothing is wrong on the card as
+                far as this check can tell.
               </p>
             )}
 
@@ -533,14 +534,15 @@ export function HealthView() {
               (loaderVersion.status === 'identified' || loaderVersion.status === 'mixed') &&
               loaderVersion.unrecognisedFiles.length > 0 && (
                 <p className="health-view__dim">
-                  Not from any release PicoDex knows, so they were left out of the answer above:{' '}
+                  Not from a release PicoDex recognises, so they were left out of the answer above:{' '}
                   {loaderVersion.unrecognisedFiles.map((name, index) => (
                     <span key={name}>
                       {index > 0 && ', '}
                       <code>{name}</code>
                     </span>
                   ))}
-                  . Editing these by hand is a normal thing to do.
+                  . On a flashcart other than the DSpico this is expected — PicoDex only knows the
+                  DSpico build of each release for now — and hand-editing them is normal too.
                 </p>
               )}
 
