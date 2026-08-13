@@ -57,11 +57,22 @@ export interface LoaderManifest {
   releases: readonly { tag: string; published: string }[];
   /** file name -> sha256 -> every release tag that shipped that exact file. */
   files: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
+  /**
+   * file name -> sha256 -> every flashcart build shipping those exact bytes, for
+   * the per-cart files only. In practice `picoLoader9.bin` carries the identity:
+   * it holds the card driver, so all but one of its hashes map to a single cart
+   * (an old Acekard pair shares bytes). `picoLoader7.bin` turned out to be
+   * byte-identical across every build of a release, so its entries list every
+   * cart and narrow nothing - kept anyway, so this stays a fact table rather
+   * than an assumption.
+   */
+  builds: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
 }
 
 /** One file on the card, resolved against the manifest. */
 export interface LoaderFileMatch {
   file: LoaderFileName;
+  /** Lowercase hex, whatever casing the caller passed in. */
   hash: string;
   /** Releases that shipped this exact file, empty when the manifest has not seen it. */
   releases: readonly string[];
@@ -114,6 +125,17 @@ export interface LoaderVersionResult {
    * status is `identified`.
    */
   candidates: readonly string[];
+  /**
+   * Flashcart builds consistent with every recognised per-cart file, named as
+   * the release zips name them (`R4`, `DSPICO`, ...), sorted. One entry on a
+   * card whose `picoLoader9.bin` was recognised - that file holds the card
+   * driver and identifies the cart (except one old byte-identical AK2/AKRPG
+   * pair, which reports both). Every build when only the universal
+   * `picoLoader7.bin` matched, since that narrows nothing; empty when no
+   * per-cart file was recognised or a mixed card's halves point at different
+   * carts. The UI shows this only when it actually identifies (length <= 2).
+   */
+  builds: readonly string[];
   /** Every file that was hashed, in {@link LOADER_FILE_NAMES} order. */
   matches: readonly LoaderFileMatch[];
   /** Hashed files the manifest does not know: hand-edited, or newer than it. */
@@ -164,17 +186,41 @@ export function identifyLoader(
       missingFiles.push(file);
       continue;
     }
-    const releases = manifest.files[file]?.[hash.toLowerCase()] ?? [];
-    matches.push({ file, hash, releases });
+    // Normalised once, here: the match must carry the same key the files lookup
+    // used, because the builds intersection below and the identical-releases
+    // check both look this hash up against lowercase manifest keys. Storing the
+    // caller's raw casing made an uppercase hash resolve its release but
+    // silently miss the builds table.
+    const lowered = hash.toLowerCase();
+    const releases = manifest.files[file]?.[lowered] ?? [];
+    matches.push({ file, hash: lowered, releases });
     if (releases.length === 0) unrecognisedFiles.push(file);
   }
 
   const recognised = matches.filter((m) => m.releases.length > 0);
 
+  // Which flashcart these bytes were built for: the intersection of what every
+  // recognised per-cart file allows. Shared list files have no entry in
+  // manifest.builds and pass through without narrowing.
+  let buildSet: Set<string> | null = null;
+  for (const m of recognised) {
+    const carts = manifest.builds[m.file]?.[m.hash];
+    if (!carts) continue;
+    if (buildSet === null) {
+      buildSet = new Set(carts);
+    } else {
+      const next = new Set<string>();
+      for (const cart of carts) if (buildSet.has(cart)) next.add(cart);
+      buildSet = next;
+    }
+  }
+  const builds = buildSet ? [...buildSet].sort() : [];
+
   if (matches.length === 0) {
     return {
       status: 'no-loader',
       candidates: [],
+      builds,
       matches,
       unrecognisedFiles,
       missingFiles,
@@ -188,6 +234,7 @@ export function identifyLoader(
     return {
       status: 'unrecognised',
       candidates: [],
+      builds,
       matches,
       unrecognisedFiles,
       missingFiles,
@@ -222,6 +269,7 @@ export function identifyLoader(
     return {
       status: 'mixed',
       candidates: [],
+      builds,
       matches,
       unrecognisedFiles,
       missingFiles,
@@ -239,21 +287,30 @@ export function identifyLoader(
   // Several candidates mean either that nothing could ever separate them, or that
   // what would have separated them was not read. Only the first is a fact about
   // the releases, and the UI has to say which.
+  //
+  // "Nothing could separate them" is per hash, not per file: the candidates are
+  // indistinguishable when every hash relevant to them ships in ALL of them.
+  // Counting hashes per file instead would break on the per-cart loader binaries,
+  // where the identical v1.3.0/v1.3.1 pair legitimately has one hash per build.
+  // Bytes built for a different cart than this card's are skipped: they could
+  // never appear on it, so they cannot be the evidence that separates anything.
   let ambiguity: LoaderAmbiguity | null = null;
   if (candidates.length > 1) {
-    const identical = Object.values(manifest.files).every((byHash) => {
-      const hashesCoveringCandidates = Object.entries(byHash)
-        .filter(([, tags]) => candidates.some((tag) => tags.includes(tag)))
-        .map(([hash]) => hash);
-      // one hash covering all of them, or the file is in none of them
-      return hashesCoveringCandidates.length <= 1;
-    });
+    const identical = Object.entries(manifest.files).every(([file, byHash]) =>
+      Object.entries(byHash).every(([hash, tags]) => {
+        if (!candidates.some((tag) => tags.includes(tag))) return true;
+        const carts = manifest.builds[file]?.[hash];
+        if (carts && builds.length > 0 && !builds.some((b) => carts.includes(b))) return true;
+        return candidates.every((tag) => tags.includes(tag));
+      }),
+    );
     ambiguity = identical ? 'identical-releases' : 'incomplete-evidence';
   }
 
   return {
     status: 'identified',
     candidates,
+    builds,
     matches,
     unrecognisedFiles,
     missingFiles,

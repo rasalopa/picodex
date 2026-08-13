@@ -46,12 +46,13 @@ import { format, resolveConfig } from 'prettier';
 const REPO = 'LNH-team/pico-loader';
 
 /**
- * The loader files a DSpico card carries in /_pico, and the only ones hashed.
+ * The loader files a card carries in /_pico, and the only ones hashed.
  *
- * Only ONE pair of them is DSpico-specific: picoLoader7/9.bin differ per
- * flashcard, the three lists are shared across all of them. Do not "simplify" by
- * pulling whichever release asset is convenient - the DSpico zip is the one whose
- * bytes a DSpico card actually has.
+ * Only ONE pair of them differs per flashcart: picoLoader7/9.bin are built per
+ * card, the three lists are shared across every build of a release. The script
+ * verifies that sharing on every run (see the byte-identity check in main) rather
+ * than assuming it, because a release that quietly started shipping per-cart
+ * lists would otherwise mis-tag them here.
  *
  * `biosnds7.rom` is deliberately absent. The launcher's health check lists it as
  * an optional /_pico file, but it is a user-supplied DS BIOS dump present in zero
@@ -66,21 +67,32 @@ const SINCE_V150 = ['patchlist.bin'];
 
 const LOADER_FILES = [...ALWAYS_PRESENT, ...SINCE_V150];
 
+/** The two files whose bytes differ per flashcart build. */
+const PER_CART_FILES = ['picoLoader7.bin', 'picoLoader9.bin'];
+
+/** The three lists, byte-identical across every build of one release. */
+const SHARED_FILES = LOADER_FILES.filter((f) => !PER_CART_FILES.includes(f));
+
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../src/data/loaderReleases.json');
 
-/** Floor the manifest may never fall below. Raise deliberately, never to fix a run. */
+/** Floors the manifest may never fall below. Raise deliberately, never to fix a run. */
 const MIN_RELEASES = 11;
-const MIN_HASHES = 28;
+const MIN_HASHES = 142;
+const MIN_CARTS = 17;
 
 /**
- * Matches the DSpico release asset. The name changed shape between releases
- * (`Pico_Loader_for_DSPICO.zip` in v1.0.x, `Pico_Loader_DSPICO.zip` since
- * v1.1.0), so this matches the parts that carry meaning rather than a literal
- * name. Verified against all 11 releases: exactly one asset matches in each, and
- * no other asset in any release mentions dspico.
+ * Extracts the flashcart name from a loader release asset, or returns null for
+ * an asset that is not a loader build. The name changed shape between releases
+ * (`Pico_Loader_for_R4.zip` in v1.0.x, `Pico_Loader_R4.zip` since v1.1.0), so
+ * this matches the parts that carry meaning rather than a literal name.
+ *
+ * The cart set is discovered from the assets, never hardcoded: it has grown
+ * from 10 builds in v1.0.0 to 17 since v1.4.0, and a fixed list would either
+ * reject old releases or silently miss a cart added tomorrow.
  */
-function isDspicoAsset(name) {
-  return /^pico[_-]?loader.*dspico\.zip$/i.test(name);
+function cartFromAsset(name) {
+  const m = /^pico[_-]?loader(?:[_-]for)?[_-]([a-z0-9]+)\.zip$/i.exec(name);
+  return m ? m[1].toUpperCase() : null;
 }
 
 /** Sort key from the tag, which is immutable. See the header note on published_at. */
@@ -243,12 +255,13 @@ const sha256 = (b) => createHash('sha256').update(b).digest('hex');
  * for a truncated API response, a repository rename, a broken asset filter, and
  * "someone ran this with credentials that see a different set of releases".
  */
-function checkGrowth(releaseTags, hashCount) {
-  if (releaseTags.length < MIN_RELEASES || hashCount < MIN_HASHES) {
+function checkGrowth(releaseTags, hashCount, cartCount) {
+  if (releaseTags.length < MIN_RELEASES || hashCount < MIN_HASHES || cartCount < MIN_CARTS) {
     throw new Error(
-      `refusing to write a smaller manifest: ${releaseTags.length} releases and ${hashCount} ` +
-        `hashes, expected at least ${MIN_RELEASES} and ${MIN_HASHES}.\n` +
-        '  If pico-loader really removed releases, lower the floors on purpose.',
+      `refusing to write a smaller manifest: ${releaseTags.length} releases, ${hashCount} ` +
+        `hashes and ${cartCount} carts, expected at least ${MIN_RELEASES}, ${MIN_HASHES} ` +
+        `and ${MIN_CARTS}.\n` +
+        '  If pico-loader really removed releases or builds, lower the floors on purpose.',
     );
   }
   if (!existsSync(OUT)) return;
@@ -295,67 +308,143 @@ async function main() {
 
   /** file -> hash -> release tags */
   const files = Object.fromEntries(LOADER_FILES.map((f) => [f, {}]));
+  /** per-cart file -> hash -> cart names, so the app can say WHICH build a card carries */
+  const builds = Object.fromEntries(PER_CART_FILES.map((f) => [f, {}]));
+  const cartsSeen = new Set();
   const releaseList = [];
 
+  /** the previous release's carts, to catch a partially uploaded release */
+  let prevCarts = null;
+  let prevTag = null;
+
   for (const r of usable) {
-    const candidates = r.assets.filter((a) => isDspicoAsset(a.name));
-    if (candidates.length !== 1) {
-      // Loud on purpose: a quietly incomplete manifest makes PicoDex slander good cards.
+    // Discover this release's builds from its assets. Loud on purpose: a quietly
+    // incomplete manifest makes PicoDex slander good cards.
+    const cartAssets = new Map();
+    for (const a of r.assets) {
+      const cart = cartFromAsset(a.name);
+      if (!cart) continue;
+      if (cartAssets.has(cart)) {
+        throw new Error(`${r.tag_name}: two assets both parse as the ${cart} build.`);
+      }
+      cartAssets.set(cart, a);
+    }
+    if (!cartAssets.size) {
       throw new Error(
-        `${r.tag_name}: expected exactly one DSpico asset, found ${candidates.length}.\n` +
+        `${r.tag_name}: no asset looks like a loader build.\n` +
           '  Assets present:\n' +
           r.assets.map((a) => `    ${a.name}`).join('\n') +
-          '\n  If the naming changed, update isDspicoAsset() in this script.',
+          '\n  If the naming changed, update cartFromAsset() in this script.',
       );
     }
-    const asset = candidates[0];
-    const entries = readZip(await download(asset.browser_download_url));
 
-    // Every release must carry all four always-present files, and patchlist.bin
+    // Every release so far ships every build its predecessor had (the set only
+    // ever grew: 10 -> 11 -> 13 -> 17). A build missing from a newer release is
+    // far more likely a zip that failed to upload than a cart dropped upstream,
+    // and quietly hashing the partial release would make PicoDex report every
+    // updated card of that cart as unrecognised. The MIN_CARTS floor cannot
+    // catch this: it counts the union across all releases.
+    if (prevCarts) {
+      const dropped = [...prevCarts].filter((c) => !cartAssets.has(c));
+      if (dropped.length) {
+        throw new Error(
+          `${r.tag_name}: missing the ${dropped.join(', ')} build(s) that ${prevTag} shipped.\n` +
+            '  If upstream really dropped those carts, relax this check on purpose.',
+        );
+      }
+    }
+    prevCarts = new Set(cartAssets.keys());
+    prevTag = r.tag_name;
+
+    // Every build must carry all four always-present files, and patchlist.bin
     // from v1.5.0 onward. A zip that quietly stopped shipping one would make real
     // cards report that file as unrecognised.
     const expected = [
       ...ALWAYS_PRESENT,
       ...(bySemver(r.tag_name, 'v1.5.0') >= 0 ? SINCE_V150 : []),
     ];
-    const absent = expected.filter((f) => !entries.has(f));
-    if (absent.length) {
-      throw new Error(
-        `${r.tag_name}: ${asset.name} is missing ${absent.join(', ')}.\n` +
-          `  It contains: ${[...entries.keys()].join(', ')}`,
-      );
+
+    /** shared file -> hash from the first zip, to verify the rest against */
+    const sharedHashes = new Map();
+
+    for (const [cart, asset] of [...cartAssets.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
+      const entries = readZip(await download(asset.browser_download_url));
+      const absent = expected.filter((f) => !entries.has(f));
+      if (absent.length) {
+        throw new Error(
+          `${r.tag_name}: ${asset.name} is missing ${absent.join(', ')}.\n` +
+            `  It contains: ${[...entries.keys()].join(', ')}`,
+        );
+      }
+
+      for (const f of PER_CART_FILES) {
+        const hash = sha256(entries.get(f));
+        const tags = (files[f][hash] ??= []);
+        if (tags[tags.length - 1] !== r.tag_name) tags.push(r.tag_name);
+        const carts = (builds[f][hash] ??= []);
+        if (!carts.includes(cart)) carts.push(cart);
+      }
+
+      // The lists are hashed once per release, so first verify every build really
+      // ships the same bytes. A release that varied them per cart would need the
+      // manifest to model that, not have it papered over.
+      for (const f of SHARED_FILES) {
+        const data = entries.get(f);
+        if (!data) continue;
+        const hash = sha256(data);
+        const first = sharedHashes.get(f);
+        if (first === undefined) sharedHashes.set(f, hash);
+        else if (first !== hash) {
+          throw new Error(
+            `${r.tag_name}: ${f} differs between builds (${asset.name} breaks the tie).\n` +
+              '  The shared-list assumption no longer holds; rework this script.',
+          );
+        }
+      }
+
+      cartsSeen.add(cart);
     }
 
-    for (const f of LOADER_FILES) {
-      const data = entries.get(f);
-      if (!data) continue;
-      (files[f][sha256(data)] ??= []).push(r.tag_name);
+    for (const [f, hash] of sharedHashes) {
+      (files[f][hash] ??= []).push(r.tag_name);
     }
     releaseList.push({ tag: r.tag_name, published: r.published_at.slice(0, 10) });
-    console.log(`  ${r.tag_name.padEnd(8)} ${asset.name.padEnd(28)} ${expected.length} files`);
+    console.log(
+      `  ${r.tag_name.padEnd(8)} ${String(cartAssets.size).padStart(2)} builds, ${expected.length} files each`,
+    );
   }
 
   // Deterministic: hash keys sorted as hex, tag arrays sorted the same way as the
-  // release list, so the file has one ordering rather than two.
+  // release list, cart arrays alphabetically, so the file has one ordering per axis.
   const sortedFiles = {};
   for (const f of LOADER_FILES) {
     const hashes = Object.keys(files[f]).sort();
     if (!hashes.length) continue;
     sortedFiles[f] = Object.fromEntries(hashes.map((h) => [h, files[f][h].slice().sort(bySemver)]));
   }
+  const sortedBuilds = {};
+  for (const f of PER_CART_FILES) {
+    const hashes = Object.keys(builds[f]).sort();
+    if (!hashes.length) continue;
+    sortedBuilds[f] = Object.fromEntries(hashes.map((h) => [h, builds[f][h].slice().sort()]));
+  }
   const hashCount = Object.values(sortedFiles).reduce((n, m) => n + Object.keys(m).length, 0);
   checkGrowth(
     releaseList.map((r) => r.tag),
     hashCount,
+    cartsSeen.size,
   );
 
   const manifest = {
     _comment:
       'GENERATED by scripts/gen-loader-manifest.mjs - do not edit by hand. ' +
-      'A hash maps to every release that shipped that exact file; see src/lib/loaderVersion.ts.',
+      'A hash maps to every release that shipped that exact file, and for the two ' +
+      'per-cart loader binaries, to every flashcart build with those bytes; ' +
+      'see src/lib/loaderVersion.ts.',
     source: REPO,
     releases: releaseList,
     files: sortedFiles,
+    builds: sortedBuilds,
   };
 
   // The repo's own pinned prettier, in process. Shelling out to npx could fetch a
@@ -366,7 +455,10 @@ async function main() {
 
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, formatted);
-  console.log(`\n→ ${OUT}\n  ${releaseList.length} releases, ${hashCount} distinct hashes`);
+  console.log(
+    `\n→ ${OUT}\n  ${releaseList.length} releases, ${cartsSeen.size} flashcart builds, ` +
+      `${hashCount} distinct hashes`,
+  );
 }
 
 main().catch((e) => {

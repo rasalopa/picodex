@@ -454,13 +454,24 @@ export function HealthView() {
                 <p
                   className={loaderVersion.candidates.length === 1 ? 'health-view__ok' : undefined}
                 >
-                  Loader <strong>{loaderVersion.candidates.join(' or ')}</strong>.
+                  Loader <strong>{loaderVersion.candidates.join(' or ')}</strong>
+                  {loaderVersion.builds.length >= 1 && loaderVersion.builds.length <= 2 ? (
+                    // The build is named only when the loader binaries pin it down:
+                    // one cart, or the old byte-identical AK2/AKRPG pair. A card
+                    // where only the universal picoLoader7.bin matched reports
+                    // every build, which is not knowledge worth printing.
+                    <>
+                      , the <strong>{loaderVersion.builds.join(' or ')}</strong> build.
+                    </>
+                  ) : (
+                    '.'
+                  )}
                   {loaderVersion.ambiguity === 'identical-releases'
                     ? ' Those two ship byte-identical files, so nothing can tell them apart.'
                     : loaderVersion.ambiguity === 'incomplete-evidence'
                       ? // NOT "identical files": v1.7.0 and v1.7.1 differ in exactly
                         // picoLoader7.bin, which reaching this branch means was either
-                        // absent or unrecognised (e.g. another flashcart's build).
+                        // absent or unrecognised (hand-edited, or newer than the manifest).
                         ' It could not be narrowed further: the files that differ between those releases are missing or not recognised here.'
                       : ''}
                 </p>
@@ -520,10 +531,10 @@ export function HealthView() {
 
             {loaderVersion !== null && loaderVersion.status === 'unrecognised' && (
               <p className="health-view__dim">
-                None of these files match a release PicoDex recognises. They may be a build for a
-                flashcart other than the DSpico (PicoDex only knows the DSpico builds for now), from
-                a release newer than this build, or edited by hand. Nothing is wrong on the card as
-                far as this check can tell.
+                None of these files match a release PicoDex recognises — and it knows every
+                flashcart&apos;s build of each release, so these are likely from a release newer
+                than this build of PicoDex, or edited by hand. Nothing is wrong on the card as far
+                as this check can tell.
               </p>
             )}
 
@@ -541,8 +552,8 @@ export function HealthView() {
                       <code>{name}</code>
                     </span>
                   ))}
-                  . On a flashcart other than the DSpico this is expected — PicoDex only knows the
-                  DSpico build of each release for now — and hand-editing them is normal too.
+                  . Hand-editing them is normal — people do tune <code>aplist.bin</code> — and a
+                  release newer than this build of PicoDex looks the same way.
                 </p>
               )}
 

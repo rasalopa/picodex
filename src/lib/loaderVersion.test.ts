@@ -145,14 +145,66 @@ describe('why more than one release survives', () => {
         });
         const r = identifyLoader(manifest, partial);
         if (r.ambiguity !== 'identical-releases') continue;
-        // claimed identical: prove every file agrees across the candidates
+        // Claimed identical: then no hash that could sit on this card may
+        // separate the candidates - every relevant one must ship in ALL of
+        // them. Bytes built for another cart are excluded the same way the
+        // implementation excludes them: they can never be on this card, so
+        // they separate nothing. Counting hashes per file instead would be
+        // wrong here, the per-cart binaries have one hash per build.
         for (const f of files) {
-          const covering = Object.entries(manifest.files[f])
-            .filter(([, tags]) => r.candidates.some((c) => tags.includes(c)))
-            .map(([h]) => h);
-          expect(covering.length, `${tag} mask ${String(mask)} ${f}`).toBeLessThanOrEqual(1);
+          for (const [h, tags] of Object.entries(manifest.files[f])) {
+            if (!r.candidates.some((c) => tags.includes(c))) continue;
+            const carts = manifest.builds[f]?.[h];
+            if (carts && r.builds.length > 0 && !r.builds.some((b) => carts.includes(b))) {
+              continue;
+            }
+            const coversAll = r.candidates.every((c) => tags.includes(c));
+            expect(coversAll, `${tag} mask ${String(mask)} ${f} ${h.slice(0, 12)}`).toBe(true);
+          }
         }
       }
+    }
+  });
+});
+
+describe('which flashcart build the loader is', () => {
+  it('identifies the real test card as the DSPICO build', () => {
+    expect(identifyLoader(manifest, REAL_V171).builds).toEqual(['DSPICO']);
+  });
+
+  it('identifies a card assembled with another build of the same release', () => {
+    // The R4 loader9 of v1.7.1, plus everything else from the DSpico card. The
+    // lists are shared across builds, so this is a valid, consistent v1.7.1
+    // card - just built for an R4. Exactly what the multi-cart manifest exists
+    // to recognise instead of calling it unrecognised.
+    const r4 = Object.entries(manifest.builds['picoLoader9.bin']).find(
+      ([hash, carts]) =>
+        carts.length === 1 &&
+        carts[0] === 'R4' &&
+        manifest.files['picoLoader9.bin'][hash].includes('v1.7.1'),
+    );
+    expect(r4).toBeDefined();
+    const r = identifyLoader(manifest, { ...REAL_V171, 'picoLoader9.bin': r4![0] });
+    expect(r.status).toBe('identified');
+    expect(r.candidates).toEqual(['v1.7.1']);
+    expect(r.builds).toEqual(['R4']);
+  });
+
+  it('does not pretend to know the build from the universal picoLoader7 alone', () => {
+    const r = identifyLoader(manifest, { 'picoLoader7.bin': REAL_V171['picoLoader7.bin'] });
+    // every build of the matching releases survives, which the UI reads as unknown
+    expect(r.builds.length).toBeGreaterThan(2);
+  });
+
+  it('reports no build when no per-cart file was recognised', () => {
+    expect(identifyLoader(manifest, {}).builds).toEqual([]);
+    expect(identifyLoader(manifest, { 'aplist.bin': REAL_V171['aplist.bin'] }).builds).toEqual([]);
+  });
+
+  it('narrows to at least one build for a full card of every release', () => {
+    for (const tag of allTags) {
+      const r = identifyLoader(manifest, cardOn(tag));
+      expect(r.builds.length, tag).toBeGreaterThanOrEqual(1);
     }
   });
 });
@@ -250,6 +302,25 @@ describe('identifyLoader, files it cannot place', () => {
       'picoLoader9.bin': REAL_V171['picoLoader9.bin'].toUpperCase(),
     });
     expect(r.status).toBe('identified');
+  });
+
+  it('gives the same full answer whatever the casing', () => {
+    // The regression this guards: the files lookup lowercased the hash but the
+    // match kept the caller's casing, so the builds table (lowercase keys) was
+    // silently missed - an uppercase card resolved its release but reported no
+    // build, and the identical-releases verdict could flip because the
+    // cart-exclusion clause had no builds to work with.
+    const upper = Object.fromEntries(
+      Object.entries(REAL_V171).map(([f, h]) => [f, h.toUpperCase()]),
+    );
+    expect(identifyLoader(manifest, upper)).toEqual(identifyLoader(manifest, REAL_V171));
+
+    const pair = cardOn('v1.3.0');
+    const pairUpper = Object.fromEntries(
+      Object.entries(pair).map(([f, h]) => [f, h!.toUpperCase()]),
+    );
+    expect(identifyLoader(manifest, pairUpper)).toEqual(identifyLoader(manifest, pair));
+    expect(identifyLoader(manifest, pairUpper).ambiguity).toBe('identical-releases');
   });
 });
 
