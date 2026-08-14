@@ -23,6 +23,21 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.7.0',
+    date: 'Aug 14, 2026',
+    changes: [
+      {
+        text: 'PicoDex works with any flashcart that runs Pico Launcher, not just the DSpico. An R4, a DSTT, an Acekard — if the card has a /_pico folder, PicoDex understands it.',
+      },
+      {
+        text: 'The health check now recognises the loader files of every flashcart build and says which one your card carries, like "Loader v1.7.1, the R4 build". A card that used to show unrecognised files just because it was not a DSpico now identifies cleanly.',
+      },
+      {
+        text: 'The play-stats tab and the Pico Enhanced badge only appear when the card actually runs the Enhanced launcher, detected from the launcher itself.',
+      },
+    ],
+  },
+  {
     version: '0.6.0',
     date: 'Aug 10, 2026',
     changes: [
