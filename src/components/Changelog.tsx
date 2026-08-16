@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { CHANGELOG, REPO_URL } from '../lib/changelog';
+import { useT } from '../i18n';
 import './Changelog.css';
 
 /**
@@ -8,6 +9,7 @@ import './Changelog.css';
  * the footer without a router. Escape or an overlay click closes it.
  */
 export function Changelog({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,11 +45,16 @@ export function Changelog({ onClose }: { onClose: () => void }) {
         className="changelog"
         role="dialog"
         aria-modal="true"
-        aria-label="What's new in PicoDex"
+        aria-label={t.changelog.dialogLabel}
       >
         <header className="changelog__header">
-          <h3 className="changelog__title">What's new</h3>
-          <button type="button" className="changelog__close" aria-label="Close" onClick={onClose}>
+          <h3 className="changelog__title">{t.changelog.title}</h3>
+          <button
+            type="button"
+            className="changelog__close"
+            aria-label={t.changelog.close}
+            onClick={onClose}
+          >
             <span aria-hidden="true">×</span>
           </button>
         </header>
@@ -82,7 +89,7 @@ export function Changelog({ onClose }: { onClose: () => void }) {
 
         <footer className="changelog__footer">
           <a href={`${REPO_URL}/releases`} target="_blank" rel="noreferrer">
-            Full release notes on GitHub
+            {t.changelog.fullNotes}
           </a>
         </footer>
       </div>

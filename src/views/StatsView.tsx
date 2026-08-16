@@ -9,6 +9,7 @@ import { coverBmpCroppedPreviewUrl } from '../lib/coverart';
 import { COVERS, getDir, readFileBytes } from '../lib/sdcard';
 import { systemForExtension } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
+import { useT } from '../i18n';
 import {
   IconCartridge,
   IconCheckCircle,
@@ -28,11 +29,6 @@ const COVER_CONCURRENCY = 6;
 function baseName(fileName: string): string {
   const dot = fileName.lastIndexOf('.');
   return dot > 0 ? fileName.slice(0, dot) : fileName;
-}
-
-/** Minutes rendered as "Xh Ym" (125 → "2h 5m"). */
-function formatPlayTime(minutes: number): string {
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 /** "YYYY-MM-DD HH:MM" → "DD/MM HH:MM"; unexpected shapes pass through unchanged. */
@@ -108,8 +104,9 @@ function Thumb({ url }: { url: string | null | undefined }) {
 }
 
 function FavoriteHeart() {
+  const t = useT();
   return (
-    <span className="stats-view__heart" role="img" aria-label="Favorite">
+    <span className="stats-view__heart" role="img" aria-label={t.stats.favorite}>
       ♥
     </span>
   );
@@ -124,6 +121,7 @@ function FavoriteHeart() {
  */
 export function StatsView() {
   const { root, coverIndex, gameData } = useSd();
+  const t = useT();
   const [covers, setCovers] = useState<ReadonlyMap<string, string | null>>(new Map());
 
   const lists = useMemo(() => {
@@ -216,7 +214,7 @@ export function StatsView() {
           <p className="stats-view__info-icon" aria-hidden="true">
             ✨
           </p>
-          <h2>No play stats yet</h2>
+          <h2>{t.stats.noStatsTitle}</h2>
           <p>
             <a
               href="https://github.com/rasalopa/pico-launcher-enhanced"
@@ -225,8 +223,7 @@ export function StatsView() {
             >
               Pico Launcher Enhanced
             </a>{' '}
-            records a launch count, play time and favorite for every game. Launch something from the
-            launcher and it shows up here.
+            {t.stats.noStatsBody}
           </p>
         </div>
       </section>
@@ -241,51 +238,51 @@ export function StatsView() {
       <dl className="stats-view__tiles">
         <div className="stats-view__tile card">
           <IconCartridge className="stats-view__tile-icon" />
-          <dt className="stats-view__tile-label">Games played</dt>
+          <dt className="stats-view__tile-label">{t.stats.gamesPlayed}</dt>
           <dd className="stats-view__tile-value">{totals.playedCount}</dd>
         </div>
         <div className="stats-view__tile card">
           <IconHeart className="stats-view__tile-icon" />
-          <dt className="stats-view__tile-label">Favorites</dt>
+          <dt className="stats-view__tile-label">{t.stats.favorites}</dt>
           <dd className="stats-view__tile-value">{totals.favoriteCount}</dd>
         </div>
         <div className="stats-view__tile card">
           <IconCheckCircle className="stats-view__tile-icon" />
-          <dt className="stats-view__tile-label">Completed</dt>
+          <dt className="stats-view__tile-label">{t.stats.completed}</dt>
           <dd className="stats-view__tile-value">{totals.completedCount}</dd>
         </div>
         <div className="stats-view__tile card">
           <IconPlay className="stats-view__tile-icon" />
-          <dt className="stats-view__tile-label">Total launches</dt>
+          <dt className="stats-view__tile-label">{t.stats.totalLaunches}</dt>
           <dd className="stats-view__tile-value">{totals.totalLaunches}</dd>
         </div>
         <div className="stats-view__tile card">
           <IconClock className="stats-view__tile-icon" />
-          <dt className="stats-view__tile-label">Total play time</dt>
-          <dd className="stats-view__tile-value">{formatPlayTime(totals.totalPlayMinutes)}</dd>
+          <dt className="stats-view__tile-label">{t.stats.totalPlayTime}</dt>
+          <dd className="stats-view__tile-value">{t.stats.duration(totals.totalPlayMinutes)}</dd>
         </div>
       </dl>
 
       <section aria-labelledby="stats-view-most-played">
         <h2 className="stats-view__title section-title" id="stats-view-most-played">
-          Most played
+          {t.stats.mostPlayed}
         </h2>
         {mostPlayed.length === 0 ? (
-          <p className="stats-view__none">No games have been launched yet.</p>
+          <p className="stats-view__none">{t.stats.noneLaunched}</p>
         ) : (
           <div className="stats-view__table-wrap">
             <table className="stats-view__table">
               <thead>
                 <tr>
-                  <th scope="col">Game</th>
+                  <th scope="col">{t.stats.game}</th>
                   <th scope="col" className="stats-view__num">
-                    Launches
+                    {t.stats.launches}
                   </th>
                   <th scope="col" className="stats-view__num">
-                    Play time
+                    {t.stats.playTime}
                   </th>
                   <th scope="col">
-                    <span className="stats-view__sr-only">Favorite</span>
+                    <span className="stats-view__sr-only">{t.stats.favorite}</span>
                   </th>
                 </tr>
               </thead>
@@ -301,7 +298,7 @@ export function StatsView() {
                       </div>
                     </td>
                     <td className="stats-view__num">{entry.launchCount}</td>
-                    <td className="stats-view__num">{formatPlayTime(entry.playMinutes)}</td>
+                    <td className="stats-view__num">{t.stats.duration(entry.playMinutes)}</td>
                     <td className="stats-view__fav">{entry.favorite ? <FavoriteHeart /> : null}</td>
                   </tr>
                 ))}
@@ -313,10 +310,10 @@ export function StatsView() {
 
       <section aria-labelledby="stats-view-recent">
         <h2 className="stats-view__title section-title" id="stats-view-recent">
-          Recently played
+          {t.stats.recentlyPlayed}
         </h2>
         {recentlyPlayed.length === 0 ? (
-          <p className="stats-view__none">No games have been launched yet.</p>
+          <p className="stats-view__none">{t.stats.noneLaunched}</p>
         ) : (
           <ol className="stats-view__recent">
             {recentlyPlayed.map((entry) => (
@@ -341,12 +338,10 @@ export function StatsView() {
 
       <section aria-labelledby="stats-view-favorites">
         <h2 className="stats-view__title section-title" id="stats-view-favorites">
-          Favorites
+          {t.stats.favorites}
         </h2>
         {favorites.length === 0 ? (
-          <p className="stats-view__none">
-            No favorites yet — press X on a game in the launcher to add one.
-          </p>
+          <p className="stats-view__none">{t.stats.noFavorites}</p>
         ) : (
           <ul className="stats-view__favorites">
             {favorites.map((entry) => (

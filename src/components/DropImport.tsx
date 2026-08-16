@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useT } from '../i18n';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, downloadPngAsBitmap } from '../lib/coverart';
 import { planImport } from '../lib/importer';
@@ -40,18 +41,6 @@ interface ImportRow {
   /** Failure detail (failed phase). */
   message?: string;
 }
-
-const ROW_LABELS: Record<RowPhase, string> = {
-  queued: 'Queued',
-  copying: 'Copying…',
-  added: 'Added',
-  'added-cover': 'Added, cover fetched',
-  'added-no-cover': 'Added, no cover match',
-  duplicate: 'Duplicate (skipped)',
-  skipped: 'Skipped (already on card)',
-  unknown: 'Unknown type',
-  failed: 'Failed',
-};
 
 /** Visual tone (status color) per phase. */
 const ROW_TONES: Record<RowPhase, 'busy' | 'ok' | 'skip' | 'error'> = {
@@ -169,6 +158,7 @@ async function fetchCoverBestEffort(
  */
 export function DropImport() {
   const { root, games, coverIndex, refresh } = useSd();
+  const t = useT();
   const [dragActive, setDragActive] = useState(false);
   const [running, setRunning] = useState(false);
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -233,7 +223,7 @@ export function DropImport() {
           try {
             const bytes = new Uint8Array(await files[i].arrayBuffer());
             const dir = await getDir(root, [GAMES_DIR, system.gamesDir], true);
-            if (dir === null) throw new Error('Could not open the games directory');
+            if (dir === null) throw new Error(t.dropImport.gamesDirError);
             // Re-check on the card right before writing: never overwrite a
             // ROM, even if it appeared after the library was last scanned.
             if (await fileExists(dir, item.fileName)) {
@@ -270,7 +260,7 @@ export function DropImport() {
         setRunning(false);
       }
     },
-    [root, games, coverIndex, refresh, updateRow],
+    [root, games, coverIndex, refresh, updateRow, t],
   );
 
   useEffect(() => {
@@ -330,6 +320,19 @@ export function DropImport() {
 
   if (root === null) return null;
 
+  /** Row status label per phase, in the active language. */
+  const rowLabels: Record<RowPhase, string> = {
+    queued: t.dropImport.queued,
+    copying: t.dropImport.copying,
+    added: t.dropImport.added,
+    'added-cover': t.dropImport.addedCover,
+    'added-no-cover': t.dropImport.addedNoCover,
+    duplicate: t.dropImport.duplicate,
+    skipped: t.dropImport.skipped,
+    unknown: t.dropImport.unknownType,
+    failed: t.dropImport.failed,
+  };
+
   const addedCount = rows.filter((row) => ADDED_PHASES.includes(row.phase)).length;
 
   return (
@@ -345,23 +348,27 @@ export function DropImport() {
               <circle cx="11" cy="24" r="2" fill="var(--accent)" />
               <circle cx="21" cy="24" r="2" fill="var(--text-dim)" />
             </svg>
-            {running ? 'Import in progress…' : 'Drop ROMs to add them to your card'}
+            {running ? t.dropImport.overlayBusy : t.dropImport.overlayDrop}
           </p>
         </div>
       )}
       {rows.length > 0 && (
-        <section className="drop-import__panel" role="status" aria-label="ROM import results">
+        <section
+          className="drop-import__panel"
+          role="status"
+          aria-label={t.dropImport.resultsLabel}
+        >
           <header className="drop-import__panel-header">
             <span className="drop-import__title">
-              {running ? 'Importing ROMs…' : 'Import finished'}
+              {running ? t.dropImport.importing : t.dropImport.finished}
             </span>
-            <span className="drop-import__summary">{addedCount} added</span>
+            <span className="drop-import__summary">{t.dropImport.addedCount(addedCount)}</span>
             <button
               className="drop-import__close"
               onClick={() => setRows([])}
               disabled={running}
-              aria-label="Dismiss import results"
-              title={running ? 'Import in progress' : 'Dismiss'}
+              aria-label={t.dropImport.dismissLabel}
+              title={running ? t.dropImport.busyTitle : t.dropImport.dismiss}
             >
               ×
             </button>
@@ -377,8 +384,8 @@ export function DropImport() {
                 </span>
                 <span className="drop-import__status">
                   {row.phase === 'failed' && row.message !== undefined
-                    ? `Failed (${row.message})`
-                    : ROW_LABELS[row.phase]}
+                    ? t.dropImport.failedWith(row.message)
+                    : rowLabels[row.phase]}
                 </span>
               </li>
             ))}

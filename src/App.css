@@ -308,3 +308,16 @@
   font-size: 0.875rem;
   text-align: center;
 }
+
+.app__lang-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+/* The inactive language looks like the other footer links; the active one
+   reads as the current state, not as something begging to be clicked. */
+.app__lang--active {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: default;
+}

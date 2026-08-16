@@ -25,7 +25,6 @@ import {
   GAMEDATA_FILE,
   SETTINGS_FILE,
   PICO_DIR,
-  friendlyFsError,
   getDir,
   isAccessError,
   listEntries,
@@ -59,13 +58,41 @@ export interface CoverIndex {
   user: Set<string>;
 }
 
+/**
+ * A user-facing progress or error message, as a descriptor rather than a
+ * string: the context has no business knowing the active language, so it
+ * records WHAT happened and the UI renders it through the dictionary
+ * (see src/i18n/messages.ts). `raw` carries texts we do not own, like a
+ * DOMException message, shown as-is.
+ */
+export type SdMessage =
+  | { key: 'scanningLibrary' }
+  | { key: 'scanningLibraryCount'; count: number }
+  | { key: 'readingCovers' }
+  | { key: 'readingLauncherData' }
+  | { key: 'waitingAccess' }
+  | { key: 'needsAccess'; name: string }
+  | { key: 'noPicoAnymore' }
+  | { key: 'noPicoPickRoot' }
+  | { key: 'noPicoOnCard' }
+  | { key: 'fsDenied' }
+  | { key: 'raw'; text: string };
+
+/** {@link friendlyFsError}, as a descriptor the UI can translate. */
+function fsMessage(e: unknown): SdMessage {
+  if (e instanceof DOMException && e.name === 'NoModificationAllowedError') {
+    return { key: 'fsDenied' };
+  }
+  return { key: 'raw', text: e instanceof Error ? e.message : String(e) };
+}
+
 export interface SdState {
   root: FileSystemDirectoryHandle | null;
   /** True while opening or rescanning. */
   loading: boolean;
   /** Human-readable description of the current loading phase, when any. */
-  progress: string | null;
-  error: string | null;
+  progress: SdMessage | null;
+  error: SdMessage | null;
   games: LibraryFile[];
   coverIndex: CoverIndex;
   /** Parsed /_pico/gamedata.json, or null on stock launchers. */
@@ -220,8 +247,8 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
 export function SdProvider({ children }: { children: ReactNode }) {
   const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<SdMessage | null>(null);
+  const [error, setError] = useState<SdMessage | null>(null);
   const [games, setGames] = useState<LibraryFile[]>([]);
   const [coverIndex, setCoverIndex] = useState<CoverIndex>({
     nds: new Set(),
@@ -245,16 +272,16 @@ export function SdProvider({ children }: { children: ReactNode }) {
     // in-flight favorite writes must commit before re-reading gamedata.json,
     // or the reload could revert them with a pre-toggle snapshot
     await writeChain.current;
-    setProgress('Scanning game library…');
+    setProgress({ key: 'scanningLibrary' });
     setGames(
       await scanLibrary(rootHandle, SYSTEMS, (filesSeen) => {
         // large collections take a while: show the walk is alive
-        setProgress(`Scanning game library… ${filesSeen} files`);
+        setProgress({ key: 'scanningLibraryCount', count: filesSeen });
       }),
     );
-    setProgress('Reading covers…');
+    setProgress({ key: 'readingCovers' });
     setCoverIndex(await readCoverIndex(rootHandle));
-    setProgress('Reading launcher data…');
+    setProgress({ key: 'readingLauncherData' });
     const launcher = await readLauncherFiles(rootHandle);
     gameDataRef.current = launcher.gameData;
     setGameData(launcher.gameData);
@@ -300,17 +327,17 @@ export function SdProvider({ children }: { children: ReactNode }) {
     setError(null);
     setLoading(true);
     try {
-      setProgress('Waiting for access to the card…');
+      setProgress({ key: 'waitingAccess' });
       if (!(await ensureReadWritePermission(lastCardHandle))) {
         // Denying the prompt is a choice, not a failure, but saying nothing
         // looks like a dead button. The card stays remembered so it can be
         // opened on the next try.
-        setError(`PicoDex needs access to ${lastCardHandle.name} to open it.`);
+        setError({ key: 'needsAccess', name: lastCardHandle.name });
         return false;
       }
       if (!(await looksLikeDspicoSd(lastCardHandle))) {
         // the folder is still there but is not a card any more
-        setError('That folder has no /_pico directory any more — pick a card.');
+        setError({ key: 'noPicoAnymore' });
         dismissLastCard();
         return false;
       }
@@ -322,7 +349,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       // Keep the card remembered: a read that failed once (a card pulled mid
       // scan, a locked file) says nothing about whether it will work next time,
       // and forgetting it would send the user back to the picker for good.
-      setError(friendlyFsError(e));
+      setError(fsMessage(e));
       return false;
     } finally {
       setLoading(false);
@@ -336,7 +363,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
     try {
       const rootHandle = await pickSdRoot();
       if (!(await looksLikeDspicoSd(rootHandle))) {
-        setError('That folder has no /_pico directory — pick the root of a Pico Launcher SD card.');
+        setError({ key: 'noPicoPickRoot' });
         return;
       }
       setRoot(rootHandle);
@@ -346,7 +373,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       // user cancelling the picker is not an error
       if (!(e instanceof DOMException && e.name === 'AbortError')) {
-        setError(friendlyFsError(e));
+        setError(fsMessage(e));
       }
     } finally {
       setLoading(false);
@@ -361,7 +388,7 @@ export function SdProvider({ children }: { children: ReactNode }) {
       await loadFrom(root);
       return true;
     } catch (e) {
-      setError(friendlyFsError(e));
+      setError(fsMessage(e));
       return false;
     } finally {
       setLoading(false);
@@ -382,12 +409,15 @@ export function SdProvider({ children }: { children: ReactNode }) {
           const next = mutate(gameDataRef.current);
           const text = serializeGameData(next);
           const picoDir = await getDir(root, [PICO_DIR]);
-          if (picoDir === null) throw new Error('No /_pico directory on the SD card');
+          if (picoDir === null) {
+            setError({ key: 'noPicoOnCard' });
+            return;
+          }
           await writeFileText(picoDir, GAMEDATA_FILE, text);
           gameDataRef.current = next;
           setGameData(next);
         } catch (e) {
-          setError(friendlyFsError(e));
+          setError(fsMessage(e));
         }
       };
       // queue, don't reject: `run` handles its own failures, so the chain

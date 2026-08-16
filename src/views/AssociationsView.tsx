@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSd } from '../state/SdContext';
+import { useT } from '../i18n';
 import {
   removeAssociation,
   serializeSettings,
@@ -54,6 +55,7 @@ function normalizeNewAssociation(ext: string, appPath: string): [string, string]
  */
 export function AssociationsView() {
   const { root, settings, refresh } = useSd();
+  const t = useT();
   /** Local edits; `null` mirrors the settings from the SD card (pristine). */
   const [draft, setDraft] = useState<Map<string, string> | null>(null);
   const [newExt, setNewExt] = useState('');
@@ -65,8 +67,8 @@ export function AssociationsView() {
   if (!root) {
     return (
       <section className="associations-view">
-        <h2>File associations</h2>
-        <p className="associations-view__info">Open an SD card to edit file associations.</p>
+        <h2>{t.associations.title}</h2>
+        <p className="associations-view__info">{t.associations.openCard}</p>
       </section>
     );
   }
@@ -74,10 +76,13 @@ export function AssociationsView() {
   if (!settings) {
     return (
       <section className="associations-view">
-        <h2>File associations</h2>
+        <h2>{t.associations.title}</h2>
         <p className="associations-view__info">
-          No <code>settings.json</code> found — run Pico Launcher once on your DSpico so it creates{' '}
-          <code>/_pico/settings.json</code>, then refresh.
+          {t.associations.noSettings1}
+          <code>settings.json</code>
+          {t.associations.noSettings2}
+          <code>/_pico/settings.json</code>
+          {t.associations.noSettings3}
         </p>
       </section>
     );
@@ -107,7 +112,7 @@ export function AssociationsView() {
     setAddError(null);
     const normalized = normalizeNewAssociation(newExt, newPath.trim());
     if (normalized === null) {
-      setAddError('Enter a valid file extension (dots are ignored).');
+      setAddError(t.associations.invalidExt);
       return;
     }
     const [ext, appPath] = normalized;
@@ -139,7 +144,7 @@ export function AssociationsView() {
       const text = serializeSettings(next);
       const picoDir = await getDir(root, [PICO_DIR]);
       if (picoDir === null) {
-        throw new Error('The /_pico directory is missing from the SD card.');
+        throw new Error(t.associations.picoMissing);
       }
       await writeFileText(picoDir, SETTINGS_FILE, text);
       setDraft(null);
@@ -154,24 +159,25 @@ export function AssociationsView() {
   return (
     <section className="associations-view">
       <header>
-        <h2>File associations</h2>
+        <h2>{t.associations.title}</h2>
         <p className="associations-view__intro">
-          Choose which application the launcher opens for each file extension. Stored in{' '}
-          <code>/_pico/settings.json</code>.
+          {t.associations.intro1}
+          <code>/_pico/settings.json</code>
+          {t.associations.intro2}
         </p>
       </header>
 
       {shown.size === 0 ? (
-        <p className="associations-view__info">No file associations yet — add one below.</p>
+        <p className="associations-view__info">{t.associations.emptyList}</p>
       ) : (
         <div className="associations-view__table-wrap">
           <table className="associations-view__table">
             <thead>
               <tr>
-                <th scope="col">Extension</th>
-                <th scope="col">Application path</th>
+                <th scope="col">{t.associations.extension}</th>
+                <th scope="col">{t.associations.appPath}</th>
                 <th scope="col">
-                  <span className="associations-view__sr-only">Actions</span>
+                  <span className="associations-view__sr-only">{t.associations.actions}</span>
                 </th>
               </tr>
             </thead>
@@ -187,7 +193,7 @@ export function AssociationsView() {
                       className="associations-view__path-input"
                       value={appPath}
                       placeholder={EXAMPLE_PATHS[0]}
-                      aria-label={`Application path for .${ext} files`}
+                      aria-label={t.associations.pathFor(ext)}
                       onChange={(event) => handlePathChange(ext, event.target.value)}
                     />
                   </td>
@@ -195,9 +201,9 @@ export function AssociationsView() {
                     <button
                       type="button"
                       onClick={() => handleRemove(ext)}
-                      aria-label={`Remove .${ext} association`}
+                      aria-label={t.associations.removeFor(ext)}
                     >
-                      Remove
+                      {t.associations.remove}
                     </button>
                   </td>
                 </tr>
@@ -215,7 +221,7 @@ export function AssociationsView() {
         }}
       >
         <label className="associations-view__field associations-view__field--ext">
-          <span>Extension</span>
+          <span>{t.associations.extension}</span>
           <input
             type="text"
             value={newExt}
@@ -224,7 +230,7 @@ export function AssociationsView() {
           />
         </label>
         <label className="associations-view__field associations-view__field--path">
-          <span>Application path</span>
+          <span>{t.associations.appPath}</span>
           <input
             type="text"
             className="associations-view__path-input"
@@ -234,7 +240,7 @@ export function AssociationsView() {
           />
         </label>
         <button type="submit" disabled={newExt.trim().length === 0 || newPath.trim().length === 0}>
-          Add
+          {t.associations.add}
         </button>
       </form>
       {addError !== null && (
@@ -244,7 +250,7 @@ export function AssociationsView() {
       )}
 
       <p className="associations-view__hint">
-        Enter the extension without the dot. Common emulator paths:{' '}
+        {t.associations.hint}
         {EXAMPLE_PATHS.map((path, index) => (
           <span key={path}>
             {index > 0 && ', '}
@@ -257,12 +263,11 @@ export function AssociationsView() {
       {dirty && (
         <div className="associations-view__save-bar card">
           <p className="associations-view__warning" role="status">
-            The launcher reads associations at boot — restart your DS after saving for the changes
-            to take effect.
+            {t.associations.restartWarning}
           </p>
           {hasEmptyPath && (
             <p className="associations-view__error" role="alert">
-              Application paths cannot be empty. Fill in or remove the blank rows.
+              {t.associations.emptyPaths}
             </p>
           )}
           {saveError !== null && (
@@ -272,7 +277,7 @@ export function AssociationsView() {
           )}
           <div className="associations-view__save-actions">
             <button type="button" onClick={handleDiscard} disabled={saving}>
-              Discard changes
+              {t.associations.discard}
             </button>
             <button
               type="button"
@@ -280,7 +285,7 @@ export function AssociationsView() {
               onClick={() => void handleSave()}
               disabled={saving || hasEmptyPath}
             >
-              {saving ? 'Saving…' : 'Save to SD'}
+              {saving ? t.associations.saving : t.associations.saveToSd}
             </button>
           </div>
         </div>

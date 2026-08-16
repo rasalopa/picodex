@@ -6,6 +6,7 @@ import { loaderApiCapabilities } from '../lib/loader';
 import { GAMES_DIR, PICO_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
+import { useT } from '../i18n';
 import { IconCartridge, IconClock, IconHeart, IconLayers } from '../components/icons';
 import { SystemGallery } from './SystemGallery';
 import './LibraryView.css';
@@ -61,13 +62,6 @@ function groupBySystem(games: readonly LibraryFile[], coverIndex: CoverIndex): S
   });
 }
 
-/** Formats a minute total as "Xh Ym" (e.g. 125 → "2h 5m"). */
-function formatPlayTime(totalMinutes: number): string {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${String(hours)}h ${String(minutes)}m`;
-}
-
 /**
  * Landing view for an open SD card: a summary strip (game total, systems
  * present and — when the Pico Enhanced launcher's gamedata.json exists —
@@ -77,6 +71,7 @@ function formatPlayTime(totalMinutes: number): string {
  */
 export function LibraryView() {
   const { root, games, coverIndex, gameData, cardInfo, refresh } = useSd();
+  const t = useT();
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
   /** Icon URLs keyed by `system.id`. */
   const [systemIcons, setSystemIcons] = useState<ReadonlyMap<string, string>>(new Map());
@@ -168,29 +163,29 @@ export function LibraryView() {
   }
 
   return (
-    <section className="library-view" aria-label="Library overview">
+    <section className="library-view" aria-label={t.library.overviewLabel}>
       <dl className="library-view__summary">
         <div className="library-view__stat card">
           <IconCartridge className="library-view__stat-icon" />
-          <dt>Games</dt>
+          <dt>{t.library.games}</dt>
           <dd>{games.length}</dd>
         </div>
         <div className="library-view__stat card">
           <IconLayers className="library-view__stat-icon" />
-          <dt>Systems</dt>
+          <dt>{t.library.systems}</dt>
           <dd>{groups.length}</dd>
         </div>
         {totals !== null && (
           <>
             <div className="library-view__stat card">
               <IconHeart className="library-view__stat-icon" />
-              <dt>Favorites</dt>
+              <dt>{t.library.favorites}</dt>
               <dd>{totals.favoriteCount}</dd>
             </div>
             <div className="library-view__stat card">
               <IconClock className="library-view__stat-icon" />
-              <dt>Play time</dt>
-              <dd>{formatPlayTime(totals.totalPlayMinutes)}</dd>
+              <dt>{t.library.playTime}</dt>
+              <dd>{t.library.playTimeValue(totals.totalPlayMinutes)}</dd>
             </div>
           </>
         )}
@@ -198,9 +193,13 @@ export function LibraryView() {
 
       {games.length === 0 ? (
         <p className="library-view__empty">
-          No games found on the card. PicoDex scans every folder (except <code>/_pico</code>) for
-          known ROM extensions, so your games can live in <code>Games/nds</code>, a{' '}
-          <code>roms/</code> folder, or anywhere else.
+          {t.library.noGames1}
+          <code>/_pico</code>
+          {t.library.noGames2}
+          <code>Games/nds</code>
+          {t.library.noGames3}
+          <code>roms/</code>
+          {t.library.noGames4}
         </p>
       ) : (
         <ul className="library-view__grid">
@@ -232,18 +231,12 @@ export function LibraryView() {
                   )}
                   <span className="library-view__card-label">{system.label}</span>
                 </span>
-                <span className="library-view__card-count">
-                  {count} {count === 1 ? 'game' : 'games'}
-                </span>
+                <span className="library-view__card-count">{t.library.gameCount(count)}</span>
                 <span
                   className="library-view__card-covers"
-                  title={
-                    approximate
-                      ? `Approximate: ${system.label} covers are keyed by ROM gamecode, which cannot be matched to files without reading each ROM. This is the number of cover files present, capped at the game count.`
-                      : undefined
-                  }
+                  title={approximate ? t.library.approxTitle(system.label) : undefined}
                 >
-                  {covered}/{count} covers{approximate ? ' (approx.)' : ''}
+                  {t.library.covers(covered, count, approximate)}
                 </span>
                 <span className="library-view__bar" aria-hidden="true">
                   {/* count >= 1 by construction: a group only exists for systems with games */}
@@ -254,15 +247,15 @@ export function LibraryView() {
                     style={{ width: `${String((covered / count) * 100)}%` }}
                   />
                 </span>
-                <span className="library-view__card-cta">View games →</span>
+                <span className="library-view__card-cta">{t.library.viewGames}</span>
               </button>
               {/* Sibling overlay, NOT a child of the card <button> — nested
                   buttons are invalid HTML. */}
               <button
                 type="button"
                 className="library-view__card-edit"
-                aria-label={`Edit folder banner for ${system.label}`}
-                title={`Edit the ${system.label} folder banner (icon and display name shown in the launcher)`}
+                aria-label={t.library.editBannerFor(system.label)}
+                title={t.library.editBannerTitle(system.label)}
                 onClick={(e) => {
                   e.stopPropagation();
                   setBannerTarget({ gamesDir: system.gamesDir, label: system.label });
@@ -296,32 +289,32 @@ export function LibraryView() {
         />
       )}
 
-      <aside className="library-view__card-info card" aria-label="Card components">
-        <h3 className="library-view__card-info-title section-title">On this card</h3>
+      <aside className="library-view__card-info card" aria-label={t.library.cardComponentsLabel}>
+        <h3 className="library-view__card-info-title section-title">{t.library.onThisCard}</h3>
         <dl className="library-view__card-info-list">
           <div>
-            <dt>Launcher</dt>
+            <dt>{t.library.launcher}</dt>
             <dd>
-              {cardInfo.launcherTitle ?? 'Not found'}
+              {cardInfo.launcherTitle ?? t.library.notFound}
               {(cardInfo.isEnhancedFork || gameData !== null) && (
-                <span className="library-view__chip">Pico Enhanced</span>
+                <span className="library-view__chip">{t.library.enhancedChip}</span>
               )}
               {cardInfo.launcherModified !== null && (
                 <span className="library-view__card-info-dim">
                   {' '}
-                  · updated {new Date(cardInfo.launcherModified).toLocaleDateString()}
+                  {t.library.updatedOn(new Date(cardInfo.launcherModified).toLocaleDateString())}
                 </span>
               )}
             </dd>
           </div>
           <div>
-            <dt>Pico Loader</dt>
+            <dt>{t.library.picoLoader}</dt>
             <dd>
               {cardInfo.loaderApiVersion === null ? (
-                'Not found'
+                t.library.notFound
               ) : (
                 <>
-                  API v{cardInfo.loaderApiVersion}
+                  {t.library.apiVersion(cardInfo.loaderApiVersion)}
                   <span className="library-view__card-info-dim">
                     {' '}
                     · {loaderApiCapabilities(cardInfo.loaderApiVersion).join(' · ')}

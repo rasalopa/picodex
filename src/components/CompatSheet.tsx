@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { compatForGame, type GameCompat, type RomKind, type SaveType } from '../lib/loaderlists';
+import { compatForGame, type GameCompat, type RomKind } from '../lib/loaderlists';
 import { useSd } from '../state/SdContext';
+import { useT } from '../i18n';
+import type { Dict } from '../i18n/en';
 import './CompatSheet.css';
 
 export interface CompatSheetProps {
@@ -31,15 +33,6 @@ export interface CompatSheetProps {
 /** Visual tone of one compatibility row. */
 type Tone = 'ok' | 'neutral' | 'warn';
 
-/** Display labels for the loader's save memory types. */
-const SAVE_TYPE_LABELS: Record<SaveType, string> = {
-  none: 'None',
-  eeprom: 'EEPROM',
-  flash: 'Flash',
-  nand: 'NAND',
-  unknown: 'Unknown',
-};
-
 /** "512" or "1.5" — integral values without the pointless ".0". */
 function formatNumber(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
@@ -54,57 +47,12 @@ function formatSize(bytes: number): string {
   return `${String(bytes)} B`;
 }
 
-/**
- * Amber-warning sentence for a version mismatch: entries exist for this game
- * but none for the ROM's revision. When the header revision was unreadable
- * the loader assumed revision 0, so the wording softens accordingly.
- */
-function mismatchText(kind: 'fix' | 'patch', entryVersions: number[], romVersion: number | null) {
-  const noun = entryVersions.length === 1 ? 'revision' : 'revisions';
-  const revs = entryVersions.join(', ');
-  const romPart =
-    romVersion === null
-      ? "this ROM's revision is unreadable (assuming rev 0)"
-      : `this ROM is revision ${String(romVersion)}`;
-  return `A ${kind} exists for ${noun} ${revs}, but ${romPart} — the loader only applies exact matches.`;
-}
-
-/**
- * Explanatory hints, per row and per ROM kind. They cannot be fixed strings:
- * the retail wording talks about the list this row reads, which is meaningless
- * for a ROM whose kind means the loader never reaches that step, and the save
- * hint describes recreating a cartridge chip, which flatly contradicts
- * "creates no save file for homebrew" sitting right above it.
- */
-const HINTS: Record<'ap' | 'save' | 'patch', Record<RomKind, string>> = {
-  ap: {
-    retail:
-      'Some games freeze on purpose when they notice a flashcard, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here.',
-    dsiware:
-      'Anti-piracy protection is a cartridge thing. DSiWare titles were never on a cartridge, so the loader does not run that step for them at all.',
-    homebrew:
-      'Anti-piracy protection is something retail games do. The loader runs none of that machinery for homebrew, so there is nothing to check.',
-  },
-  save: {
-    retail:
-      'Original cartridges have a save chip inside; the loader recreates it as a file on the SD card, sized for this game.',
-    dsiware:
-      'DSiWare saves to files rather than to a cartridge chip. The loader creates them next to the ROM at the sizes the ROM itself declares, so no list is involved.',
-    homebrew:
-      'Homebrew manages its own files on the SD card, so the loader does not create a save for it. Anything this ROM saves, it saves by itself.',
-  },
-  patch: {
-    retail:
-      'A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
-    dsiware:
-      'A few games need small one-off fixes to run correctly from a flashcard. The loader applies these to DSiWare too - unlike the save and anti-piracy steps, this one is not skipped. It can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
-    homebrew:
-      'These fixes exist to make retail games run from a flashcard. The loader applies none of them to homebrew, which runs as built.',
-  },
-};
-
 /** Tone + text for the anti-piracy row. */
-function apRow(ap: GameCompat['ap'], romVersion: number | null): { tone: Tone; text: string } {
+function apRow(
+  t: Dict,
+  ap: GameCompat['ap'],
+  romVersion: number | null,
+): { tone: Tone; text: string } {
   switch (ap.status) {
     case 'not-listed':
       // Absence from aplist.bin is NOT "this game needs no fix": the loader
@@ -112,54 +60,57 @@ function apRow(ap: GameCompat['ap'], romVersion: number | null): { tone: Tone; t
       // (Arm9Patcher::AddGamePatches) that is deliberately kept out of the
       // list, so a claim about the game would be false for exactly those
       // titles. Say what we actually checked, and nothing more.
-      return { tone: 'neutral', text: 'Not listed, which is not the same as “no fix needed”.' };
+      return { tone: 'neutral', text: t.compat.ap.notListed };
     case 'not-applicable':
-      return { tone: 'neutral', text: 'The loader skips anti-piracy for this kind of ROM.' };
+      return { tone: 'neutral', text: t.compat.ap.skipped };
     case 'applies':
-      return { tone: 'ok', text: `Fix included (DS Protect ${ap.dsProtectVersion ?? 'unknown'}).` };
+      return { tone: 'ok', text: t.compat.ap.applies(ap.dsProtectVersion) };
     case 'version-mismatch':
-      return { tone: 'warn', text: mismatchText('fix', ap.entryVersions, romVersion) };
+      return { tone: 'warn', text: t.compat.mismatch('fix', ap.entryVersions, romVersion) };
     case 'list-unavailable':
       // the list is absent, so this is "we can't check", not "nothing needed":
       // informational and muted, never the amber heads-up styling
-      return {
-        tone: 'neutral',
-        text: 'aplist.bin is missing or unreadable — nothing to check against.',
-      };
+      return { tone: 'neutral', text: t.compat.ap.listUnavailable };
   }
 }
 
 /** Tone + text for the save row. */
-function saveRow(save: GameCompat['save']): { tone: Tone; text: string } {
+function saveRow(t: Dict, save: GameCompat['save']): { tone: Tone; text: string } {
   if (save.source === 'homebrew-none') {
-    return { tone: 'neutral', text: 'The loader creates no save file for homebrew.' };
+    return { tone: 'neutral', text: t.compat.save.homebrewNone };
   }
   if (save.source === 'dsiware-header') {
     // DSiWare goes to DsiWareSaveArranger, which sizes .pub/.prv from the TWL
     // header and never opens savelist.bin
     if (save.sizeBytes === 0 && !save.privateSizeBytes) {
-      return { tone: 'neutral', text: 'This DSiWare title declares no save data.' };
+      return { tone: 'neutral', text: t.compat.save.dsiWareNone };
     }
-    const priv = save.privateSizeBytes ? ` and a ${formatSize(save.privateSizeBytes)} .prv` : '';
     return {
       tone: 'ok',
-      text: `DSiWare: a ${formatSize(save.sizeBytes)} .pub${priv}, sized from the ROM header.`,
+      text: t.compat.save.dsiWare(
+        formatSize(save.sizeBytes),
+        save.privateSizeBytes ? formatSize(save.privateSizeBytes) : null,
+      ),
     };
   }
   if (save.source === 'nand-header') {
-    return { tone: 'ok', text: `NAND, ${formatSize(save.sizeBytes)} (from the ROM header)` };
+    return { tone: 'ok', text: t.compat.save.nandHeader(formatSize(save.sizeBytes)) };
   }
   if (save.source === 'default' || save.saveType === null) {
-    return { tone: 'neutral', text: 'Not listed — the loader defaults to 512 KB.' };
+    return { tone: 'neutral', text: t.compat.save.defaultSize };
   }
   if (save.saveType === 'none' || save.sizeBytes === 0) {
-    return { tone: 'neutral', text: 'None — this game does not save.' };
+    return { tone: 'neutral', text: t.compat.save.none };
   }
-  return { tone: 'ok', text: `${SAVE_TYPE_LABELS[save.saveType]}, ${formatSize(save.sizeBytes)}` };
+  return {
+    tone: 'ok',
+    text: t.compat.save.listed(t.compat.saveTypes[save.saveType], formatSize(save.sizeBytes)),
+  };
 }
 
 /** Tone + text for the game-specific patch row. */
 function patchRow(
+  t: Dict,
   patch: GameCompat['patch'],
   romVersion: number | null,
 ): { tone: Tone; text: string } {
@@ -168,25 +119,16 @@ function patchRow(
       // patchlist.bin covers only the ARM7-applied patches; the ARM9 side has
       // its own hardcoded table (Arm9Patcher::AddGameSpecificPatches), so
       // "none needed" would overstate what this checked
-      return { tone: 'neutral', text: 'Not listed, which is not the same as “nothing to fix”.' };
+      return { tone: 'neutral', text: t.compat.patch.notListed };
     case 'not-applicable':
-      return { tone: 'neutral', text: 'The loader skips game patches for this kind of ROM.' };
+      return { tone: 'neutral', text: t.compat.patch.skipped };
     case 'applies':
-      return {
-        tone: 'ok',
-        text:
-          patch.patchCount === 1
-            ? '1 patch applied at boot.'
-            : `${String(patch.patchCount)} patches applied at boot.`,
-      };
+      return { tone: 'ok', text: t.compat.patch.applied(patch.patchCount) };
     case 'version-mismatch':
-      return { tone: 'warn', text: mismatchText('patch', patch.entryVersions, romVersion) };
+      return { tone: 'warn', text: t.compat.mismatch('patch', patch.entryVersions, romVersion) };
     case 'list-unavailable':
       // same informational, muted treatment as the AP list-unavailable case
-      return {
-        tone: 'neutral',
-        text: 'patchlist.bin is missing or unreadable — nothing to check against.',
-      };
+      return { tone: 'neutral', text: t.compat.patch.listUnavailable };
   }
 }
 
@@ -241,6 +183,7 @@ export function CompatSheet({
   onClose,
 }: CompatSheetProps) {
   const { loaderLists } = useSd();
+  const t = useT();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -284,11 +227,11 @@ export function CompatSheet({
         className="compat-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={`Loader compatibility for ${title}`}
+        aria-label={t.compat.dialogLabel(title)}
       >
         <header className="compat-sheet__header">
           <div className="compat-sheet__heading">
-            <p className="compat-sheet__kicker">Loader compatibility</p>
+            <p className="compat-sheet__kicker">{t.compat.kicker}</p>
             <h3 className="compat-sheet__title" title={title}>
               {title}
             </h3>
@@ -296,7 +239,7 @@ export function CompatSheet({
           <button
             type="button"
             className="compat-sheet__close"
-            aria-label="Close"
+            aria-label={t.compat.close}
             onClick={onClose}
           >
             <span aria-hidden="true">×</span>
@@ -304,36 +247,33 @@ export function CompatSheet({
         </header>
 
         {kind === null ? (
-          <p className="compat-sheet__note">
-            This ROM&apos;s header could not be read, so there is nothing to check it against.
-          </p>
+          <p className="compat-sheet__note">{t.compat.noHeader}</p>
         ) : gameCode === null ? (
-          <p className="compat-sheet__note">
-            This ROM carries no usable game code, so the loader&apos;s lists cannot be looked up for
-            it.
-          </p>
+          <p className="compat-sheet__note">{t.compat.noGameCode}</p>
         ) : compat === null ? (
-          <p className="compat-sheet__note">No loader lists were found on this SD card.</p>
+          <p className="compat-sheet__note">{t.compat.noLists}</p>
         ) : (
           <>
             <p className="compat-sheet__meta">
               <code>{gameCode}</code>
               {' · '}
-              {romVersion === null
-                ? 'revision unreadable (assuming rev 0)'
-                : `revision ${String(romVersion)}`}
+              {romVersion === null ? t.compat.revisionUnreadable : t.compat.revision(romVersion)}
             </p>
             <ul className="compat-sheet__rows">
               <Row
-                label="Anti-piracy fix"
-                hint={HINTS.ap[compat.kind]}
-                {...apRow(compat.ap, romVersion)}
+                label={t.compat.apLabel}
+                hint={t.compat.hints.ap[compat.kind]}
+                {...apRow(t, compat.ap, romVersion)}
               />
-              <Row label="Save" hint={HINTS.save[compat.kind]} {...saveRow(compat.save)} />
               <Row
-                label="Game-specific patch"
-                hint={HINTS.patch[compat.kind]}
-                {...patchRow(compat.patch, romVersion)}
+                label={t.compat.saveLabel}
+                hint={t.compat.hints.save[compat.kind]}
+                {...saveRow(t, compat.save)}
+              />
+              <Row
+                label={t.compat.patchLabel}
+                hint={t.compat.hints.patch[compat.kind]}
+                {...patchRow(t, compat.patch, romVersion)}
               />
             </ul>
           </>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useT } from '../i18n';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpCroppedPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
 import { buildCatalogIndex, searchCatalog } from '../lib/matching';
@@ -59,6 +60,7 @@ export interface CoverPickerProps {
  */
 export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: CoverPickerProps) {
   const { root, coverIndex } = useSd();
+  const t = useT();
   const repo = game.system.libretroRepo;
   const title = titleOf(game.fileName);
 
@@ -209,7 +211,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     setSaveError(null);
     async function write() {
       const dir = await getDir(rootHandle, COVERS[target.dir], true);
-      if (dir === null) throw new Error('Could not open the covers directory');
+      if (dir === null) throw new Error(t.coverPicker.coversDirMissing);
       await writeFileBytes(dir, target.name, bmp);
     }
     write().then(
@@ -236,16 +238,16 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
         className="cover-picker"
         role="dialog"
         aria-modal="true"
-        aria-label={`Change cover for ${title}`}
+        aria-label={t.coverPicker.dialogLabel(title)}
       >
         <header className="cover-picker__header">
           <h3 className="cover-picker__title" title={game.fileName}>
-            Change cover — {title}
+            {t.coverPicker.title(title)}
           </h3>
           <button
             type="button"
             className="cover-picker__close"
-            aria-label="Close"
+            aria-label={t.coverPicker.close}
             disabled={saving}
             onClick={onClose}
           >
@@ -259,28 +261,28 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${game.system.label} box art…`}
-          aria-label="Search box art"
+          placeholder={t.coverPicker.searchPlaceholder(game.system.label)}
+          aria-label={t.coverPicker.searchLabel}
         />
 
         {catalogError !== null ? (
           <div className="cover-picker__error" role="alert">
-            <span>Could not load the box art catalog: {catalogError}</span>
+            <span>{t.coverPicker.catalogFailed(catalogError)}</span>
             <button
               type="button"
               onClick={() => {
                 setRetryToken((n) => n + 1);
               }}
             >
-              Retry
+              {t.coverPicker.retry}
             </button>
           </div>
         ) : catalog === null ? (
           <p className="cover-picker__status" role="status">
-            Loading box art catalog…
+            {t.coverPicker.loadingCatalog}
           </p>
         ) : results.length === 0 ? (
-          <p className="cover-picker__status">No box art matches “{query}”.</p>
+          <p className="cover-picker__status">{t.coverPicker.noMatches(query)}</p>
         ) : (
           <ul className="cover-picker__results">
             {results.map((name) => (
@@ -310,12 +312,12 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
 
         <footer className="cover-picker__compare">
           <figure className="cover-picker__side">
-            <figcaption className="section-title">Current</figcaption>
+            <figcaption className="section-title">{t.coverPicker.current}</figcaption>
             {currentCoverUrl !== null ? (
               <img
                 className="cover-picker__cover"
                 src={currentCoverUrl}
-                alt={`Current cover of ${title}`}
+                alt={t.coverPicker.currentAlt(title)}
                 width={106}
                 height={96}
               />
@@ -329,12 +331,12 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
             →
           </span>
           <figure className="cover-picker__side">
-            <figcaption className="section-title">New</figcaption>
+            <figcaption className="section-title">{t.coverPicker.newCover}</figcaption>
             {composing ? (
               <span
                 className="cover-picker__cover cover-picker__cover--empty"
                 role="status"
-                aria-label="Composing preview…"
+                aria-label={t.coverPicker.composingPreview}
               >
                 <span className="cover-picker__spinner" aria-hidden="true" />
               </span>
@@ -342,7 +344,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
               <img
                 className="cover-picker__cover"
                 src={composed.url}
-                alt={`New cover preview for ${title}`}
+                alt={t.coverPicker.newAlt(title)}
                 width={106}
                 height={96}
               />
@@ -355,16 +357,16 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
           <div className="cover-picker__actions">
             {composeError !== null && (
               <p className="cover-picker__inline-error" role="alert">
-                Preview failed: {composeError}
+                {t.coverPicker.previewFailed(composeError)}
               </p>
             )}
             {saveError !== null && (
               <p className="cover-picker__inline-error" role="alert">
-                Write failed: {saveError}
+                {t.coverPicker.writeFailed(saveError)}
               </p>
             )}
             <p className="cover-picker__target">
-              Writes{' '}
+              {t.coverPicker.writes}{' '}
               <code>
                 covers/{target.dir}/{target.name}
               </code>
@@ -375,7 +377,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
               disabled={composed === null || saving}
               onClick={handleSave}
             >
-              {saving ? 'Writing…' : 'Use this cover'}
+              {saving ? t.coverPicker.writing : t.coverPicker.useCover}
             </button>
           </div>
         </footer>

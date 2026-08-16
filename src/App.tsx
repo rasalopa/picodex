@@ -2,6 +2,9 @@ import { useRef, useState, type ComponentType } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { isFileSystemAccessSupported } from './lib/sdcard';
 import { SdProvider, useSd } from './state/SdContext';
+import { LanguageProvider, useLang, useT, type Lang } from './i18n';
+import { resolveSdMessage } from './i18n/messages';
+import type { Dict } from './i18n/en';
 import { LibraryView } from './views/LibraryView';
 import { CoversView } from './views/CoversView';
 import { StatsView } from './views/StatsView';
@@ -23,43 +26,47 @@ type Tab = 'library' | 'covers' | 'stats' | 'associations' | 'health';
 
 type IconComponent = ComponentType<{ className?: string }>;
 
-const TABS: { id: Tab; label: string; Icon: IconComponent }[] = [
-  { id: 'library', label: 'Library', Icon: IconGrid },
-  { id: 'covers', label: 'Covers', Icon: IconImage },
-  { id: 'stats', label: 'Pico Enhanced', Icon: IconChart },
-  { id: 'associations', label: 'Associations', Icon: IconLink },
-  { id: 'health', label: 'Health', Icon: IconPulse },
+const TABS: { id: Tab; label: (t: Dict) => string; Icon: IconComponent }[] = [
+  { id: 'library', label: (t) => t.app.tabs.library, Icon: IconGrid },
+  { id: 'covers', label: (t) => t.app.tabs.covers, Icon: IconImage },
+  { id: 'stats', label: (t) => t.app.tabs.stats, Icon: IconChart },
+  { id: 'associations', label: (t) => t.app.tabs.associations, Icon: IconLink },
+  { id: 'health', label: (t) => t.app.tabs.health, Icon: IconPulse },
 ];
 
-const FEATURES: { title: string; body: string; Icon: IconComponent }[] = [
+const FEATURES: {
+  title: (t: Dict) => string;
+  body: (t: Dict) => string;
+  Icon: IconComponent;
+}[] = [
   {
-    title: 'Box art',
-    body: 'Finds games without covers and fetches launcher-ready art.',
+    title: (t) => t.welcome.features.boxArtTitle,
+    body: (t) => t.welcome.features.boxArtBody,
     Icon: IconImage,
   },
   {
-    title: 'Your library',
-    body: 'Every system on the card at a glance, with cover coverage.',
+    title: (t) => t.welcome.features.libraryTitle,
+    body: (t) => t.welcome.features.libraryBody,
     Icon: IconGrid,
   },
   {
-    title: 'Play stats',
-    body: 'Favorites, most played and recents — with the Pico Launcher Enhanced fork.',
+    title: (t) => t.welcome.features.statsTitle,
+    body: (t) => t.welcome.features.statsBody,
     Icon: IconChart,
   },
   {
-    title: 'Card health',
-    body: 'Spots macOS junk, orphaned saves, and a loader whose files came from different releases.',
+    title: (t) => t.welcome.features.healthTitle,
+    body: (t) => t.welcome.features.healthBody,
     Icon: IconPulse,
   },
   {
-    title: 'Folder banners',
-    body: 'Give each system folder a proper icon and display name.',
+    title: (t) => t.welcome.features.bannersTitle,
+    body: (t) => t.welcome.features.bannersBody,
     Icon: IconFolder,
   },
   {
-    title: 'File associations',
-    body: 'Point each ROM extension at its emulator, no JSON editing.',
+    title: (t) => t.welcome.features.associationsTitle,
+    body: (t) => t.welcome.features.associationsBody,
     Icon: IconLink,
   },
 ];
@@ -89,6 +96,7 @@ function Wordmark() {
 /** Landing hero shown before an SD card is opened. */
 function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
   const { openSd, lastCard, openLastCard, dismissLastCard, loading, progress, error } = useSd();
+  const t = useT();
   const supported = isFileSystemAccessSupported();
   const pickButton = useRef<HTMLButtonElement>(null);
   // Dismissing removes the button that was just clicked, so send focus to the
@@ -103,10 +111,7 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
         <Cartridge />
         Pico<span className="app__brand-accent">Dex</span>
       </h1>
-      <p className="app__tagline">
-        Manage your Pico Launcher SD card from the browser — on the DSpico or any flashcart that
-        runs it. Your files never leave your machine.
-      </p>
+      <p className="app__tagline">{t.welcome.tagline}</p>
       {supported && lastCard != null && (
         <div className="app__last-card">
           <button
@@ -114,23 +119,18 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
             onClick={() => void openLastCard()}
             disabled={loading}
           >
-            {loading ? 'Opening…' : `Open ${lastCard.name}`}
+            {loading ? t.welcome.opening : t.welcome.openLast(lastCard.name)}
           </button>
           <p className="app__last-card-note">
-            {lastCard.ready
-              ? 'The card you had open last time.'
-              : 'The card you had open last time. Your browser will ask for access again.'}
+            {lastCard.ready ? t.welcome.lastCardReady : t.welcome.lastCardAskAgain}
           </p>
           <button className="app__last-card-forget" onClick={handleDismiss} disabled={loading}>
-            Pick a different card
+            {t.welcome.pickDifferent}
           </button>
         </div>
       )}
       {!supported ? (
-        <p className="app__unsupported">
-          Your browser does not support the File System Access API. Please use a Chromium-based
-          browser (Chrome, Edge, Brave, Opera).
-        </p>
+        <p className="app__unsupported">{t.welcome.unsupported}</p>
       ) : lastCard === null ? (
         <button
           ref={pickButton}
@@ -138,27 +138,29 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
           onClick={() => void openSd()}
           disabled={loading}
         >
-          {loading ? 'Opening…' : 'Open SD card'}
+          {loading ? t.welcome.opening : t.welcome.openSd}
         </button>
       ) : null}
       {loading && (
         <span className="app__loading" role="status">
           <ProgressBar />
-          <span className="app__loading-text">{progress ?? 'Waiting for folder…'}</span>
+          <span className="app__loading-text">
+            {progress ? resolveSdMessage(t, progress) : t.welcome.waitingForFolder}
+          </span>
         </span>
       )}
-      {error && <p className="app__error">{error}</p>}
+      {error && <p className="app__error">{resolveSdMessage(t, error)}</p>}
       <ul className="app__features">
         {FEATURES.map(({ title, body, Icon }) => (
-          <li key={title}>
+          <li key={title(t)}>
             <Icon className="app__feature-icon" />
-            <span className="app__feature-title">{title}</span>
-            {body}
+            <span className="app__feature-title">{title(t)}</span>
+            {body(t)}
           </li>
         ))}
       </ul>
       <button type="button" className="app__whatsnew" onClick={onWhatsNew}>
-        What's new in PicoDex
+        {t.welcome.whatsNewButton}
       </button>
     </div>
   );
@@ -167,6 +169,7 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
 /** Tabbed workspace shown once an SD card is open. */
 function Workspace() {
   const { root, error, refresh, loading, progress, cardInfo, gameData } = useSd();
+  const t = useT();
   const [tab, setTab] = useState<Tab>('library');
   // The card is running the Enhanced fork if its launcher banner says so, or if
   // it has written a gamedata.json (favorites/play time, which stock never does).
@@ -174,13 +177,13 @@ function Workspace() {
   // its tab, while a stock Pico Launcher on any flashcart has neither and stays
   // generic.
   const runsEnhancedFork = cardInfo.isEnhancedFork || gameData !== null;
-  const tabs = TABS.filter((t) => t.id !== 'stats' || runsEnhancedFork);
+  const tabs = TABS.filter((tabDef) => tabDef.id !== 'stats' || runsEnhancedFork);
   // If the active tab is no longer available (switched to a stock card while on
   // the Pico Enhanced tab), fall back to the library rather than show a phantom.
-  const activeTab = tabs.some((t) => t.id === tab) ? tab : 'library';
+  const activeTab = tabs.some((tabDef) => tabDef.id === tab) ? tab : 'library';
   return (
     <>
-      <nav className="app__tabs" aria-label="Sections">
+      <nav className="app__tabs" aria-label={t.app.sections}>
         {tabs.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -189,24 +192,26 @@ function Workspace() {
             onClick={() => setTab(id)}
           >
             <Icon className="app__tab-icon" />
-            {label}
+            {label(t)}
           </button>
         ))}
-        <span className="app__sd-name" title="Open SD card folder">
+        <span className="app__sd-name" title={t.app.openSdFolder}>
           <span className="app__sd-dot" aria-hidden="true" />
           {root?.name}
         </span>
         <button onClick={() => void refresh()} disabled={loading}>
-          {loading ? 'Reloading…' : 'Reload'}
+          {loading ? t.app.reloading : t.app.reload}
         </button>
       </nav>
       {loading && (
         <span className="app__loading" role="status">
           <ProgressBar />
-          <span className="app__loading-text">{progress ?? 'Reloading…'}</span>
+          <span className="app__loading-text">
+            {progress ? resolveSdMessage(t, progress) : t.app.reloading}
+          </span>
         </span>
       )}
-      {error && <p className="app__error">{error}</p>}
+      {error && <p className="app__error">{resolveSdMessage(t, error)}</p>}
       <main className="app__content">
         {activeTab === 'library' && <LibraryView />}
         {activeTab === 'covers' && <CoversView />}
@@ -219,8 +224,33 @@ function Workspace() {
   );
 }
 
+/** EN/ES switch in the footer. The stored pick wins over the browser language. */
+function LanguageToggle() {
+  const { lang, setLang } = useLang();
+  const t = useT();
+  const option = (value: Lang, label: string) => (
+    <button
+      type="button"
+      className={
+        lang === value ? 'app__footer-link app__lang--active' : 'app__footer-link app__lang'
+      }
+      aria-pressed={lang === value}
+      onClick={() => setLang(value)}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <span className="app__lang-toggle" role="group" aria-label={t.app.language}>
+      {option('en', 'EN')}
+      {option('es', 'ES')}
+    </span>
+  );
+}
+
 function Shell() {
   const { root } = useSd();
+  const t = useT();
   const [showChangelog, setShowChangelog] = useState(false);
   return (
     <div className="app">
@@ -240,10 +270,12 @@ function Shell() {
         </a>
         <span aria-hidden="true">·</span>
         <button type="button" className="app__footer-link" onClick={() => setShowChangelog(true)}>
-          What's new
+          {t.app.whatsNew}
         </button>
         <span aria-hidden="true">·</span>
-        <span>MIT licensed · no telemetry</span>
+        <span>{t.app.footerLicense}</span>
+        <span aria-hidden="true">·</span>
+        <LanguageToggle />
       </footer>
       {showChangelog && <Changelog onClose={() => setShowChangelog(false)} />}
     </div>
@@ -253,8 +285,10 @@ function Shell() {
 /** PicoDex root component. */
 export default function App() {
   return (
-    <SdProvider>
-      <Shell />
-    </SdProvider>
+    <LanguageProvider>
+      <SdProvider>
+        <Shell />
+      </SdProvider>
+    </LanguageProvider>
   );
 }

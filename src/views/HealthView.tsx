@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSd } from '../state/SdContext';
+import { useT } from '../i18n';
 import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
 import { fetchLatestLoaderTag, LOADER_MANIFEST, scanLoaderFiles } from '../lib/loaderScan';
 import {
@@ -56,6 +57,7 @@ function ConfirmDelete({
   onConfirmChange: (confirming: boolean) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   if (!confirming) {
     return (
       <button
@@ -72,10 +74,10 @@ function ConfirmDelete({
     <span className="health-view__confirm" role="alert">
       <span className="health-view__confirm-text">{confirmLabel}</span>
       <button type="button" className="health-view__danger" disabled={busy} onClick={onDelete}>
-        {busy ? 'Deleting…' : 'Yes, delete'}
+        {busy ? t.health.deleting : t.health.yesDelete}
       </button>
       <button type="button" disabled={busy} onClick={() => onConfirmChange(false)}>
-        No
+        {t.health.no}
       </button>
     </span>
   );
@@ -90,6 +92,7 @@ function ConfirmDelete({
  */
 export function HealthView() {
   const { root, games, refresh, loading } = useSd();
+  const t = useT();
   const [scanning, setScanning] = useState(false);
   const [filesSeen, setFilesSeen] = useState(0);
   const [scan, setScan] = useState<ScanResult | null>(null);
@@ -135,10 +138,7 @@ export function HealthView() {
       if (!(await refresh())) {
         // scanning against a stale or empty library would flag healthy
         // saves and covers as orphans — refuse rather than mislead
-        setScanError(
-          'The game library could not be re-read (see the error above), ' +
-            'so the scan was cancelled — its results would be unreliable.',
-        );
+        setScanError(t.health.libraryRereadFailed);
         return;
       }
       const result = await scanCard(root, setFilesSeen);
@@ -168,7 +168,7 @@ export function HealthView() {
     } finally {
       setScanning(false);
     }
-  }, [root, refresh]);
+  }, [root, refresh, t]);
 
   // auto-scan once on first mount with an open card
   const autoScanned = useRef(false);
@@ -245,10 +245,7 @@ export function HealthView() {
       }
     }
     if (failed.length > 0) {
-      setJunkError(
-        `Could not delete: ${failed.join(', ')}. macOS protects some of its own ` +
-          'files from other apps — they are harmless to the launcher.',
-      );
+      setJunkError(t.health.junkDeleteFailed(failed.join(', ')));
     }
     setJunkConfirm(false);
     await refresh();
@@ -298,8 +295,8 @@ export function HealthView() {
   if (root === null) {
     return (
       <section className="health-view">
-        <h2>Card health</h2>
-        <p className="health-view__dim">Open an SD card to run a health check.</p>
+        <h2>{t.health.title}</h2>
+        <p className="health-view__dim">{t.health.openCard}</p>
       </section>
     );
   }
@@ -308,20 +305,17 @@ export function HealthView() {
     <section className="health-view">
       <header className="health-view__header">
         <div>
-          <h2>Card health</h2>
-          <p className="health-view__dim">
-            Checks the card for macOS junk, missing loader files, orphaned saves and orphaned
-            covers. Nothing is deleted without confirmation.
-          </p>
+          <h2>{t.health.title}</h2>
+          <p className="health-view__dim">{t.health.intro}</p>
         </div>
         <button type="button" className="primary" onClick={() => void runScan()} disabled={anyBusy}>
-          {scanning ? 'Scanning…' : 'Scan card'}
+          {scanning ? t.health.scanning : t.health.scanCard}
         </button>
       </header>
 
       {scanning && (
         <p className="health-view__dim" role="status">
-          Scanning… {filesSeen} files
+          {t.health.scanningCount(filesSeen)}
         </p>
       )}
       {scanError !== null && (
@@ -333,13 +327,11 @@ export function HealthView() {
       {scan !== null && !scanning && (
         <>
           <p className="health-view__dim">
-            Scanned {scan.filesSeen} files.
+            {t.health.scannedFiles(scan.filesSeen)}
             {scan.skippedDirs.length > 0 && (
               <>
                 {' '}
-                Skipped {scan.skippedDirs.length}{' '}
-                {scan.skippedDirs.length === 1 ? 'folder' : 'folders'} macOS would not let the
-                browser read:{' '}
+                {t.health.skippedFolders(scan.skippedDirs.length)}{' '}
                 {scan.skippedDirs.map((name, index) => (
                   <span key={name}>
                     {index > 0 && ', '}
@@ -352,21 +344,24 @@ export function HealthView() {
           </p>
 
           <section className={sectionClass(junkCount === 0)}>
-            <h3 className="section-title">macOS junk</h3>
+            <h3 className="section-title">{t.health.junkTitle}</h3>
             {junkCount === 0 ? (
-              <p className="health-view__ok">No macOS junk files found.</p>
+              <p className="health-view__ok">{t.health.junkNone}</p>
             ) : (
               <>
                 <p>
                   <span className="health-view__warn">
-                    {scan.junkFiles.length} junk {scan.junkFiles.length === 1 ? 'file' : 'files'} (
-                    {formatSize(junkSize)})
+                    {t.health.junkCount(scan.junkFiles.length, formatSize(junkSize))}
                   </span>{' '}
-                  — <code>._*</code> AppleDouble files and <code>.DS_Store</code>.
+                  {t.health.junkKinds1}
+                  <code>._*</code>
+                  {t.health.junkKinds2}
+                  <code>.DS_Store</code>
+                  {t.health.junkKinds3}
                 </p>
                 {scan.junkFiles.length > 0 && (
                   <details className="health-view__details">
-                    <summary>Show junk files</summary>
+                    <summary>{t.health.showJunk}</summary>
                     <ul className="health-view__list">
                       {scan.junkFiles.map((file) => (
                         <li key={[...file.path, file.name].join('/')}>
@@ -379,8 +374,8 @@ export function HealthView() {
                 )}
                 <div>
                   <ConfirmDelete
-                    label={`Clean up ${junkCount} ${junkCount === 1 ? 'file' : 'files'}`}
-                    confirmLabel={`Confirm delete ${junkCount} ${junkCount === 1 ? 'file' : 'files'}?`}
+                    label={t.health.junkCleanLabel(junkCount)}
+                    confirmLabel={t.health.junkConfirmLabel(junkCount)}
                     busy={junkBusy}
                     disabled={anyBusy}
                     confirming={junkConfirm}
@@ -392,21 +387,22 @@ export function HealthView() {
             )}
             {macosDirs.length > 0 && (
               <p className="health-view__dim">
-                macOS keeps{' '}
+                {t.health.macosKeeps1}
                 {macosDirs.map((name, index) => (
                   <span key={name}>
                     {index > 0 && ', '}
                     <code>{name}</code>
                   </span>
-                ))}{' '}
-                on the card. It recreates them every time you plug it into a Mac, so they are left
-                alone — they are harmless to the launcher.
+                ))}
+                {t.health.macosKeeps2}
               </p>
             )}
             {keptFsevents && (
               <p className="health-view__dim">
-                <code>.fseventsd</code> holds only a <code>no_log</code> marker — an intentional
-                logging-prevention setup.
+                <code>.fseventsd</code>
+                {t.health.fsevents1}
+                <code>no_log</code>
+                {t.health.fsevents2}
               </p>
             )}
             {junkError !== null && (
@@ -421,25 +417,28 @@ export function HealthView() {
               loader !== null && loader.required.length === 0 && loaderVersion?.status !== 'mixed',
             )}
           >
-            <h3 className="section-title">Loader files</h3>
+            <h3 className="section-title">{t.health.loaderTitle}</h3>
             {loader !== null && loader.required.length === 0 ? (
-              <p className="health-view__ok">All required loader files are present.</p>
+              <p className="health-view__ok">{t.health.loaderAllPresent}</p>
             ) : (
               loader !== null && (
                 <>
                   <ul className="health-view__list">
                     {loader.required.map((name) => (
                       <li key={name} className="health-view__warn">
-                        <code>/_pico/{name}</code> is missing — the loader needs it to boot games.
+                        <code>/_pico/{name}</code>
+                        {t.health.loaderMissing}
                       </li>
                     ))}
                   </ul>
                   <p>
-                    Download from{' '}
+                    {t.health.downloadFrom1}
                     <a href={LOADER_RELEASES_URL} target="_blank" rel="noreferrer">
-                      pico-loader releases
-                    </a>{' '}
-                    and copy the files into <code>/_pico</code>.
+                      {t.health.downloadReleases}
+                    </a>
+                    {t.health.downloadFrom2}
+                    <code>/_pico</code>
+                    {t.health.downloadFrom3}
                   </p>
                 </>
               )
@@ -454,46 +453,48 @@ export function HealthView() {
                 <p
                   className={loaderVersion.candidates.length === 1 ? 'health-view__ok' : undefined}
                 >
-                  Loader <strong>{loaderVersion.candidates.join(' or ')}</strong>
+                  {t.health.loaderIs}
+                  <strong>{loaderVersion.candidates.join(t.health.orJoiner)}</strong>
                   {loaderVersion.builds.length >= 1 && loaderVersion.builds.length <= 2 ? (
                     // The build is named only when the loader binaries pin it down:
                     // one cart, or the old byte-identical AK2/AKRPG pair. A card
                     // where only the universal picoLoader7.bin matched reports
                     // every build, which is not knowledge worth printing.
                     <>
-                      , the <strong>{loaderVersion.builds.join(' or ')}</strong> build.
+                      {t.health.loaderBuild1}
+                      <strong>{loaderVersion.builds.join(t.health.orJoiner)}</strong>
+                      {t.health.loaderBuild2}
                     </>
                   ) : (
-                    '.'
+                    t.health.loaderEnd
                   )}
                   {loaderVersion.ambiguity === 'identical-releases'
-                    ? ' Those two ship byte-identical files, so nothing can tell them apart.'
+                    ? t.health.ambiguityIdentical
                     : loaderVersion.ambiguity === 'incomplete-evidence'
                       ? // NOT "identical files": v1.7.0 and v1.7.1 differ in exactly
                         // picoLoader7.bin, which reaching this branch means was either
                         // absent or unrecognised (hand-edited, or newer than the manifest).
-                        ' It could not be narrowed further: the files that differ between those releases are missing or not recognised here.'
+                        t.health.ambiguityIncomplete
                       : ''}
                 </p>
                 {loaderVersion.releasesBehind > 0 ? (
                   <p>
-                    {loaderVersion.candidates.length > 1 ? 'At least ' : ''}
-                    {loaderVersion.releasesBehind} release
-                    {loaderVersion.releasesBehind === 1 ? '' : 's'} behind{' '}
-                    <strong>{loaderVersion.latestKnown}</strong>.
+                    {t.health.releasesBehind1(
+                      loaderVersion.releasesBehind,
+                      loaderVersion.candidates.length > 1,
+                    )}
+                    <strong>{loaderVersion.latestKnown}</strong>
+                    {t.health.releasesBehind2}
                   </p>
                 ) : loaderVersion.candidates.length > 1 ? (
                   // Saying "the newest" here would pick one of the candidates.
                   <p className="health-view__dim">
-                    {loaderVersion.latestKnown} is the newest release PicoDex knows of, and one of
-                    those candidates is it.
+                    {t.health.newestKnownCandidate(loaderVersion.latestKnown)}
                   </p>
                 ) : manifestIsStale || loaderVersion.unrecognisedFiles.length > 0 ? (
-                  <p className="health-view__dim">
-                    That is the newest release PicoDex knows of. Something newer may exist.
-                  </p>
+                  <p className="health-view__dim">{t.health.newestKnownMaybe}</p>
                 ) : (
-                  <p className="health-view__ok">That is the newest release.</p>
+                  <p className="health-view__ok">{t.health.newestRelease}</p>
                 )}
               </>
             )}
@@ -503,39 +504,34 @@ export function HealthView() {
               loaderVersion.mismatch !== null && (
                 <>
                   <p className="health-view__warn">
-                    The loader is only half updated: {loaderVersion.mismatch.agreeing} of these
-                    files are from <strong>{loaderVersion.mismatch.bestFit}</strong>, but{' '}
+                    {t.health.mixed1(loaderVersion.mismatch.agreeing)}
+                    <strong>{loaderVersion.mismatch.bestFit}</strong>
+                    {t.health.mixed2}
                     {loaderVersion.mismatch.oddOnesOut.map((name, index) => (
                       <span key={name}>
                         {index > 0 &&
                           (index === loaderVersion.mismatch!.oddOnesOut.length - 1
-                            ? ' and '
+                            ? t.health.andJoiner
                             : ', ')}
                         <code>{name}</code>
                       </span>
                     ))}{' '}
-                    {loaderVersion.mismatch.oddOnesOut.length === 1 ? 'is' : 'are'} not. That
-                    usually happens after copying some of the files over but not the rest.
+                    {t.health.mixed3(loaderVersion.mismatch.oddOnesOut.length)}
                   </p>
                   <p>
-                    Copy them all again from a single{' '}
+                    {t.health.copyAgain1}
                     <a href={LOADER_RELEASES_URL} target="_blank" rel="noreferrer">
-                      pico-loader release
+                      {t.health.copyAgainRelease}
                     </a>
                     {loaderVersion.unrecognisedFiles.length > 0
-                      ? ' — note that also overwrites the unrecognised files listed below.'
-                      : '.'}
+                      ? t.health.copyAgainOverwrites
+                      : t.health.copyAgainEnd}
                   </p>
                 </>
               )}
 
             {loaderVersion !== null && loaderVersion.status === 'unrecognised' && (
-              <p className="health-view__dim">
-                None of these files match a release PicoDex recognises — and it knows every
-                flashcart&apos;s build of each release, so these are likely from a release newer
-                than this build of PicoDex, or edited by hand. Nothing is wrong on the card as far
-                as this check can tell.
-              </p>
+              <p className="health-view__dim">{t.health.unrecognisedAll}</p>
             )}
 
             {/* Also on a mixed card: the sentence above counts only the files that
@@ -545,29 +541,30 @@ export function HealthView() {
               (loaderVersion.status === 'identified' || loaderVersion.status === 'mixed') &&
               loaderVersion.unrecognisedFiles.length > 0 && (
                 <p className="health-view__dim">
-                  Not from a release PicoDex recognises, so they were left out of the answer above:{' '}
+                  {t.health.unrecognisedListed1}
                   {loaderVersion.unrecognisedFiles.map((name, index) => (
                     <span key={name}>
                       {index > 0 && ', '}
                       <code>{name}</code>
                     </span>
                   ))}
-                  . Hand-editing them is normal — people do tune <code>aplist.bin</code> — and a
-                  release newer than this build of PicoDex looks the same way.
+                  {t.health.unrecognisedListed2}
+                  <code>aplist.bin</code>
+                  {t.health.unrecognisedListed3}
                 </p>
               )}
 
             {isNewerThanManifest(LOADER_MANIFEST, liveLatestTag) && (
               <p className="health-view__dim">
-                GitHub reports <strong>{liveLatestTag}</strong> as the newest pico-loader release,
-                which this build of PicoDex does not know about yet. Everything above still holds:
-                it just cannot tell you whether {liveLatestTag} is newer than what your card has.
+                {t.health.githubNewer1}
+                <strong>{liveLatestTag}</strong>
+                {t.health.githubNewer2(liveLatestTag ?? '')}
               </p>
             )}
 
             {loaderUnreadable.length > 0 && (
               <p className="health-view__dim">
-                Could not be read, so they were not checked:{' '}
+                {t.health.unreadable}
                 {loaderUnreadable.map((name, index) => (
                   <span key={name}>
                     {index > 0 && ', '}
@@ -579,34 +576,27 @@ export function HealthView() {
 
             {loader !== null && loader.optional.length > 0 && (
               <p className="health-view__dim">
-                Optional files not on the card:{' '}
+                {t.health.optional1}
                 {loader.optional.map((name, index) => (
                   <span key={name}>
                     {index > 0 && ', '}
                     <code>{name}</code>
                   </span>
-                ))}{' '}
-                — fine to leave out.
+                ))}
+                {t.health.optional2}
               </p>
             )}
           </section>
 
           <section className={sectionClass(orphanSaves.length === 0)}>
-            <h3 className="section-title">Orphaned saves</h3>
+            <h3 className="section-title">{t.health.savesTitle}</h3>
             {libraryEmpty ? (
-              <p className="health-view__dim">
-                Skipped: no games were found on the card, so every save would wrongly look orphaned.
-              </p>
+              <p className="health-view__dim">{t.health.savesSkipped}</p>
             ) : orphanSaves.length === 0 ? (
-              <p className="health-view__ok">Every save file belongs to a game on the card.</p>
+              <p className="health-view__ok">{t.health.savesAllOk}</p>
             ) : (
               <>
-                <p className="health-view__warn">
-                  {orphanSaves.length} save {orphanSaves.length === 1 ? 'file' : 'files'} have no
-                  matching ROM in their own folder — the launcher only pairs a save with a ROM
-                  sitting next to it. Saves may hold game progress and deleting them is permanent —
-                  select only the ones you are sure about.
-                </p>
+                <p className="health-view__warn">{t.health.savesOrphans(orphanSaves.length)}</p>
                 <ul className="health-view__list">
                   {orphanSaves.map((save) => {
                     const key = [...save.path, save.name].join('/');
@@ -629,8 +619,8 @@ export function HealthView() {
                 </ul>
                 <div>
                   <ConfirmDelete
-                    label={`Delete selected (${selectedSaves.length})`}
-                    confirmLabel={`Confirm permanently delete ${selectedSaves.length} save ${selectedSaves.length === 1 ? 'file' : 'files'}?`}
+                    label={t.health.savesDeleteLabel(selectedSaves.length)}
+                    confirmLabel={t.health.savesConfirmLabel(selectedSaves.length)}
                     busy={savesBusy}
                     disabled={anyBusy || selectedSaves.length === 0}
                     confirming={savesConfirm}
@@ -648,20 +638,17 @@ export function HealthView() {
           </section>
 
           <section className={sectionClass(orphanCovers.length === 0)}>
-            <h3 className="section-title">Orphaned user covers</h3>
+            <h3 className="section-title">{t.health.coversTitle}</h3>
             {libraryEmpty ? (
-              <p className="health-view__dim">
-                Skipped: no games were found on the card, so every user cover would wrongly look
-                orphaned.
-              </p>
+              <p className="health-view__dim">{t.health.coversSkipped}</p>
             ) : orphanCovers.length === 0 ? (
-              <p className="health-view__ok">Every user cover belongs to a game on the card.</p>
+              <p className="health-view__ok">{t.health.coversAllOk}</p>
             ) : (
               <>
                 <p className="health-view__dim">
-                  {orphanCovers.length} {orphanCovers.length === 1 ? 'cover' : 'covers'} in{' '}
-                  <code>/_pico/covers/user</code> match no ROM. Covers can be regenerated from the
-                  Covers tab, so they are pre-selected.
+                  {t.health.coversOrphans1(orphanCovers.length)}
+                  <code>/_pico/covers/user</code>
+                  {t.health.coversOrphans2(orphanCovers.length)}
                 </p>
                 <ul className="health-view__list">
                   {orphanCovers.map((name) => (
@@ -682,8 +669,8 @@ export function HealthView() {
                 </ul>
                 <div>
                   <ConfirmDelete
-                    label={`Clean up selected (${selectedCovers.length})`}
-                    confirmLabel={`Confirm delete ${selectedCovers.length} ${selectedCovers.length === 1 ? 'cover' : 'covers'}?`}
+                    label={t.health.coversCleanLabel(selectedCovers.length)}
+                    confirmLabel={t.health.coversConfirmLabel(selectedCovers.length)}
                     busy={coversBusy}
                     disabled={anyBusy || selectedCovers.length === 0}
                     confirming={coversConfirm}

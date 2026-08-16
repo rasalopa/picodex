@@ -21,6 +21,8 @@ import type { RomKind } from '../lib/loaderlists';
 import { COVERS, getDir, readFile, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
+import { useT } from '../i18n';
+import type { Dict } from '../i18n/en';
 import './SystemGallery.css';
 
 /** Maximum covers read and decoded simultaneously. */
@@ -93,16 +95,16 @@ function normalize(text: string): string {
 }
 
 /** Formats a minute total as "Xh Ym" (e.g. 125 → "2h 5m"). */
-function formatPlayTime(totalMinutes: number): string {
+function formatPlayTime(t: Dict, totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return `${String(hours)}h ${String(minutes)}m`;
+  return t.gallery.playTime(hours, minutes);
 }
 
 /** Play badge text for an entry: play time, launch count, or `null`. */
-function playBadge(entry: GameDataEntry): string | null {
-  if (entry.playMinutes > 0) return formatPlayTime(entry.playMinutes);
-  if (entry.launchCount > 0) return `${String(entry.launchCount)}x`;
+function playBadge(t: Dict, entry: GameDataEntry): string | null {
+  if (entry.playMinutes > 0) return formatPlayTime(t, entry.playMinutes);
+  if (entry.launchCount > 0) return t.gallery.launches(entry.launchCount);
   return null;
 }
 
@@ -131,6 +133,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     toggleCompleted,
     refresh,
   } = useSd();
+  const t = useT();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
   const [error, setError] = useState<string | null>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
@@ -386,16 +389,14 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   const filtering = normalizedQuery.length > 0 || onlyFavorites || onlyCompleted;
 
   return (
-    <section className="system-gallery" aria-label={`${system.label} games`}>
+    <section className="system-gallery" aria-label={t.gallery.sectionLabel(system.label)}>
       <header className="system-gallery__header">
         <button type="button" className="system-gallery__back" onClick={onBack}>
-          ← Library
+          {t.gallery.back}
         </button>
         <h2 className="system-gallery__title">{system.label}</h2>
         <p className="system-gallery__count">
-          {filtering
-            ? `${String(visibleCards.length)} of ${String(total)}`
-            : `${String(total)} ${total === 1 ? 'game' : 'games'}`}
+          {filtering ? t.gallery.shownOf(visibleCards.length, total) : t.gallery.gameCount(total)}
         </p>
       </header>
 
@@ -404,8 +405,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
           <input
             type="search"
             className="system-gallery__search"
-            placeholder={`Search ${system.label}…`}
-            aria-label={`Search ${system.label} games`}
+            placeholder={t.gallery.searchPlaceholder(system.label)}
+            aria-label={t.gallery.searchLabel(system.label)}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -415,7 +416,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
             }}
           />
           {gameData !== null && (
-            <div className="system-gallery__filters" role="group" aria-label="Filters">
+            <div className="system-gallery__filters" role="group" aria-label={t.gallery.filters}>
               <button
                 type="button"
                 className={
@@ -428,7 +429,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                   setOnlyFavorites((value) => !value);
                 }}
               >
-                <span aria-hidden="true">♥</span> Favorites
+                <span aria-hidden="true">♥</span> {t.gallery.favorites}
               </button>
               <button
                 type="button"
@@ -442,33 +443,31 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                   setOnlyCompleted((value) => !value);
                 }}
               >
-                <span aria-hidden="true">✓</span> Completed
+                <span aria-hidden="true">✓</span> {t.gallery.completed}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {error !== null && <p className="system-gallery__error">Could not load covers: {error}</p>}
+      {error !== null && <p className="system-gallery__error">{t.gallery.loadError(error)}</p>}
 
       {loading && (
         <div className="system-gallery__progress" role="status">
-          <span>
-            Loading covers {resolved.size}/{total}…
-          </span>
+          <span>{t.gallery.loadingCovers(resolved.size, total)}</span>
           <ProgressBar value={resolved.size / total} />
         </div>
       )}
 
       {total === 0 ? (
-        <p className="system-gallery__empty">No {system.label} games on this SD card.</p>
+        <p className="system-gallery__empty">{t.gallery.noGames(system.label)}</p>
       ) : visibleCards.length === 0 ? (
-        <p className="system-gallery__empty">No games match your search.</p>
+        <p className="system-gallery__empty">{t.gallery.noMatches}</p>
       ) : (
         <ul className="system-gallery__grid">
           {visibleCards.map(({ game, cover, entry }) => {
             const title = titleOf(game.fileName);
-            const badge = entry === undefined ? null : playBadge(entry);
+            const badge = entry === undefined ? null : playBadge(t, entry);
             return (
               <li key={gameKey(game)} className="system-gallery__card">
                 <span className="system-gallery__cover-wrap">
@@ -485,7 +484,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                     <img
                       className="system-gallery__cover"
                       src={cover.url}
-                      alt={`Cover of ${title}`}
+                      alt={t.gallery.coverAlt(title)}
                       width={106}
                       height={96}
                     />
@@ -493,8 +492,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                   <button
                     type="button"
                     className="system-gallery__edit"
-                    aria-label={`Change cover for ${title}`}
-                    title={cover === undefined ? 'Resolving game…' : 'Pick the correct box art'}
+                    aria-label={t.gallery.changeCover(title)}
+                    title={cover === undefined ? t.gallery.resolving : t.gallery.pickBoxArt}
                     // disabled until the cover/gamecode resolves: without the
                     // code the picker could not target covers/<nds|gba>/
                     disabled={cover === undefined}
@@ -513,13 +512,13 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                           : 'system-gallery__favorite'
                       }
                       aria-pressed={entry?.favorite === true}
-                      aria-label={`Toggle favorite for ${title}`}
+                      aria-label={t.gallery.toggleFavorite(title)}
                       title={
                         cover === undefined
-                          ? 'Resolving game…'
+                          ? t.gallery.resolving
                           : entry?.favorite === true
-                            ? 'Remove from favorites'
-                            : 'Mark as a favorite'
+                            ? t.gallery.removeFavorite
+                            : t.gallery.markFavorite
                       }
                       // disabled until the cover/gamecode resolves: a
                       // name-only toggle on a renamed rom would split its
@@ -541,13 +540,13 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                           : 'system-gallery__completed'
                       }
                       aria-pressed={entry?.completed === true}
-                      aria-label={`Toggle completed for ${title}`}
+                      aria-label={t.gallery.toggleCompleted(title)}
                       title={
                         cover === undefined
-                          ? 'Resolving game…'
+                          ? t.gallery.resolving
                           : entry?.completed === true
-                            ? 'Unmark as completed'
-                            : 'Mark as completed'
+                            ? t.gallery.unmarkCompleted
+                            : t.gallery.markCompleted
                       }
                       // same gate as the heart: a name-only toggle on a
                       // renamed rom would split its gamedata entry in two
@@ -563,12 +562,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                     <button
                       type="button"
                       className="system-gallery__badges system-gallery__badges--button"
-                      aria-label={`Edit play stats for ${title}`}
-                      title={
-                        cover === undefined
-                          ? 'Resolving game…'
-                          : 'Correct launch count and play time'
-                      }
+                      aria-label={t.gallery.editStats(title)}
+                      title={cover === undefined ? t.gallery.resolving : t.gallery.correctStats}
                       // same gate as the heart: the gamecode must resolve
                       // before we can key the write to the right entry
                       disabled={cover === undefined}
@@ -591,12 +586,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                     <button
                       type="button"
                       className="system-gallery__compat"
-                      aria-label={`Loader compatibility for ${title}`}
-                      title={
-                        cover === undefined
-                          ? 'Resolving game…'
-                          : 'What the loader does for this game'
-                      }
+                      aria-label={t.gallery.loaderCompat(title)}
+                      title={cover === undefined ? t.gallery.resolving : t.gallery.loaderCompatHint}
                       // disabled until the header resolves: the sheet keys
                       // its lookups on the gamecode and revision
                       disabled={cover === undefined}

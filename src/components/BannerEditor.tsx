@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useT } from '../i18n';
 import {
   buildFolderBanner,
   decodeBannerIcon,
@@ -41,9 +42,10 @@ async function readRomBannerIcon(
   root: FileSystemDirectoryHandle,
   gamesDir: string,
   fileName: string,
+  cannotOpenMessage: string,
 ): Promise<BannerIcon | null> {
   const dir = await getDir(root, [GAMES_DIR, gamesDir]);
-  if (dir === null) throw new Error(`Could not open ${GAMES_DIR}/${gamesDir}`);
+  if (dir === null) throw new Error(cannotOpenMessage);
   const handle = await dir.getFileHandle(fileName);
   const file = await handle.getFile();
   if (file.size < 0x6c) return null;
@@ -85,6 +87,7 @@ export function BannerEditor({
   onSaved,
 }: BannerEditorProps) {
   const { root } = useSd();
+  const t = useT();
 
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -235,12 +238,17 @@ export function BannerEditor({
     const token = ++gameRequestRef.current;
     if (fileName === '' || root === null) return;
     setGameLoading(true);
-    readRomBannerIcon(root, gamesDir, fileName).then(
+    readRomBannerIcon(
+      root,
+      gamesDir,
+      fileName,
+      t.banner.cannotOpen(`${GAMES_DIR}/${gamesDir}`),
+    ).then(
       (icon) => {
         if (gameRequestRef.current !== token) return;
         setGameLoading(false);
         if (icon === null) {
-          setGameError('This ROM has no banner icon.');
+          setGameError(t.banner.noRomBanner);
         } else {
           setGameIcon(icon);
         }
@@ -268,7 +276,7 @@ export function BannerEditor({
     setSaveError(null);
     async function write() {
       const dir = await getDir(rootHandle, [GAMES_DIR, gamesDir]);
-      if (dir === null) throw new Error(`Could not open ${GAMES_DIR}/${gamesDir}`);
+      if (dir === null) throw new Error(t.banner.cannotOpen(`${GAMES_DIR}/${gamesDir}`));
       await writeFileBytes(dir, BANNER_FILE, buildFolderBanner(icon, bannerTitle));
     }
     write().then(
@@ -277,7 +285,7 @@ export function BannerEditor({
         onClose();
       },
       (e: unknown) => {
-        setSaveError(`Write failed: ${errorMessage(e)}`);
+        setSaveError(t.banner.writeFailed(errorMessage(e)));
         setBusy(null);
         busyRef.current = false;
       },
@@ -293,7 +301,7 @@ export function BannerEditor({
     setSaveError(null);
     async function remove() {
       const dir = await getDir(rootHandle, [GAMES_DIR, gamesDir]);
-      if (dir === null) throw new Error(`Could not open ${GAMES_DIR}/${gamesDir}`);
+      if (dir === null) throw new Error(t.banner.cannotOpen(`${GAMES_DIR}/${gamesDir}`));
       await dir.removeEntry(BANNER_FILE);
     }
     remove().then(
@@ -302,7 +310,7 @@ export function BannerEditor({
         onClose();
       },
       (e: unknown) => {
-        setSaveError(`Remove failed: ${errorMessage(e)}`);
+        setSaveError(t.banner.removeFailed(errorMessage(e)));
         setBusy(null);
         busyRef.current = false;
       },
@@ -320,16 +328,14 @@ export function BannerEditor({
         className="banner-editor"
         role="dialog"
         aria-modal="true"
-        aria-label={`Edit folder banner for ${systemLabel}`}
+        aria-label={t.banner.dialogLabel(systemLabel)}
       >
         <header className="banner-editor__header">
-          <h3 className="banner-editor__heading">
-            Folder banner — {GAMES_DIR}/{gamesDir}/
-          </h3>
+          <h3 className="banner-editor__heading">{t.banner.heading(`${GAMES_DIR}/${gamesDir}`)}</h3>
           <button
             type="button"
             className="banner-editor__close"
-            aria-label="Close"
+            aria-label={t.banner.close}
             disabled={busy !== null}
             onClick={onClose}
           >
@@ -343,25 +349,26 @@ export function BannerEditor({
           // surprised when the icon of one system changed the other's. State the
           // consequence of the action instead.
           <p className="banner-editor__note">
-            This folder holds {sharingLabels.slice(0, -1).join(', ')} and{' '}
-            {sharingLabels[sharingLabels.length - 1]}. They share one banner, so saving here changes
-            the icon and name of all of them.
+            {t.banner.sharedNote(
+              sharingLabels.slice(0, -1).join(', '),
+              sharingLabels[sharingLabels.length - 1],
+            )}
           </p>
         )}
 
         {loadError !== null && (
           <p className="banner-editor__error" role="alert">
-            Could not read the current banner: {loadError}
+            {t.banner.loadFailed(loadError)}
           </p>
         )}
 
         {!loaded ? (
           <p className="banner-editor__status" role="status">
-            Reading current banner…
+            {t.banner.readingCurrent}
           </p>
         ) : (
           <>
-            <div className="banner-editor__preview" aria-label="Banner preview">
+            <div className="banner-editor__preview" aria-label={t.banner.previewLabel}>
               {previewUrl !== null ? (
                 <img
                   className="banner-editor__preview-icon"
@@ -382,7 +389,7 @@ export function BannerEditor({
             </div>
 
             <label className="banner-editor__field">
-              <span className="banner-editor__field-label">Title</span>
+              <span className="banner-editor__field-label">{t.banner.titleLabel}</span>
               <input
                 ref={titleRef}
                 type="text"
@@ -391,16 +398,16 @@ export function BannerEditor({
                 onChange={(e) => {
                   setTitle(e.target.value);
                 }}
-                placeholder="Folder title shown by the launcher"
+                placeholder={t.banner.titlePlaceholder}
               />
             </label>
 
             <fieldset className="banner-editor__sources">
-              <legend className="banner-editor__field-label">Icon</legend>
+              <legend className="banner-editor__field-label">{t.banner.iconLegend}</legend>
               <div
                 className="banner-editor__source-options"
                 role="radiogroup"
-                aria-label="Icon source"
+                aria-label={t.banner.iconSource}
               >
                 {hasExisting && (
                   <label className="banner-editor__source">
@@ -412,7 +419,7 @@ export function BannerEditor({
                         setSource('current');
                       }}
                     />
-                    Keep current
+                    {t.banner.keepCurrent}
                   </label>
                 )}
                 <label className="banner-editor__source">
@@ -424,7 +431,7 @@ export function BannerEditor({
                       setSource('image');
                     }}
                   />
-                  From image
+                  {t.banner.fromImage}
                 </label>
                 {ndsGames.length > 0 && (
                   <label className="banner-editor__source">
@@ -436,7 +443,7 @@ export function BannerEditor({
                         setSource('game');
                       }}
                     />
-                    From a game
+                    {t.banner.fromGame}
                   </label>
                 )}
               </div>
@@ -446,18 +453,15 @@ export function BannerEditor({
                   <input
                     type="file"
                     accept="image/*"
-                    aria-label="Icon image file"
+                    aria-label={t.banner.imageFileLabel}
                     onChange={(e) => {
                       handleImageFile(e.target.files?.[0]);
                     }}
                   />
-                  <p className="banner-editor__hint">
-                    Scaled to fit 32×32 and quantized to 15 colors — the preview above is exactly
-                    what the DS will show.
-                  </p>
+                  <p className="banner-editor__hint">{t.banner.imageHint}</p>
                   {imageError !== null && (
                     <p className="banner-editor__error" role="alert">
-                      Could not read the image: {imageError}
+                      {t.banner.imageFailed(imageError)}
                     </p>
                   )}
                 </div>
@@ -466,13 +470,13 @@ export function BannerEditor({
               {source === 'game' && (
                 <div className="banner-editor__source-detail">
                   <select
-                    aria-label="Game to take the icon from"
+                    aria-label={t.banner.gamePicker}
                     value={gameFile}
                     onChange={(e) => {
                       handleGameChange(e.target.value);
                     }}
                   >
-                    <option value="">Choose a game…</option>
+                    <option value="">{t.banner.chooseGame}</option>
                     {ndsGames.map((game) => (
                       <option key={game.fileName} value={game.fileName}>
                         {game.fileName}
@@ -481,7 +485,7 @@ export function BannerEditor({
                   </select>
                   {gameLoading && (
                     <p className="banner-editor__status" role="status">
-                      Reading ROM banner…
+                      {t.banner.readingRom}
                     </p>
                   )}
                   {gameError !== null && (
@@ -500,9 +504,9 @@ export function BannerEditor({
             {hasExisting &&
               (confirmRemove ? (
                 <span className="banner-editor__confirm">
-                  <span>Remove {BANNER_FILE}?</span>
+                  <span>{t.banner.removeConfirm(BANNER_FILE)}</span>
                   <button type="button" disabled={busy !== null} onClick={handleRemove}>
-                    {busy === 'remove' ? 'Removing…' : 'Remove'}
+                    {busy === 'remove' ? t.banner.removing : t.banner.remove}
                   </button>
                   <button
                     type="button"
@@ -511,7 +515,7 @@ export function BannerEditor({
                       setConfirmRemove(false);
                     }}
                   >
-                    Cancel
+                    {t.banner.cancel}
                   </button>
                 </span>
               ) : (
@@ -523,7 +527,7 @@ export function BannerEditor({
                     setConfirmRemove(true);
                   }}
                 >
-                  Remove banner
+                  {t.banner.removeBanner}
                 </button>
               ))}
           </div>
@@ -534,7 +538,7 @@ export function BannerEditor({
               </p>
             )}
             <p className="banner-editor__target">
-              Writes{' '}
+              {t.banner.writes}
               <code>
                 {GAMES_DIR}/{gamesDir}/{BANNER_FILE}
               </code>
@@ -545,7 +549,7 @@ export function BannerEditor({
               disabled={!loaded || activeIcon === null || title.trim() === '' || busy !== null}
               onClick={handleSave}
             >
-              {busy === 'save' ? 'Writing…' : 'Save banner'}
+              {busy === 'save' ? t.banner.writing : t.banner.saveBanner}
             </button>
           </div>
         </footer>

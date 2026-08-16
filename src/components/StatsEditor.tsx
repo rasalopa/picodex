@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LibraryFile } from '../lib/sdcard';
 import { useSd } from '../state/SdContext';
+import { useT } from '../i18n';
 import './StatsEditor.css';
 
 export interface StatsEditorProps {
@@ -32,6 +33,7 @@ export function StatsEditor({
   onClose,
 }: StatsEditorProps) {
   const { setStats } = useSd();
+  const t = useT();
   const [launches, setLaunches] = useState(String(launchCount));
   const [hours, setHours] = useState(String(Math.floor(playMinutes / 60)));
   const [minutes, setMinutes] = useState(String(playMinutes % 60));
@@ -74,16 +76,16 @@ export function StatsEditor({
         className="stats-editor"
         role="dialog"
         aria-modal="true"
-        aria-label={`Edit play stats for ${title}`}
+        aria-label={t.statsEditor.dialogLabel(title)}
       >
         <header className="stats-editor__header">
           <h3 className="stats-editor__title" title={game.fileName}>
-            Edit stats — {title}
+            {t.statsEditor.title(title)}
           </h3>
           <button
             type="button"
             className="stats-editor__close"
-            aria-label="Close"
+            aria-label={t.statsEditor.close}
             disabled={saving}
             onClick={onClose}
           >
@@ -92,7 +94,7 @@ export function StatsEditor({
         </header>
 
         <label className="stats-editor__field">
-          <span className="stats-editor__label">Launches</span>
+          <span className="stats-editor__label">{t.statsEditor.launches}</span>
           <input
             type="number"
             min={0}
@@ -106,7 +108,7 @@ export function StatsEditor({
         </label>
 
         <div className="stats-editor__field">
-          <span className="stats-editor__label">Play time</span>
+          <span className="stats-editor__label">{t.statsEditor.playTime}</span>
           <div className="stats-editor__time">
             <input
               type="number"
@@ -114,7 +116,7 @@ export function StatsEditor({
               inputMode="numeric"
               value={hours}
               disabled={saving}
-              aria-label="Hours"
+              aria-label={t.statsEditor.hours}
               onChange={(e) => {
                 setHours(e.target.value);
               }}
@@ -126,7 +128,7 @@ export function StatsEditor({
               inputMode="numeric"
               value={minutes}
               disabled={saving}
-              aria-label="Minutes"
+              aria-label={t.statsEditor.minutes}
               onChange={(e) => {
                 setMinutes(e.target.value);
               }}
@@ -137,10 +139,10 @@ export function StatsEditor({
 
         <footer className="stats-editor__actions">
           <button type="button" disabled={saving} onClick={onClose}>
-            Cancel
+            {t.statsEditor.cancel}
           </button>
           <button type="button" className="primary" disabled={saving} onClick={save}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t.statsEditor.saving : t.statsEditor.save}
           </button>
         </footer>
       </div>

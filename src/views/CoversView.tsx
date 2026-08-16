@@ -9,6 +9,7 @@ import type { System } from '../lib/systems';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
 import { readCachedCatalog, writeCachedCatalog } from '../lib/catalogCache';
 import { useSd, type CoverIndex } from '../state/SdContext';
+import { useT } from '../i18n';
 import './CoversView.css';
 
 /** A library game with no cover on the SD card yet. */
@@ -35,14 +36,6 @@ interface Job {
   /** Failure detail (error phase). */
   message?: string;
 }
-
-const JOB_STATUS_LABELS: Record<JobPhase, string> = {
-  pending: 'Queued',
-  matched: 'Downloading…',
-  written: 'Written',
-  'no-match': 'No match',
-  error: 'Failed',
-};
 
 /** Maximum simultaneous boxart downloads. */
 const MAX_CONCURRENCY = 4;
@@ -138,6 +131,7 @@ async function classifyGame(
  */
 export function CoversView() {
   const { root, games, coverIndex, refresh } = useSd();
+  const t = useT();
   const [scanProgress, setScanProgress] = useState<{ done: number; total: number } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [missing, setMissing] = useState<MissingGame[]>([]);
@@ -239,7 +233,7 @@ export function CoversView() {
   }, [jobs]);
 
   if (!root) {
-    return <p className="covers-view__empty">Open an SD card to manage covers.</p>;
+    return <p className="covers-view__empty">{t.covers.openCard}</p>;
   }
   const rootHandle = root;
 
@@ -266,7 +260,7 @@ export function CoversView() {
     try {
       const catalog = catalogsRef.current.get(system.libretroRepo);
       if (!catalog) {
-        throw new Error('Boxart catalog unavailable');
+        throw new Error(t.covers.catalogUnavailable);
       }
       const regionPrefs =
         system.id === 'gba' && code !== null
@@ -288,11 +282,11 @@ export function CoversView() {
       const bmp = encodeCoverBmp(rgba);
       if (system.coverKeying === 'gamecode' && code !== null) {
         const dir = await getDir(rootHandle, COVERS[gamecodeCoverKey(system)], true);
-        if (!dir) throw new Error('Could not open the covers directory');
+        if (!dir) throw new Error(t.covers.coversDirFailed);
         await writeFileBytes(dir, `${code.toUpperCase()}.bmp`, bmp);
       } else {
         const dir = await getDir(rootHandle, COVERS.user, true);
-        if (!dir) throw new Error('Could not open the covers directory');
+        if (!dir) throw new Error(t.covers.coversDirFailed);
         await writeFileBytes(dir, `${fileName}.bmp`, bmp);
       }
       const previewUrl = await coverBmpPreviewUrl(bmp);
@@ -376,41 +370,36 @@ export function CoversView() {
 
   function jobDetail(job: Job): string | null {
     if (job.phase === 'matched' || job.phase === 'written') return job.match ?? null;
-    if (job.phase === 'no-match') return 'No box art found in the catalog';
-    if (job.phase === 'error') return job.message ?? 'Unknown error';
+    if (job.phase === 'no-match') return t.covers.noBoxartFound;
+    if (job.phase === 'error') return job.message ?? t.covers.unknownError;
     return null;
   }
 
   const selectedCount = selected.size;
 
   return (
-    <section className="covers-view" aria-label="Cover art">
+    <section className="covers-view" aria-label={t.covers.regionLabel}>
       <header className="covers-view__header">
-        <h2>Covers</h2>
-        <p className="covers-view__hint">
-          Finds games without cover art, fetches matching box art from libretro-thumbnails and
-          writes launcher-ready BMP covers to your SD card.
-        </p>
+        <h2>{t.covers.title}</h2>
+        <p className="covers-view__hint">{t.covers.intro}</p>
       </header>
 
-      {scanError && <p className="covers-view__error">Scan failed: {scanError}</p>}
+      {scanError && <p className="covers-view__error">{t.covers.scanFailed(scanError)}</p>}
 
       {scanProgress && (
         <div className="covers-view__progress" role="status">
-          <span>
-            Scanning {scanProgress.done}/{scanProgress.total}…
-          </span>
+          <span>{t.covers.scanning(scanProgress.done, scanProgress.total)}</span>
           {scanProgress.total > 0 && <ProgressBar value={scanProgress.done / scanProgress.total} />}
         </div>
       )}
 
       {jobs.length > 0 && (
-        <section className="covers-view__batch card" aria-label="Fetch results">
-          <h3>Fetch results</h3>
+        <section className="covers-view__batch card" aria-label={t.covers.fetchResults}>
+          <h3>{t.covers.fetchResults}</h3>
           <p className="covers-view__counter" role="status">
             {fetching
-              ? `Fetching covers — ${jobStats.done}/${jobs.length} done`
-              : `Batch finished: ${jobStats.written} written · ${jobStats.noMatch} without match · ${jobStats.failed} failed`}
+              ? t.covers.fetchingCounter(jobStats.done, jobs.length)
+              : t.covers.batchFinished(jobStats.written, jobStats.noMatch, jobStats.failed)}
           </p>
           <ul className="covers-view__jobs">
             {jobs.map((job) => (
@@ -419,7 +408,7 @@ export function CoversView() {
                   <img
                     className="covers-view__preview"
                     src={job.previewUrl}
-                    alt={`Written cover for ${job.fileName}`}
+                    alt={t.covers.writtenCoverAlt(job.fileName)}
                     width={128}
                     height={96}
                   />
@@ -436,7 +425,7 @@ export function CoversView() {
                     {jobDetail(job) !== null && ` — ${jobDetail(job)}`}
                   </span>
                 </span>
-                <span className="covers-view__job-status">{JOB_STATUS_LABELS[job.phase]}</span>
+                <span className="covers-view__job-status">{t.covers.jobStatus[job.phase]}</span>
               </li>
             ))}
           </ul>
@@ -445,35 +434,31 @@ export function CoversView() {
 
       {!scanProgress && !scanError && missing.length === 0 && (
         <p className="covers-view__all-covered" role="status">
-          {games.length === 0
-            ? 'No games found on this SD card.'
-            : `All ${games.length} games already have covers.`}
+          {games.length === 0 ? t.covers.noGames : t.covers.allCovered(games.length)}
         </p>
       )}
 
       {!scanProgress && missing.length > 0 && (
-        <section aria-label="Games missing covers">
+        <section aria-label={t.covers.missingRegionLabel}>
           <div className="covers-view__toolbar card">
             <h3 className="covers-view__toolbar-title">
-              Missing covers <span className="covers-view__dim">({missing.length})</span>
+              {t.covers.missingTitle} <span className="covers-view__dim">({missing.length})</span>
             </h3>
             <button
               onClick={() => setSelected(new Set(missing.map((m) => m.id)))}
               disabled={fetching}
             >
-              Select all
+              {t.covers.selectAll}
             </button>
             <button onClick={() => setSelected(new Set())} disabled={fetching}>
-              Select none
+              {t.covers.selectNone}
             </button>
             <button
               className="primary"
               onClick={() => void fetchSelected()}
               disabled={fetching || selectedCount === 0}
             >
-              {fetching
-                ? 'Fetching…'
-                : `Fetch ${selectedCount} cover${selectedCount === 1 ? '' : 's'}`}
+              {fetching ? t.covers.fetching : t.covers.fetchCount(selectedCount)}
             </button>
           </div>
           {groups.map((group) => (
@@ -495,9 +480,7 @@ export function CoversView() {
                       <span className="covers-view__row-name">{m.game.fileName}</span>
                       {m.code !== null && <code className="covers-view__code">{m.code}</code>}
                       {m.game.system.coverKeying === 'gamecode' && m.code === null && (
-                        <span className="covers-view__row-note">
-                          no gamecode — saved as user cover
-                        </span>
+                        <span className="covers-view__row-note">{t.covers.noGamecode}</span>
                       )}
                     </label>
                   </li>
