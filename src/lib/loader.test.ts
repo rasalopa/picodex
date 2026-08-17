@@ -53,9 +53,9 @@ describe('parseLoaderApiVersion', () => {
 
 describe('loaderApiCapabilities', () => {
   it('accumulates capabilities by version', () => {
-    expect(loaderApiCapabilities(1)).toEqual(['Game loading']);
-    expect(loaderApiCapabilities(2)).toEqual(['Game loading', 'Return to launcher']);
-    expect(loaderApiCapabilities(3)).toEqual(['Game loading', 'Return to launcher', 'Cheats']);
+    expect(loaderApiCapabilities(1)).toEqual(['gameLoading']);
+    expect(loaderApiCapabilities(2)).toEqual(['gameLoading', 'returnToLauncher']);
+    expect(loaderApiCapabilities(3)).toEqual(['gameLoading', 'returnToLauncher', 'cheats']);
   });
 });
 

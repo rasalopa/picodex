@@ -32,11 +32,14 @@ export function parseLoaderApiVersion(picoLoader7: Uint8Array): number | null {
   return version;
 }
 
-/** Human-readable capabilities of a Pico Loader API version. */
-export function loaderApiCapabilities(apiVersion: number): string[] {
-  const capabilities = ['Game loading'];
-  if (apiVersion >= 2) capabilities.push('Return to launcher');
-  if (apiVersion >= 3) capabilities.push('Cheats');
+/** Capability of a Pico Loader API version; labels live in i18n `library.capabilities`. */
+export type LoaderCapability = 'gameLoading' | 'returnToLauncher' | 'cheats';
+
+/** Capabilities of a Pico Loader API version, in order, as i18n keys. */
+export function loaderApiCapabilities(apiVersion: number): LoaderCapability[] {
+  const capabilities: LoaderCapability[] = ['gameLoading'];
+  if (apiVersion >= 2) capabilities.push('returnToLauncher');
+  if (apiVersion >= 3) capabilities.push('cheats');
   return capabilities;
 }
 

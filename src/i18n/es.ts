@@ -242,6 +242,11 @@ export const es: Dict = {
     enhancedChip: 'Pico Enhanced',
     updatedOn: (date: string) => `· actualizado el ${date}`,
     apiVersion: (version: number) => `API v${String(version)}`,
+    capabilities: {
+      gameLoading: 'Carga de juegos',
+      returnToLauncher: 'Volver al launcher',
+      cheats: 'Cheats',
+    },
   },
   compat: {
     dialogLabel: (title: string) => `Compatibilidad del loader para ${title}`,

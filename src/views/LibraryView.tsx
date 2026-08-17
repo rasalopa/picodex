@@ -317,7 +317,10 @@ export function LibraryView() {
                   {t.library.apiVersion(cardInfo.loaderApiVersion)}
                   <span className="library-view__card-info-dim">
                     {' '}
-                    · {loaderApiCapabilities(cardInfo.loaderApiVersion).join(' · ')}
+                    ·{' '}
+                    {loaderApiCapabilities(cardInfo.loaderApiVersion)
+                      .map((c) => t.library.capabilities[c])
+                      .join(' · ')}
                   </span>
                 </>
               )}

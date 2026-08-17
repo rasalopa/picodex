@@ -254,6 +254,13 @@ export const en = {
     enhancedChip: 'Pico Enhanced',
     updatedOn: (date: string) => `· updated ${date}`,
     apiVersion: (version: number) => `API v${String(version)}`,
+    // Labels for the loader's API capabilities, shown next to the version.
+    // Keyed to match loaderApiCapabilities()'s return values.
+    capabilities: {
+      gameLoading: 'Game loading',
+      returnToLauncher: 'Return to launcher',
+      cheats: 'Cheats',
+    },
   },
   compat: {
     dialogLabel: (title: string) => `Loader compatibility for ${title}`,
