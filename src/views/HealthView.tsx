@@ -426,8 +426,9 @@ export function HealthView() {
                   <ul className="health-view__list">
                     {loader.required.map((name) => (
                       <li key={name} className="health-view__warn">
+                        {t.health.loaderMissing1}
                         <code>/_pico/{name}</code>
-                        {t.health.loaderMissing}
+                        {t.health.loaderMissing2}
                       </li>
                     ))}
                   </ul>

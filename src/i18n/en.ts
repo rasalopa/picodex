@@ -328,7 +328,7 @@ export const en = {
     hints: {
       ap: {
         retail:
-          'Some games freeze on purpose when they notice a flashcard, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here.',
+          'Some games freeze on purpose when they notice a flashcart, and the loader undoes that at boot. This row can only read one file on your card, aplist.bin. The loader also carries fixes inside itself for games that are not in that file, and those are invisible from here.',
         dsiware:
           'Anti-piracy protection is a cartridge thing. DSiWare titles were never on a cartridge, so the loader does not run that step for them at all.',
         homebrew:
@@ -344,11 +344,11 @@ export const en = {
       },
       patch: {
         retail:
-          'A few games need small one-off fixes to run correctly from a flashcard. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
+          'A few games need small one-off fixes to run correctly from a flashcart. This row can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
         dsiware:
-          'A few games need small one-off fixes to run correctly from a flashcard. The loader applies these to DSiWare too - unlike the save and anti-piracy steps, this one is not skipped. It can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
+          'A few games need small one-off fixes to run correctly from a flashcart. The loader applies these to DSiWare too - unlike the save and anti-piracy steps, this one is not skipped. It can only read one file on your card, patchlist.bin, and the loader carries other fixes inside itself that are invisible from here.',
         homebrew:
-          'These fixes exist to make retail games run from a flashcard. The loader applies none of them to homebrew, which runs as built.',
+          'These fixes exist to make retail games run from a flashcart. The loader applies none of them to homebrew, which runs as built.',
       },
     },
   },
@@ -460,7 +460,8 @@ export const en = {
     fsevents2: ' marker — an intentional logging-prevention setup.',
     loaderTitle: 'Loader files',
     loaderAllPresent: 'All required loader files are present.',
-    loaderMissing: ' is missing — the loader needs it to boot games.',
+    loaderMissing1: '',
+    loaderMissing2: ' is missing — the loader needs it to boot games.',
     downloadFrom1: 'Download from ',
     downloadReleases: 'pico-loader releases',
     downloadFrom2: ' and copy the files into ',
