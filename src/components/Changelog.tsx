@@ -1,7 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { CHANGELOG, REPO_URL } from '../lib/changelog';
-import { useT } from '../i18n';
+import { useLang, useT, type Lang } from '../i18n';
 import './Changelog.css';
+
+/** "2026-08-14" -> "Aug 14, 2026" / "14 ago 2026". Built through UTC so the
+ *  day never shifts with the viewer's timezone. */
+function formatDate(iso: string, lang: Lang): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat(lang, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
 
 /**
  * "What's new" panel: a curated, in-app view of recent releases sourced from
@@ -10,6 +22,7 @@ import './Changelog.css';
  */
 export function Changelog({ onClose }: { onClose: () => void }) {
   const t = useT();
+  const { lang } = useLang();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,12 +77,12 @@ export function Changelog({ onClose }: { onClose: () => void }) {
             <li key={entry.version} className="changelog__entry">
               <div className="changelog__meta">
                 <span className="changelog__version">v{entry.version}</span>
-                <span className="changelog__date">{entry.date}</span>
+                <span className="changelog__date">{formatDate(entry.date, lang)}</span>
               </div>
               <ul className="changelog__changes">
                 {entry.changes.map((change) => (
-                  <li key={change.text}>
-                    {change.text}{' '}
+                  <li key={change.text.en}>
+                    {change.text[lang]}{' '}
                     {change.issue !== undefined && (
                       <a
                         className="changelog__issue"

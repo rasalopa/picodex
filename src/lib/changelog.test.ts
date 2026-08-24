@@ -14,11 +14,16 @@ describe('CHANGELOG data', () => {
     }
   });
 
-  it('uses well-formed versions and display dates', () => {
+  it('uses well-formed versions and real ISO dates', () => {
     for (const entry of CHANGELOG) {
       expect(entry.version).toMatch(/^\d+\.\d+\.\d+$/);
-      // "Jul 22, 2026" — the display format Changelog.tsx renders verbatim
-      expect(entry.date).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+      // "2026-07-22" — Changelog.tsx formats it for the active language
+      expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const [year, month, day] = entry.date.split('-').map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      expect(parsed.getUTCFullYear()).toBe(year);
+      expect(parsed.getUTCMonth()).toBe(month - 1);
+      expect(parsed.getUTCDate()).toBe(day);
     }
   });
 
@@ -39,12 +44,13 @@ describe('CHANGELOG data', () => {
     expect(new Set(versions).size).toBe(versions.length);
   });
 
-  it('has unique, non-empty change texts within each entry (React keys)', () => {
+  it('has unique, non-empty change texts in both languages within each entry (React keys)', () => {
     for (const entry of CHANGELOG) {
-      const texts = entry.changes.map((change) => change.text);
-      expect(new Set(texts).size).toBe(texts.length);
-      for (const text of texts) {
-        expect(text.trim().length).toBeGreaterThan(0);
+      const english = entry.changes.map((change) => change.text.en);
+      expect(new Set(english).size).toBe(english.length);
+      for (const change of entry.changes) {
+        expect(change.text.en.trim().length).toBeGreaterThan(0);
+        expect(change.text.es.trim().length).toBeGreaterThan(0);
       }
     }
   });
