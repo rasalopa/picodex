@@ -41,9 +41,14 @@
 .stats-editor__title {
   margin: 0 auto 0 0;
   font-size: 1.15rem;
+  /* Long game names wrap to a second line; only past that they truncate. The
+     full file name is still on the title attribute. */
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 .stats-editor__close {
