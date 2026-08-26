@@ -30,6 +30,30 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.0',
+    date: '2026-08-26',
+    changes: [
+      {
+        text: {
+          en: 'PicoDex speaks Spanish. The switch is in the footer and it remembers your choice, and on a first visit it follows your browser. Every view, every dialog and every message, including the ones about what is wrong with your card.',
+          es: 'PicoDex habla español. El conmutador está en el pie y recuerda tu elección; la primera vez sigue al idioma del navegador. Todas las vistas, todos los diálogos y todos los mensajes, incluidos los que explican qué le pasa a tu tarjeta.',
+        },
+      },
+      {
+        text: {
+          en: 'This panel is translated too, and the dates now read the way your language writes them.',
+          es: 'Este panel también está traducido, y las fechas se leen como las escribe tu idioma.',
+        },
+      },
+      {
+        text: {
+          en: 'A long game name no longer gets cut short when you edit its play stats: the title wraps to a second line instead.',
+          es: 'Un nombre de juego largo ya no se corta al editar sus estadísticas: el título pasa a una segunda línea.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-08-14',
     changes: [
@@ -109,7 +133,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '0.4.0',
-    date: '2026-07-24',
+    date: '2026-07-26',
     changes: [
       {
         text: {
