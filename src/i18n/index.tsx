@@ -10,7 +10,7 @@
  * forever; until then the browser language decides, so a Spanish system sees
  * Spanish on first visit without touching anything.
  */
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { en, type Dict } from './en';
 import { es } from './es';
 
@@ -37,6 +37,13 @@ const LanguageContext = createContext<{ lang: Lang; setLang: (lang: Lang) => voi
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
+  // The document has to declare the language it is actually in, not the one index.html was
+  // written in. A screen reader picks its voice from this, and so does the browser when it
+  // offers to translate the page - a Spanish page claiming to be English gets read with an
+  // English voice and offered a translation it does not need.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
     try {

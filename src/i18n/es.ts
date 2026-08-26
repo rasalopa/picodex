@@ -456,7 +456,7 @@ export const es: Dict = {
     ambiguityIncomplete:
       ' No se pudo afinar más: los archivos que difieren entre esas versiones faltan o no se reconocen aquí.',
     releasesBehind1: (count: number, atLeast: boolean) =>
-      `${atLeast ? 'Al menos ' : ''}${count} ${count === 1 ? 'versión' : 'versiones'} por detrás de`,
+      `${atLeast ? 'Al menos ' : ''}${count} ${count === 1 ? 'versión' : 'versiones'} por detrás de `,
     releasesBehind2: '.',
     newestKnownCandidate: (tag: string) =>
       `${tag} es la versión más nueva que PicoDex conoce, y es una de esas candidatas.`,
