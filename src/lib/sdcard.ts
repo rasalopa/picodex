@@ -314,7 +314,7 @@ export const LAUNCHER_FILE = '_picoboot.nds';
 /**
  * Whether an error is the browser denying access to an entry. Chromium
  * surfaces macOS/Windows permission denials as these names — sometimes as
- * `NoModificationAllowedError` even on reads (see {@link friendlyFsError}).
+ * `NoModificationAllowedError` even on reads (see `fsMessage` in the SD context).
  */
 export function isAccessError(e: unknown): boolean {
   return (
@@ -421,20 +421,4 @@ export async function scanLibrary(
   return results.sort(
     (a, b) => (systemOrder.get(a.system.id) ?? 0) - (systemOrder.get(b.system.id) ?? 0),
   );
-}
-
-/**
- * Human-readable message for a filesystem error. Chromium reports macOS
- * permission denials (system-protected entries like `.Trashes`, read-only
- * mounts) as a misleading "an attempt was made to write..." — name the
- * likely causes instead of echoing it.
- */
-export function friendlyFsError(e: unknown): string {
-  if (e instanceof DOMException && e.name === 'NoModificationAllowedError') {
-    return (
-      'macOS denied access to an entry on the card — it may be a system-protected ' +
-      'folder (like .Trashes) or the card may be mounted read-only.'
-    );
-  }
-  return e instanceof Error ? e.message : String(e);
 }

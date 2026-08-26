@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSd } from '../state/SdContext';
+import { useSd, type SdMessage } from '../state/SdContext';
+import { fsMessage } from '../state/fsMessage';
 import { useT } from '../i18n';
 import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
 import { fetchLatestLoaderTag, LOADER_MANIFEST, scanLoaderFiles } from '../lib/loaderScan';
@@ -10,7 +11,8 @@ import {
   type LoaderVersionResult,
 } from '../lib/loaderVersion';
 import { scanCard, type ScanResult } from '../lib/scan';
-import { COVERS, friendlyFsError, getDir } from '../lib/sdcard';
+import { COVERS, getDir } from '../lib/sdcard';
+import { resolveSdMessage } from '../i18n/messages';
 import './HealthView.css';
 
 /** Section card class with its ok/warn status edge modifier. */
@@ -96,7 +98,7 @@ export function HealthView() {
   const [scanning, setScanning] = useState(false);
   const [filesSeen, setFilesSeen] = useState(0);
   const [scan, setScan] = useState<ScanResult | null>(null);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<SdMessage | null>(null);
 
   const [junkConfirm, setJunkConfirm] = useState(false);
   const [junkBusy, setJunkBusy] = useState(false);
@@ -106,7 +108,7 @@ export function HealthView() {
   const [savesSelected, setSavesSelected] = useState<ReadonlySet<string>>(new Set());
   const [savesConfirm, setSavesConfirm] = useState(false);
   const [savesBusy, setSavesBusy] = useState(false);
-  const [savesError, setSavesError] = useState<string | null>(null);
+  const [savesError, setSavesError] = useState<SdMessage | null>(null);
 
   /**
    * Which pico-loader release the card's loader files came from, hashed during
@@ -125,7 +127,7 @@ export function HealthView() {
   const [coversDeselected, setCoversDeselected] = useState<ReadonlySet<string>>(new Set());
   const [coversConfirm, setCoversConfirm] = useState(false);
   const [coversBusy, setCoversBusy] = useState(false);
-  const [coversError, setCoversError] = useState<string | null>(null);
+  const [coversError, setCoversError] = useState<SdMessage | null>(null);
 
   const runScan = useCallback(async () => {
     if (root === null) return;
@@ -138,7 +140,8 @@ export function HealthView() {
       if (!(await refresh())) {
         // scanning against a stale or empty library would flag healthy
         // saves and covers as orphans — refuse rather than mislead
-        setScanError(t.health.libraryRereadFailed);
+        // already in the active language, so it goes through as its own text
+        setScanError({ key: 'raw', text: t.health.libraryRereadFailed });
         return;
       }
       const result = await scanCard(root, setFilesSeen);
@@ -164,7 +167,7 @@ export function HealthView() {
       setSavesConfirm(false);
       setCoversConfirm(false);
     } catch (e) {
-      setScanError(friendlyFsError(e));
+      setScanError(fsMessage(e));
     } finally {
       setScanning(false);
     }
@@ -264,7 +267,7 @@ export function HealthView() {
         await dir.removeEntry(save.name);
       }
     } catch (e) {
-      setSavesError(friendlyFsError(e));
+      setSavesError(fsMessage(e));
     }
     setSavesConfirm(false);
     await refresh();
@@ -284,7 +287,7 @@ export function HealthView() {
         }
       }
     } catch (e) {
-      setCoversError(friendlyFsError(e));
+      setCoversError(fsMessage(e));
     }
     setCoversConfirm(false);
     await refresh();
@@ -320,7 +323,7 @@ export function HealthView() {
       )}
       {scanError !== null && (
         <p className="health-view__error" role="alert">
-          {scanError}
+          {resolveSdMessage(t, scanError)}
         </p>
       )}
 
@@ -633,7 +636,7 @@ export function HealthView() {
             )}
             {savesError !== null && (
               <p className="health-view__error" role="alert">
-                {savesError}
+                {resolveSdMessage(t, savesError)}
               </p>
             )}
           </section>
@@ -683,7 +686,7 @@ export function HealthView() {
             )}
             {coversError !== null && (
               <p className="health-view__error" role="alert">
-                {coversError}
+                {resolveSdMessage(t, coversError)}
               </p>
             )}
           </section>

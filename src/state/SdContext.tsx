@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { fsMessage } from './fsMessage';
 import type { ReactNode } from 'react';
 import { forgetCard, loadLastCard, rememberCard } from '../lib/lastCard';
 import {
@@ -77,14 +78,6 @@ export type SdMessage =
   | { key: 'noPicoOnCard' }
   | { key: 'fsDenied' }
   | { key: 'raw'; text: string };
-
-/** {@link friendlyFsError}, as a descriptor the UI can translate. */
-function fsMessage(e: unknown): SdMessage {
-  if (e instanceof DOMException && e.name === 'NoModificationAllowedError') {
-    return { key: 'fsDenied' };
-  }
-  return { key: 'raw', text: e instanceof Error ? e.message : String(e) };
-}
 
 export interface SdState {
   root: FileSystemDirectoryHandle | null;
