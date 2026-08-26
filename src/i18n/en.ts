@@ -10,11 +10,10 @@
  * to repeat the English text verbatim. `typeof en` with widened strings is
  * the contract a translation file has to satisfy.
  *
- * A translation is one file that mirrors this one, and that is the part a
- * translator owns. Reaching the screen still needs a maintainer: the `Lang`
- * union and the dictionary map in src/i18n/index.tsx, the footer switch in
- * src/App.tsx, and `LocalizedText` in src/lib/changelog.ts all name the two
- * current languages one by one.
+ * A translation is one file that mirrors this one, and it does not have to
+ * mirror all of it: `Translation<Dict>` in ./languages makes every key
+ * optional and falls back to the English here, so a language can ship a
+ * quarter translated and grow. See CONTRIBUTING.md for the two edits it takes.
  */
 export const en = {
   app: {
