@@ -2,7 +2,7 @@ import { useRef, useState, type ComponentType } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { isFileSystemAccessSupported } from './lib/sdcard';
 import { SdProvider, useSd } from './state/SdContext';
-import { LanguageProvider, useLang, useT, type Lang } from './i18n';
+import { LANGUAGES, LanguageProvider, useLang, useT, type Lang } from './i18n';
 import { resolveSdMessage } from './i18n/messages';
 import type { Dict } from './i18n/en';
 import { LibraryView } from './views/LibraryView';
@@ -224,12 +224,13 @@ function Workspace() {
   );
 }
 
-/** EN/ES switch in the footer. The stored pick wins over the browser language. */
+/** The language switch in the footer. The stored pick wins over the browser language. */
 function LanguageToggle() {
   const { lang, setLang } = useLang();
   const t = useT();
   const option = (value: Lang, label: string) => (
     <button
+      key={value}
       type="button"
       className={
         lang === value ? 'app__footer-link app__lang--active' : 'app__footer-link app__lang'
@@ -242,8 +243,7 @@ function LanguageToggle() {
   );
   return (
     <span className="app__lang-toggle" role="group" aria-label={t.app.language}>
-      {option('en', 'EN')}
-      {option('es', 'ES')}
+      {LANGUAGES.map(({ code, label }) => option(code, label))}
     </span>
   );
 }

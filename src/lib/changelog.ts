@@ -1,9 +1,14 @@
-/** The same sentence in both app languages; the panel shows the active one.
- *  The type is what keeps a release honest: an entry cannot ship half-translated. */
-export interface LocalizedText {
-  en: string;
-  es: string;
-}
+import type { Lang } from '../i18n/languages';
+
+/**
+ * The same sentence in as many app languages as have it; the panel shows the
+ * active one and falls back to English for the rest.
+ *
+ * English is required and the others are not, on purpose: a language added after
+ * a release should not owe a translation of every entry before it, and a release
+ * should not wait on one.
+ */
+export type LocalizedText = { en: string } & Partial<Record<Lang, string>>;
 
 /** One shipped change, optionally tied to a GitHub issue that requested it. */
 export interface ChangelogChange {

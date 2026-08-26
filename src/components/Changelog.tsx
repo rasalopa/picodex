@@ -82,7 +82,7 @@ export function Changelog({ onClose }: { onClose: () => void }) {
               <ul className="changelog__changes">
                 {entry.changes.map((change) => (
                   <li key={change.text.en}>
-                    {change.text[lang]}{' '}
+                    {change.text[lang] ?? change.text.en}{' '}
                     {change.issue !== undefined && (
                       <a
                         className="changelog__issue"

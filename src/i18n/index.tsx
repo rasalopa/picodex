@@ -3,31 +3,31 @@
  *
  * `useT()` hands back the whole active dictionary, so components read strings
  * as plain properties (`t.welcome.openSd`) and parameterized ones as calls
- * (`t.welcome.openLast(name)`). No string keys, no library - TypeScript keeps
- * every language complete (see en.ts for the contract).
+ * (`t.welcome.openLast(name)`). No string keys, no library.
  *
  * The choice: an explicit pick from the footer toggle is stored and wins
  * forever; until then the browser language decides, so a Spanish system sees
  * Spanish on first visit without touching anything.
+ *
+ * Which languages exist, and what a half-finished translation falls back to,
+ * live in ./languages - this file only holds the React side.
  */
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { en, type Dict } from './en';
-import { es } from './es';
+import type { Dict } from './en';
+import { dictFor, pickLang, type Lang } from './languages';
 
-export type Lang = 'en' | 'es';
+export { LANGUAGES, type Lang } from './languages';
 
 const STORAGE_KEY = 'picodex-lang';
 
-const DICTS: Record<Lang, Dict> = { en, es };
-
 function initialLang(): Lang {
+  let stored: string | null = null;
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'es') return stored;
+    stored = localStorage.getItem(STORAGE_KEY);
   } catch {
     // storage can be unavailable (blocked cookies); the browser language still works
   }
-  return navigator.language?.toLowerCase().startsWith('es') ? 'es' : 'en';
+  return pickLang(stored, navigator.language);
 }
 
 const LanguageContext = createContext<{ lang: Lang; setLang: (lang: Lang) => void }>({
@@ -61,8 +61,8 @@ export function useLang() {
   return useContext(LanguageContext);
 }
 
-/** The active dictionary. */
+/** The active dictionary, with English filling anything its language has not translated. */
 // eslint-disable-next-line react-refresh/only-export-components -- context + hook is the idiomatic pairing
 export function useT(): Dict {
-  return DICTS[useContext(LanguageContext).lang];
+  return dictFor(useContext(LanguageContext).lang);
 }

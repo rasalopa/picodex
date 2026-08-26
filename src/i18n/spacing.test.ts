@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { en } from './en';
-import { es } from './es';
-import type { Dict } from './en';
+import { dictFor, LANGUAGES } from './languages';
 
 /**
  * Some sentences are split in two so a `<strong>` can sit between the halves — `releasesBehind1`
@@ -54,11 +53,6 @@ function render(value: unknown): string {
   return String(value);
 }
 
-const LANGUAGES: ReadonlyArray<readonly [string, Dict]> = [
-  ['en', en],
-  ['es', es],
-];
-
 describe('a split sentence never glues itself to the value between its halves', () => {
   const pairs = splitPairs(en as unknown as Bag);
 
@@ -67,7 +61,11 @@ describe('a split sentence never glues itself to the value between its halves', 
     expect(pairs).toContain('health.releasesBehind1');
   });
 
-  for (const [name, dict] of LANGUAGES) {
+  // Every language in the registry, read the way a component reads it - so a translation that
+  // covers half the split sentences is checked on the half it covers and on the English it
+  // inherits for the rest. A new language is covered by adding it to the registry, and only that.
+  for (const { code: name } of LANGUAGES) {
+    const dict = dictFor(name);
     it.each(pairs)(`${name}: %s leaves room before the value`, (path) => {
       const first = render(at(dict as unknown as Bag, path));
       // Empty is fine: it means this language does not use the slot at all.

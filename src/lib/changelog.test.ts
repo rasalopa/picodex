@@ -44,13 +44,33 @@ describe('CHANGELOG data', () => {
     expect(new Set(versions).size).toBe(versions.length);
   });
 
-  it('has unique, non-empty change texts in both languages within each entry (React keys)', () => {
+  it('has unique, non-empty English change texts within each entry (React keys)', () => {
     for (const entry of CHANGELOG) {
       const english = entry.changes.map((change) => change.text.en);
       expect(new Set(english).size).toBe(english.length);
       for (const change of entry.changes) {
         expect(change.text.en.trim().length).toBeGreaterThan(0);
-        expect(change.text.es.trim().length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  // A translation may be absent - the panel falls back to English. Present and blank is the
+  // one thing it must not be, because that renders an empty bullet rather than a readable one.
+  it('never carries a blank translation, in any language', () => {
+    for (const entry of CHANGELOG) {
+      for (const change of entry.changes) {
+        for (const [lang, text] of Object.entries(change.text)) {
+          expect(text.trim().length, `${entry.version} ${lang}`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  // Spanish is a shipped language, not a contributed one: every entry carries it.
+  it('carries Spanish on every entry', () => {
+    for (const entry of CHANGELOG) {
+      for (const change of entry.changes) {
+        expect(change.text.es, `${entry.version}: "${change.text.en.slice(0, 40)}"`).toBeTruthy();
       }
     }
   });
