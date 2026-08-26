@@ -5,6 +5,16 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.8.1 — 2026-08-26
+
+- **Anyone can translate PicoDex now, and a translation does not have to be finished.** Every key in
+  a language file is optional and anything left out reads in English, so thirty strings translated is
+  a real contribution rather than a draft. A language that had to be complete before it shipped would
+  have blocked every release after it.
+- **One registry decides which languages exist.** The footer switch, the date formats, the language
+  the page reports and the browser detection all read from it, so adding a language is its own file
+  plus two lines. [CONTRIBUTING.md](CONTRIBUTING.md#translations) has the six steps.
+
 ## 0.8.0 — 2026-08-26
 
 - **PicoDex speaks Spanish.** The switch is in the footer and it remembers your choice; on a first

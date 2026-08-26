@@ -35,6 +35,18 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.1',
+    date: '2026-08-26',
+    changes: [
+      {
+        text: {
+          en: 'PicoDex can be translated into any language now, and a translation does not have to be finished to ship - whatever a language has not covered yet reads in English. If you would like to see PicoDex in your language, CONTRIBUTING.md has the steps.',
+          es: 'PicoDex ya se puede traducir a cualquier idioma, y una traducción no tiene que estar terminada para publicarse: lo que un idioma todavía no cubra se lee en inglés. Si quieres ver PicoDex en tu idioma, CONTRIBUTING.md tiene los pasos.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-08-26',
     changes: [
