@@ -63,14 +63,15 @@ Open the printed URL, click **Open SD card**, and pick your mounted SD.
 ```bash
 npm run dev          # dev server
 npm test             # unit tests (vitest)
-npm run lint         # eslint
+npm run lint         # oxlint
 npm run format:check # prettier
 npm run build        # production build
 ```
 
 The interesting logic lives in [`src/lib/`](src/lib/) as pure, dependency-free TypeScript: NDS/GBA header parsing, launcher-format BMP encoding, `banner.bnr` building, box-art title matching, and the Pico Launcher `gamedata.json`/`settings.json` formats. The React app is a thin shell over it.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) if you want to help.
+See [CONTRIBUTING.md](CONTRIBUTING.md) if you want to help, and [CHANGELOG.md](CHANGELOG.md) for what each
+release brought.
 
 ## Acknowledgements
 
