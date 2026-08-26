@@ -21,6 +21,33 @@ You will need a Chromium-based browser and, ideally, a DSpico SD card (a folder 
 - **No new runtime dependencies** without discussing it in an issue first — the whole point of PicoDex is being small and auditable.
 - **Binary formats** (BMP covers, `banner.bnr`, ROM headers) follow what Pico Launcher actually reads. When in doubt, the launcher source is the spec.
 
+## Translations
+
+PicoDex ships in English and Spanish, and more languages are welcome. The split is deliberate:
+**the dictionary is yours, the wiring is mine.**
+
+What a translation is:
+
+- `src/i18n/en.ts` is the source of truth — 370 entries in 15 groups, about 515 lines.
+- `src/i18n/es.ts` is what a finished translation looks like. Copy that one, not `en.ts`: it opens
+  with `export const es: Dict = {`, and keeping the `: Dict` annotation is what makes TypeScript
+  tell you about a key you missed instead of shipping a blank label.
+- Plain strings stay plain. Anything with a value in the middle is a function, so you can move the
+  value wherever your language wants it.
+- Some sentences are split in two, like `releasesBehind1` and `releasesBehind2`, because a version
+  number sits between the halves. The spaces have to live inside your strings — `src/i18n/spacing.test.ts`
+  checks that nothing ends up glued to the value.
+- Only translate what is ours. A loader filename, a game code or an SD error we pass through is not
+  ours to change.
+
+What you do **not** have to do: the language list, the footer switch and the "What's new" panel all
+name the current two languages one by one today, so a third language needs a handful of edits outside
+your file. That part is mine. I would rather do it once with a real translation in hand than guess at
+it in advance.
+
+**Open an issue before you start.** Two people translating the same language into two different
+dictionaries is the one outcome nobody wants, and a 515-line file is too much work to duplicate.
+
 ## Commit style
 
 Conventional commits, imperative mood, lowercase:

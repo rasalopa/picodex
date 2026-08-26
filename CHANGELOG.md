@@ -9,8 +9,8 @@ notes for each version.
 
 - **PicoDex speaks Spanish.** The switch is in the footer and it remembers your choice; on a first
   visit it follows your browser. Every view, every dialog and every message, including the ones
-  about what is wrong with your card. No i18n library: two dictionaries and a hook, so contributing
-  a language needs no React.
+  about what is wrong with your card. No i18n library: two typed dictionaries and a hook, and the
+  type system refuses a dictionary with a key missing.
 - **The "What's new" panel is translated too**, and dates are formatted for the active language
   instead of being written in English.
 - **A long game name no longer gets cut short** when you edit its play stats: the title wraps to a

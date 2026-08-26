@@ -10,8 +10,11 @@
  * to repeat the English text verbatim. `typeof en` with widened strings is
  * the contract a translation file has to satisfy.
  *
- * Adding a language is one file that mirrors this one - no React knowledge
- * needed. See src/i18n/index.tsx for how a language is picked.
+ * A translation is one file that mirrors this one, and that is the part a
+ * translator owns. Reaching the screen still needs a maintainer: the `Lang`
+ * union and the dictionary map in src/i18n/index.tsx, the footer switch in
+ * src/App.tsx, and `LocalizedText` in src/lib/changelog.ts all name the two
+ * current languages one by one.
  */
 export const en = {
   app: {
