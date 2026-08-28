@@ -18,6 +18,7 @@
  */
 import { en, type Dict } from './en';
 import { es } from './es';
+import { ru } from './ru';
 
 /**
  * A partially translated dictionary: same shape as {@link Dict}, every key
@@ -49,6 +50,7 @@ interface Entry {
 const REGISTRY = {
   en: { label: 'EN' },
   es: { label: 'ES', translation: es },
+  ru: { label: 'RU', translation: ru },
 } satisfies Record<string, Entry>;
 
 /** The languages that exist, derived - never written out by hand. */
