@@ -5,6 +5,15 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.9.0 — 2026-08-31
+
+- **PicoDex speaks Russian, and it came from the community.** [@BrooksPMA](https://github.com/BrooksPMA)
+  claimed Russian in the translations issue and had all 397 strings in a pull request the same day.
+  Every view, every dialog and every card message, not a partial pass.
+- **The open-translations model paid off on its first try.** v0.8.1 made every key optional so a
+  language could ship half finished and never hold up a release. This one did not need that safety
+  net, but it is what made saying yes easy: read it, run the gate, merge.
+
 ## 0.8.1 — 2026-08-26
 
 - **Anyone can translate PicoDex now, and a translation does not have to be finished.** Every key in
