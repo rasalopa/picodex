@@ -31,6 +31,20 @@ function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+/**
+ * Where the new cover's art comes from: a libretro catalog entry, or an image
+ * the user picked from their computer (issue #5: romhacks and homebrew have
+ * nothing to find in the catalogs).
+ */
+type CoverSource = { kind: 'catalog'; name: string } | { kind: 'file'; file: File };
+
+/** Decodes the source into a bitmap the compose step can draw. */
+function loadSourceBitmap(source: CoverSource, repo: string): Promise<ImageBitmap> {
+  return source.kind === 'catalog'
+    ? downloadPngAsBitmap(boxartUrl(repo, source.name))
+    : createImageBitmap(source.file);
+}
+
 /** A fully composed candidate cover: encoded BMP bytes plus their preview. */
 interface ComposedCover {
   /** Launcher-ready BMP file bytes (exactly what a save writes). */
@@ -70,8 +84,11 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
   /** Bumped by the retry button to re-run the catalog fetch effect. */
   const [retryToken, setRetryToken] = useState(0);
   const [query, setQuery] = useState(title);
-  /** Catalog entry picked in the grid, `null` before the first click. */
-  const [selected, setSelected] = useState<string | null>(null);
+  /** Art picked for the new cover, `null` before the first pick. */
+  const [source, setSource] = useState<CoverSource | null>(null);
+  /** Catalog entry highlighted in the grid (none while a file is the source). */
+  const selected = source?.kind === 'catalog' ? source.name : null;
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const [composed, setComposed] = useState<ComposedCover | null>(null);
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
@@ -143,17 +160,18 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     };
   }, [repo, retryToken]);
 
-  // Compose the real cover for the selected candidate: download the PNG,
-  // compose it into the launcher layout, encode the BMP and preview the
-  // cropped result — exactly the bytes a save will write.
+  // Compose the real cover for the picked source: decode it (download the
+  // catalog PNG, or read the user's file), compose it into the launcher
+  // layout, encode the BMP and preview the cropped result — exactly the bytes
+  // a save will write.
   useEffect(() => {
-    if (selected === null) {
+    if (source === null) {
       setComposed(null);
       setComposing(false);
       setComposeError(null);
       return;
     }
-    const name = selected;
+    const picked = source;
     let cancelled = false;
     /** URL committed to state, revoked when the selection changes/unmounts. */
     let url: string | null = null;
@@ -161,7 +179,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     setComposing(true);
     setComposeError(null);
     async function compose() {
-      const bitmap = await downloadPngAsBitmap(boxartUrl(repo, name));
+      const bitmap = await loadSourceBitmap(picked, repo);
       let rgba: Uint8ClampedArray;
       try {
         rgba = composeCoverRgba(bitmap);
@@ -189,7 +207,7 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
       cancelled = true;
       if (url !== null) URL.revokeObjectURL(url);
     };
-  }, [selected, repo]);
+  }, [source, repo]);
 
   // index once per catalog; per keystroke only the query-dependent half runs
   const searchIndex = useMemo(
@@ -270,6 +288,22 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
           aria-label={t.coverPicker.searchLabel}
         />
 
+        <div className="cover-picker__own">
+          <label className="cover-picker__own-label">
+            <span>{t.coverPicker.ownImage}</span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file !== undefined) setSource({ kind: 'file', file });
+              }}
+            />
+          </label>
+          <p className="cover-picker__own-hint">{t.coverPicker.ownImageHint}</p>
+        </div>
+
         {catalogError !== null ? (
           <div className="cover-picker__error" role="alert">
             <span>{t.coverPicker.catalogFailed(catalogError)}</span>
@@ -300,7 +334,10 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
                       : 'cover-picker__candidate'
                   }
                   aria-pressed={name === selected}
-                  onClick={() => setSelected(name)}
+                  onClick={() => {
+                    if (fileRef.current !== null) fileRef.current.value = '';
+                    setSource({ kind: 'catalog', name });
+                  }}
                 >
                   <img
                     className="cover-picker__thumb"

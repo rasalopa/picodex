@@ -58,10 +58,30 @@
   line-height: 1.4;
 }
 
-/* search + status lines */
+/* search + own-image row + status lines */
 
 .cover-picker__search {
   width: 100%;
+}
+
+.cover-picker__own {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cover-picker__own-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.cover-picker__own-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
 }
 
 .cover-picker__status {

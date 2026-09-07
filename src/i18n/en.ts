@@ -205,6 +205,9 @@ export const en = {
     close: 'Close',
     searchPlaceholder: (system: string) => `Search ${system} box art…`,
     searchLabel: 'Search box art',
+    ownImage: 'Or use an image from your computer:',
+    ownImageHint:
+      'Any PNG or JPG works. It is stretched to fill the cover, the same way the downloaded box art is.',
     catalogFailed: (message: string) => `Could not load the box art catalog: ${message}`,
     retry: 'Retry',
     loadingCatalog: 'Loading box art catalog…',

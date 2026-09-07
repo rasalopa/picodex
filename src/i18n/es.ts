@@ -193,6 +193,9 @@ export const es: Dict = {
     close: 'Cerrar',
     searchPlaceholder: (system: string) => `Buscar carátulas de ${system}…`,
     searchLabel: 'Buscar carátulas',
+    ownImage: 'O usa una imagen de tu equipo:',
+    ownImageHint:
+      'Vale cualquier PNG o JPG. Se estira para llenar la carátula, igual que las carátulas descargadas.',
     catalogFailed: (message: string) => `No se pudo cargar el catálogo de carátulas: ${message}`,
     retry: 'Reintentar',
     loadingCatalog: 'Cargando el catálogo de carátulas…',
