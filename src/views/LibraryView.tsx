@@ -5,6 +5,7 @@ import { gameDataTotals } from '../lib/gamedata';
 import { loaderApiCapabilities } from '../lib/loader';
 import { GAMES_DIR, PICO_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
+import { systemsSharingGamesDir } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
 import { useT } from '../i18n';
 import { IconCartridge, IconClock, IconHeart, IconLayers } from '../components/icons';
@@ -69,6 +70,42 @@ function groupBySystem(games: readonly LibraryFile[], coverIndex: CoverIndex): S
  * per system showing its game count and cover-art coverage. Clicking a
  * system card opens that system's cover gallery in place.
  */
+/** The folder's `banner.bnr` icon as an object URL, `null` when absent or unreadable. */
+async function readFolderBannerIcon(
+  root: FileSystemDirectoryHandle,
+  gamesDir: string,
+): Promise<string | null> {
+  try {
+    const dir = await getDir(root, [GAMES_DIR, gamesDir]);
+    const bnr = dir === null ? null : await readFileBytes(dir, 'banner.bnr');
+    return bnr === null ? null : await bannerBnrIconPreviewUrl(bnr);
+  } catch {
+    // unreadable/corrupt banner: keep the fallback mark
+    return null;
+  }
+}
+
+/**
+ * A custom icon (`/_pico/icons/user`) of one of the system's games, as an
+ * object URL; existence is probed by reading, so a missing file is `null`.
+ */
+async function readGameUserIcon(
+  userIconsDir: FileSystemDirectoryHandle,
+  games: readonly LibraryFile[],
+  systemId: string,
+): Promise<string | null> {
+  for (const game of games) {
+    if (game.system.id !== systemId) continue;
+    try {
+      const bytes = await readFileBytes(userIconsDir, `${game.fileName}.bmp`);
+      if (bytes !== null) return await iconBmpPreviewUrl(bytes);
+    } catch {
+      // unreadable icon: try the next game
+    }
+  }
+  return null;
+}
+
 export function LibraryView() {
   const { root, games, coverIndex, gameData, cardInfo, refresh } = useSd();
   const t = useT();
@@ -82,10 +119,11 @@ export function LibraryView() {
 
   const groups = useMemo(() => groupBySystem(games, coverIndex), [games, coverIndex]);
 
-  // Card icons come from the SD itself, never bundled with the app:
-  // a per-game custom icon (/_pico/icons/user) of one of the system's games
-  // wins — it distinguishes systems sharing one folder (gb/gbc) — falling
-  // back to the folder's banner.bnr (the launcher's folder icon).
+  // Card icons come from the SD itself, never bundled with the app. The
+  // folder's banner.bnr is what the launcher shows for the folder, so it
+  // represents the system best; a per-game custom icon (/_pico/icons/user)
+  // is the fallback — except when several systems share one folder (gb/gbc):
+  // the banner cannot tell them apart, so there a game's own icon goes first.
   useEffect(() => {
     if (root === null || groups.length === 0) return;
     let cancelled = false;
@@ -94,47 +132,31 @@ export function LibraryView() {
       const icons = new Map<string, string>();
       const userIconsDir = await getDir(rootHandle, [PICO_DIR, 'icons', 'user']);
       const folderCache = new Map<string, string | null>();
-      for (const group of groups) {
-        const { system } = group;
+      for (const { system } of groups) {
+        const shared = systemsSharingGamesDir(system.gamesDir).length > 1;
+        const order = shared ? (['game', 'folder'] as const) : (['folder', 'game'] as const);
         let url: string | null = null;
-        if (userIconsDir !== null) {
-          // existence is probed by reading; missing files return null
-          for (const game of games) {
-            if (game.system.id !== system.id) continue;
-            try {
-              const bytes = await readFileBytes(userIconsDir, `${game.fileName}.bmp`);
-              if (bytes !== null) {
-                url = await iconBmpPreviewUrl(bytes);
-                break;
-              }
-            } catch {
-              // unreadable icon: try the next game
+        for (const source of order) {
+          if (url !== null) break;
+          if (source === 'folder') {
+            let folderUrl = folderCache.get(system.gamesDir);
+            if (folderUrl === undefined) {
+              folderUrl = await readFolderBannerIcon(rootHandle, system.gamesDir);
+              if (folderUrl !== null) urls.push(folderUrl);
+              folderCache.set(system.gamesDir, folderUrl);
             }
+            url = folderUrl;
+          } else if (userIconsDir !== null) {
+            url = await readGameUserIcon(userIconsDir, games, system.id);
+            if (url !== null) urls.push(url);
           }
-        }
-        if (url === null) {
-          let folderUrl = folderCache.get(system.gamesDir);
-          if (folderUrl === undefined) {
-            folderUrl = null;
-            try {
-              const dir = await getDir(rootHandle, [GAMES_DIR, system.gamesDir]);
-              const bnr = dir === null ? null : await readFileBytes(dir, 'banner.bnr');
-              if (bnr !== null) folderUrl = await bannerBnrIconPreviewUrl(bnr);
-            } catch {
-              // unreadable/corrupt banner: keep the fallback mark
-            }
-            folderCache.set(system.gamesDir, folderUrl);
-            if (folderUrl !== null) urls.push(folderUrl);
-          }
-          if (folderUrl !== null) icons.set(system.id, folderUrl);
-        } else {
+          // a URL created after the cleanup ran would never be revoked there
           if (cancelled) {
-            URL.revokeObjectURL(url);
+            for (const u of urls) URL.revokeObjectURL(u);
             return;
           }
-          urls.push(url);
-          icons.set(system.id, url);
         }
+        if (url !== null) icons.set(system.id, url);
       }
       if (!cancelled) setSystemIcons(icons);
     }
