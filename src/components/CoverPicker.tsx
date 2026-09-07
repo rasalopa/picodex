@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import { encodeCoverBmp } from '../lib/bmp';
+import { isUsableGameCode } from '../lib/gamedata';
 import { composeCoverRgba, coverBmpCroppedPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
 import { buildCatalogIndex, searchCatalog } from '../lib/matching';
 import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
@@ -84,14 +85,18 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
   // BEFORE the gamecode folders, so when a user/ override exists the new
   // cover must replace it there — writing the code path would be shadowed
   // and look like a silent no-op. Otherwise gamecode-keyed systems with a
-  // resolved code use covers/<nds|gba>/<CODE>.bmp.
+  // resolved code use covers/<nds|gba>/<CODE>.bmp — unless the code is not
+  // an identity (the `####` homebrew placeholder): every homebrew shares it,
+  // so a cover written under it would show up on all of them, on the card
+  // and in the launcher alike. Those go by file name.
   const userName = `${game.fileName}.bmp`;
   const hasUserOverride = coverIndex.user.has(userName.toLowerCase());
+  const usableCode = code !== null && isUsableGameCode(code) ? code : null;
   const target =
-    !hasUserOverride && game.system.coverKeying === 'gamecode' && code !== null
+    !hasUserOverride && game.system.coverKeying === 'gamecode' && usableCode !== null
       ? {
           dir: game.system.id === 'nds' ? ('nds' as const) : ('gba' as const),
-          name: `${code.toUpperCase()}.bmp`,
+          name: `${usableCode.toUpperCase()}.bmp`,
         }
       : { dir: 'user' as const, name: userName };
 

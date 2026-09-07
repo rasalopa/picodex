@@ -1,5 +1,6 @@
 import { ProgressBar } from '../components/ProgressBar';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { isUsableGameCode } from '../lib/gamedata';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
 import { DEFAULT_REGION_PREFS, REGION_PREFS_BY_GBA_CODE, pickBoxart } from '../lib/matching';
@@ -115,6 +116,9 @@ async function classifyGame(
   let code: string | null = null;
   if (system.coverKeying === 'gamecode') {
     code = await readGameCode(root, game, dirCache);
+    // the `####` homebrew placeholder is not an identity: a cover keyed by it
+    // would be shared by every homebrew, so those games go by file name
+    if (code !== null && !isUsableGameCode(code)) code = null;
     if (code !== null && coverIndex[gamecodeCoverKey(system)].has(`${code}.bmp`.toLowerCase())) {
       return null;
     }
