@@ -227,7 +227,7 @@ export const en = {
     iconTitle: 'Icon',
     iconOwnImage: 'Image from your computer:',
     iconHint:
-      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; for DS games it replaces the built-in one. The image is fitted into a 32×32 square and transparent areas stay transparent.',
+      'The small picture next to the name in the launcher list, which GBA games and other systems do not have on their own. The image is fitted into a 32×32 square and transparent areas stay transparent.',
     iconNone: 'No custom icon',
     iconInvalidOnCard:
       'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
@@ -238,6 +238,15 @@ export const en = {
     useIcon: 'Use this icon',
     useCoverAndIcon: 'Use this cover and icon',
     iconsDirMissing: 'Could not open the icons directory',
+    tabBoxArt: 'Box art',
+    tabCoverFile: 'Cover from your computer',
+    tabIconFile: 'Icon from your computer',
+    topScreen: 'Top screen',
+    bottomScreen: 'Bottom screen',
+    save: 'Save',
+    nothingToSave: 'Pick a cover or an icon first',
+    builtInIconAlt: (game: string) => `Icon built into ${game}`,
+    bannerIconAlt: (game: string) => `Icon from the banner file of ${game}`,
   },
   library: {
     overviewLabel: 'Library overview',
