@@ -494,7 +494,6 @@ export function CoverPicker({
 
         <div className="cover-picker__screens">
           <section className="cover-picker__screen" aria-label={t.coverPicker.topScreen}>
-            <span className="section-title">{t.coverPicker.topScreen}</span>
             <div className="cover-picker__panel">
               {cover.composing ? (
                 <span
@@ -542,7 +541,6 @@ export function CoverPicker({
           </section>
 
           <section className="cover-picker__screen" aria-label={t.coverPicker.bottomScreen}>
-            <span className="section-title">{t.coverPicker.bottomScreen}</span>
             <div className="cover-picker__panel cover-picker__list">
               {before.map((name) => (
                 <div key={`b-${name}`} className="cover-picker__row cover-picker__row--dim">
