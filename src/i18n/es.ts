@@ -193,7 +193,6 @@ export const es: Dict = {
     close: 'Cerrar',
     searchPlaceholder: (system: string) => `Buscar carátulas de ${system}…`,
     searchLabel: 'Buscar carátulas',
-    ownImage: 'O usa una imagen de tu equipo:',
     ownImageHint:
       'Vale cualquier PNG o JPG. Se estira para llenar la carátula, igual que las carátulas descargadas.',
     catalogFailed: (message: string) => `No se pudo cargar el catálogo de carátulas: ${message}`,
@@ -209,11 +208,8 @@ export const es: Dict = {
     writeFailed: (message: string) => `Falló la escritura: ${message}`,
     // Va antes de una ruta en <code>; el JSX añade el espacio y la ruta.
     writes: 'Escribe en',
-    useCover: 'Usar esta carátula',
     writing: 'Escribiendo…',
     coversDirMissing: 'No se pudo abrir la carpeta de carátulas',
-    iconTitle: 'Icono',
-    iconOwnImage: 'Imagen de tu equipo:',
     iconHint:
       'La imagen pequeña que va junto al nombre en la lista del launcher, que los juegos de GBA y de otros sistemas no traen de serie. La imagen se encaja en un cuadrado de 32×32 y las zonas transparentes siguen transparentes.',
     iconNone: 'Sin icono personalizado',
@@ -223,8 +219,6 @@ export const es: Dict = {
       'Este juego tiene un banner personalizado en _pico/banners. El launcher muestra el icono del banner e ignora un icono BMP, así que aquí no hay nada que poner.',
     iconCurrentAlt: (game: string) => `Icono actual de ${game}`,
     iconNewAlt: (game: string) => `Vista previa del nuevo icono de ${game}`,
-    useIcon: 'Usar este icono',
-    useCoverAndIcon: 'Usar esta carátula y este icono',
     iconsDirMissing: 'No se pudo abrir la carpeta de iconos',
     tabBoxArt: 'Carátulas',
     tabCoverFile: 'Carátula de tu equipo',

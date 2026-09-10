@@ -429,7 +429,11 @@ export function CoverPicker({
       for (const w of plan) {
         try {
           const dir = await getDir(rootHandle, w.folders[w.target.dir], true);
-          if (dir === null) throw new Error(t.coverPicker.coversDirMissing);
+          if (dir === null) {
+            throw new Error(
+              w.kind === 'cover' ? t.coverPicker.coversDirMissing : t.coverPicker.iconsDirMissing,
+            );
+          }
           await writeFileBytes(dir, w.target.name, w.bmp);
           wrote = true;
           setSaved((s) => ({ ...s, [w.kind]: true }));
