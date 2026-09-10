@@ -9,6 +9,7 @@ import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard'
 import type { System } from '../lib/systems';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
 import { readCachedCatalog, writeCachedCatalog } from '../lib/catalogCache';
+import type { CoverSlot } from '../lib/coverCache';
 import { useSd, type CoverIndex } from '../state/SdContext';
 import { useT } from '../i18n';
 import './CoversView.css';
@@ -257,8 +258,21 @@ export function CoversView() {
     });
   }
 
-  /** Matches, downloads, composes and writes the cover of one game. */
-  async function runJob(m: MissingGame): Promise<void> {
+  /**
+   * Matches, downloads, composes and writes the cover of one game.
+   *
+   * @param dirs - Target directories, already created once for the whole
+   *   batch: four workers creating `_pico/covers/<dir>` at the same time raced
+   *   on a card that did not have those folders yet, and every write failed.
+   * @param writeLock - Serializes the card writes; downloads stay parallel.
+   *   Two ROMs can share a gamecode (romhacks of one game do), so two workers
+   *   could otherwise open the same file at the same time.
+   */
+  async function runJob(
+    m: MissingGame,
+    dirs: ReadonlyMap<CoverSlot, FileSystemDirectoryHandle>,
+    writeLock: { chain: Promise<unknown> },
+  ): Promise<void> {
     const { game, code } = m;
     const { system, fileName } = game;
     try {
@@ -284,15 +298,17 @@ export function CoversView() {
         bitmap.close();
       }
       const bmp = encodeCoverBmp(rgba);
-      if (system.coverKeying === 'gamecode' && code !== null) {
-        const dir = await getDir(rootHandle, COVERS[gamecodeCoverKey(system)], true);
-        if (!dir) throw new Error(t.covers.coversDirFailed);
-        await writeFileBytes(dir, `${code.toUpperCase()}.bmp`, bmp);
-      } else {
-        const dir = await getDir(rootHandle, COVERS.user, true);
-        if (!dir) throw new Error(t.covers.coversDirFailed);
-        await writeFileBytes(dir, `${fileName}.bmp`, bmp);
-      }
+      const slot: CoverSlot =
+        system.coverKeying === 'gamecode' && code !== null ? gamecodeCoverKey(system) : 'user';
+      const name = slot === 'user' ? `${fileName}.bmp` : `${(code ?? '').toUpperCase()}.bmp`;
+      const dir = dirs.get(slot);
+      if (!dir) throw new Error(t.covers.coversDirFailed);
+      const write = writeLock.chain.then(
+        () => writeFileBytes(dir, name, bmp),
+        () => writeFileBytes(dir, name, bmp),
+      );
+      writeLock.chain = write;
+      await write;
       const previewUrl = await coverBmpPreviewUrl(bmp);
       previewUrlsRef.current.push(previewUrl);
       updateJob(m.id, { phase: 'written', match, previewUrl });
@@ -357,11 +373,39 @@ export function CoversView() {
         }
       }
 
+      // Create every target folder once, before any worker runs: four
+      // concurrent creations of the same path fail on a card without them.
+      const dirs = new Map<CoverSlot, FileSystemDirectoryHandle>();
+      const slots = new Set(
+        runnable.map((m) =>
+          m.game.system.coverKeying === 'gamecode' && m.code !== null
+            ? gamecodeCoverKey(m.game.system)
+            : ('user' as CoverSlot),
+        ),
+      );
+      let dirError: string | null = null;
+      for (const slot of slots) {
+        try {
+          const dir = await getDir(rootHandle, COVERS[slot], true);
+          if (dir === null) throw new Error(t.covers.coversDirFailed);
+          dirs.set(slot, dir);
+        } catch (e) {
+          dirError = errorMessage(e);
+          break;
+        }
+      }
+      if (dirError !== null) {
+        for (const m of runnable) updateJob(m.id, { phase: 'error', message: dirError });
+        return;
+      }
+
+      /** Shared tail of the card writes; see runJob. */
+      const writeLock = { chain: Promise.resolve() as Promise<unknown> };
       let next = 0;
       await Promise.all(
         Array.from({ length: Math.min(MAX_CONCURRENCY, runnable.length) }, async () => {
           for (let i = next++; i < runnable.length; i = next++) {
-            await runJob(runnable[i]);
+            await runJob(runnable[i], dirs, writeLock);
           }
         }),
       );
