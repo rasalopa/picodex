@@ -14,7 +14,14 @@ import {
   ICON_SIZE,
   decodeBannerIcon,
 } from './banner';
-import { COVER_HEIGHT, COVER_VISIBLE_WIDTH, COVER_WIDTH, decodeBmp } from './bmp';
+import {
+  COVER_HEIGHT,
+  COVER_VISIBLE_WIDTH,
+  COVER_WIDTH,
+  ICON_TRANSPARENT_INDEX,
+  decodeBmp,
+  validateLauncherIconBmp,
+} from './bmp';
 
 /** Creates a detached canvas of the given size with its 2D context. */
 function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -68,7 +75,7 @@ export function composeCoverRgba(image: ImageBitmap): Uint8ClampedArray {
  *
  * @param image Decoded source image of any size.
  * @returns Top-down RGBA pixels of the 32x32 icon, ready for
- *   `encodeBannerIcon()`.
+ *   `encodeBannerIcon()` or `encodeIconBmp()`.
  */
 export function composeIconRgba(image: ImageBitmap): Uint8ClampedArray {
   const [, ctx] = makeCanvas(ICON_SIZE, ICON_SIZE);
@@ -199,30 +206,24 @@ export async function bannerIconRgbaPreviewUrl(rgba: Uint8ClampedArray): Promise
 }
 
 /**
- * Decodes a launcher custom-icon BMP (32x32, 4bpp, palette index 0 =
- * transparent) to a PNG object URL. `decodeBmp` flattens palette indices to
- * RGBA, so transparency is recovered by matching pixels against the palette's
- * entry 0 color read from the raw BMP header — exact for launcher icons,
- * where entry 0 is a reserved sentinel color.
+ * Decodes a launcher custom-icon BMP (32x32, 4bpp, palette index
+ * {@link ICON_TRANSPARENT_INDEX} = transparent) to a PNG object URL, keeping
+ * the transparent pixels transparent. Only files the launcher itself would
+ * display are previewed: it draws anything else as a blank icon, and a
+ * preview that showed such a file would claim it works.
  *
  * The caller owns the returned URL and must release it with
  * `URL.revokeObjectURL()` when the preview is discarded.
+ *
+ * @param bytes Complete BMP file bytes (as produced by `encodeIconBmp()`).
+ * @throws {Error} When the launcher would reject the file
+ *   (`validateLauncherIconBmp`), or the canvas export fails.
  */
 export async function iconBmpPreviewUrl(bytes: Uint8Array): Promise<string> {
-  const { width, height, rgba } = decodeBmp(bytes);
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const dibSize = view.getUint32(14, true);
-  const paletteOffset = 14 + dibSize;
-  const b0 = bytes[paletteOffset];
-  const g0 = bytes[paletteOffset + 1];
-  const r0 = bytes[paletteOffset + 2];
-  const pixels = new Uint8ClampedArray(rgba);
-  for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i] === r0 && pixels[i + 1] === g0 && pixels[i + 2] === b0) {
-      pixels[i + 3] = 0;
-    }
-  }
+  const rejected = validateLauncherIconBmp(bytes);
+  if (rejected !== null) throw new Error(`Not a launcher icon: ${rejected}`);
+  const { width, height, rgba } = decodeBmp(bytes, { transparentIndex: ICON_TRANSPARENT_INDEX });
   const [canvas, ctx] = makeCanvas(width, height);
-  ctx.putImageData(bmpImageData(pixels, width, height), 0, 0);
+  ctx.putImageData(bmpImageData(rgba, width, height), 0, 0);
   return canvasPngUrl(canvas);
 }

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { COVER_HEIGHT, COVER_VISIBLE_WIDTH, COVER_WIDTH, decodeBmp, encodeCoverBmp } from './bmp';
+import { ICON_SIZE } from './banner';
+import {
+  COVER_HEIGHT,
+  COVER_VISIBLE_WIDTH,
+  COVER_WIDTH,
+  ICON_PALETTE_ENTRIES,
+  ICON_TRANSPARENT_INDEX,
+  decodeBmp,
+  encodeCoverBmp,
+  encodeIconBmp,
+  validateLauncherIconBmp,
+} from './bmp';
 
 /** Builds a 128x96 RGBA gradient with thousands of unique colors. */
 function makeGradient(width = COVER_WIDTH, height = COVER_HEIGHT): Uint8ClampedArray {
@@ -354,5 +365,193 @@ describe('decodeBmp', () => {
       rows: [[0, 0]],
     });
     expect(() => decodeBmp(truncated.subarray(0, truncated.length - 2))).toThrow(/Truncated/);
+  });
+});
+
+/**
+ * The 32x32 RGBA icon behind the golden test: a 4px transparent frame, a 1px
+ * ring at alpha 100 (must become transparent), a 1px white ring at alpha 200
+ * (must stay opaque) and six solid colors inside. This function IS the
+ * fixture's definition: to regenerate {@link ICON_GOLDEN_BMP_BASE64}, dump
+ * these pixels to a 32x32 PNG (any image library), run
+ * `python3 tools/png2iconbmp.py in.png out.bmp` from the pico-enhanced repo
+ * and base64-encode `out.bmp`.
+ */
+function makeGoldenIconRgba(): Uint8ClampedArray {
+  const colors: Array<[number, number, number]> = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [255, 255, 0],
+    [0, 255, 255],
+    [20, 40, 60],
+  ];
+  const rgba = new Uint8ClampedArray(ICON_SIZE * ICON_SIZE * 4);
+  for (let y = 0; y < ICON_SIZE; y++) {
+    for (let x = 0; x < ICON_SIZE; x++) {
+      const o = (y * ICON_SIZE + x) * 4;
+      if (x < 4 || y < 4 || x >= 28 || y >= 28) continue; // transparent frame
+      if (x === 4 || x === 27 || y === 4 || y === 27) {
+        rgba.set([255, 255, 255, 100], o); // below the alpha threshold
+        continue;
+      }
+      if (x === 5 || x === 26 || y === 5 || y === 26) {
+        rgba.set([255, 255, 255, 200], o); // above the alpha threshold
+        continue;
+      }
+      const [r, g, b] = colors[(Math.floor((x - 6) / 4) + Math.floor((y - 6) / 5)) % colors.length];
+      rgba.set([r, g, b, 255], o);
+    }
+  }
+  return rgba;
+}
+
+/** What `tools/png2iconbmp.py` (pico-enhanced) wrote for {@link makeGoldenIconRgba}. */
+const ICON_GOLDEN_BMP_BASE64 =
+  'Qk12AgAAAAAAAHYAAAAoAAAAIAAAACAAAAABAAQAAAAAAAACAAATCwAAEwsAABAAAAAQAAAA/wD/AP///wAAAP8AAP8AAP8AAAAA//8A//8AADwoFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERERERERERERERAAAAAAAVVVZmZ3dyIiMzMQAAAAAAFVVWZmd3ciIjMzEAAAAAABVVVmZnd3IiIzMxAAAAAAAVVVZmZ3dyIiMzMQAAAAAAFVVWZmd3ciIjMzEAAAAAABRERVVWZmd3ciIhAAAAAAAUREVVVmZnd3IiIQAAAAAAFERFVVZmZ3dyIiEAAAAAABRERVVWZmd3ciIhAAAAAAAUREVVVmZnd3IiIQAAAAAAEzM0REVVVmZnd3EAAAAAABMzNERFVVZmZ3dxAAAAAAATMzRERVVWZmd3cQAAAAAAEzM0REVVVmZnd3EAAAAAABMzNERFVVZmZ3dxAAAAAAASIiMzNERFVVZmYQAAAAAAEiIjMzRERVVWZmEAAAAAABIiIzM0REVVVmZhAAAAAAASIiMzNERFVVZmYQAAAAAAEiIjMzRERVVWZmEAAAAAABERERERERERERERAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+function base64ToBytes(base64: string): Uint8Array {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+/** Palette index of the icon pixel at (x, y) in an encoded icon BMP. */
+function iconIndexAt(bmp: Uint8Array, x: number, y: number): number {
+  const dataOffset = new DataView(bmp.buffer, bmp.byteOffset, bmp.byteLength).getUint32(10, true);
+  const storedRow = ICON_SIZE - 1 - y; // bottom-up
+  const packed = bmp[dataOffset + storedRow * (ICON_SIZE / 2) + (x >> 1)];
+  return x % 2 === 0 ? packed >> 4 : packed & 0x0f;
+}
+
+/** A 32x32 RGBA gradient with far more than 15 unique opaque colors. */
+function makeIconGradient(): Uint8ClampedArray {
+  const rgba = new Uint8ClampedArray(ICON_SIZE * ICON_SIZE * 4);
+  for (let y = 0; y < ICON_SIZE; y++) {
+    for (let x = 0; x < ICON_SIZE; x++) {
+      const o = (y * ICON_SIZE + x) * 4;
+      rgba[o] = x * 8;
+      rgba[o + 1] = y * 8;
+      rgba[o + 2] = 255 - x * 4 - y * 4;
+      rgba[o + 3] = 255;
+    }
+  }
+  return rgba;
+}
+
+describe('encodeIconBmp', () => {
+  it('reproduces png2iconbmp.py byte for byte on a low-color icon', () => {
+    expect(encodeIconBmp(makeGoldenIconRgba())).toEqual(base64ToBytes(ICON_GOLDEN_BMP_BASE64));
+  });
+
+  it('writes the header BmpFileIconData validates (32x32, 4bpp, dib 40, 16 colors)', () => {
+    const bmp = encodeIconBmp(makeGoldenIconRgba());
+    const view = new DataView(bmp.buffer, bmp.byteOffset, bmp.byteLength);
+    const dataOffset = 14 + 40 + ICON_PALETTE_ENTRIES * 4; // 118, the launcher's minimum
+
+    expect(bmp[0]).toBe(0x42);
+    expect(bmp[1]).toBe(0x4d);
+    expect(view.getUint32(2, true)).toBe(dataOffset + 512);
+    expect(view.getUint32(10, true)).toBe(dataOffset);
+    expect(view.getUint32(14, true)).toBe(40);
+    expect(view.getInt32(18, true)).toBe(32);
+    expect(view.getInt32(22, true)).toBe(32);
+    expect(view.getUint16(26, true)).toBe(1);
+    expect(view.getUint16(28, true)).toBe(4);
+    expect(view.getUint32(30, true)).toBe(0); // BI_RGB
+    expect(view.getUint32(34, true)).toBe(512);
+    expect(view.getUint32(46, true)).toBe(ICON_PALETTE_ENTRIES); // clrUsed: 0 or 16 pass Validate
+    expect(bmp.length).toBe(630);
+  });
+
+  it('maps alpha < 128 to the transparent index and keeps alpha >= 128 opaque', () => {
+    const bmp = encodeIconBmp(makeGoldenIconRgba());
+    expect(iconIndexAt(bmp, 0, 0)).toBe(ICON_TRANSPARENT_INDEX); // frame
+    expect(iconIndexAt(bmp, 4, 10)).toBe(ICON_TRANSPARENT_INDEX); // alpha 100 ring
+    expect(iconIndexAt(bmp, 5, 10)).not.toBe(ICON_TRANSPARENT_INDEX); // alpha 200 ring
+    expect(iconIndexAt(bmp, 16, 16)).not.toBe(ICON_TRANSPARENT_INDEX); // solid center
+  });
+
+  it('round-trips a low-color icon exactly through decodeBmp with transparency', () => {
+    const original = makeGoldenIconRgba();
+    const decoded = decodeBmp(encodeIconBmp(original), {
+      transparentIndex: ICON_TRANSPARENT_INDEX,
+    });
+
+    expect(decoded.width).toBe(ICON_SIZE);
+    expect(decoded.height).toBe(ICON_SIZE);
+    for (let i = 0; i < original.length; i += 4) {
+      if (original[i + 3] < 128) {
+        expect(Array.from(decoded.rgba.subarray(i, i + 4))).toEqual([0, 0, 0, 0]);
+      } else {
+        expect(Array.from(decoded.rgba.subarray(i, i + 3))).toEqual(
+          Array.from(original.subarray(i, i + 3)),
+        );
+        expect(decoded.rgba[i + 3]).toBe(255);
+      }
+    }
+  });
+
+  it('quantizes a gradient to at most 15 colors and never uses index 0 for opaque pixels', () => {
+    const bmp = encodeIconBmp(makeIconGradient());
+    const used = new Set<number>();
+    for (let y = 0; y < ICON_SIZE; y++) {
+      for (let x = 0; x < ICON_SIZE; x++) used.add(iconIndexAt(bmp, x, y));
+    }
+    expect(used.has(ICON_TRANSPARENT_INDEX)).toBe(false);
+    expect(used.size).toBeLessThanOrEqual(ICON_PALETTE_ENTRIES - 1);
+
+    // and the result still resembles the input
+    const decoded = decodeBmp(bmp).rgba;
+    const original = makeIconGradient();
+    let totalDiff = 0;
+    for (let i = 0; i < original.length; i += 4) {
+      for (let c = 0; c < 3; c++) totalDiff += Math.abs(decoded[i + c] - original[i + c]);
+    }
+    expect(totalDiff / ((original.length / 4) * 3)).toBeLessThanOrEqual(24);
+  });
+
+  it('stores the left pixel of each pair in the high nibble, rows bottom-up', () => {
+    const rgba = new Uint8ClampedArray(ICON_SIZE * ICON_SIZE * 4); // all transparent
+    rgba.set([255, 0, 0, 255], 0); // (0,0) red -> first opaque color -> index 1
+    const bmp = encodeIconBmp(rgba);
+    const dataOffset = 118;
+    // (0,0) is the top-left pixel: last stored row, byte 0, high nibble
+    expect(bmp[dataOffset + 31 * 16]).toBe(0x10);
+    expect(bmp[dataOffset]).toBe(0x00); // bottom row untouched
+  });
+
+  it('rejects a buffer that is not 32x32 RGBA', () => {
+    expect(() => encodeIconBmp(new Uint8ClampedArray(16))).toThrow(/does not match/);
+  });
+});
+
+describe('validateLauncherIconBmp', () => {
+  /** Copies an encoded icon and patches one header field. */
+  function patched(edit: (view: DataView, bytes: Uint8Array) => void): Uint8Array {
+    const bytes = encodeIconBmp(makeGoldenIconRgba()).slice();
+    edit(new DataView(bytes.buffer), bytes);
+    return bytes;
+  }
+
+  it('accepts what encodeIconBmp writes, bottom-up or top-down, clrUsed 16 or 0', () => {
+    expect(validateLauncherIconBmp(encodeIconBmp(makeGoldenIconRgba()))).toBeNull();
+    expect(validateLauncherIconBmp(patched((v) => v.setInt32(22, -32, true)))).toBeNull();
+    expect(validateLauncherIconBmp(patched((v) => v.setUint32(46, 0, true)))).toBeNull();
+  });
+
+  it('rejects what BmpHeader::Validate rejects (the launcher would draw a blank icon)', () => {
+    // BITMAPV4 header, as some image editors export
+    expect(validateLauncherIconBmp(patched((v) => v.setUint32(14, 108, true)))).toMatch(/DIB/);
+    expect(validateLauncherIconBmp(patched((v) => v.setUint32(46, 3, true)))).toMatch(/palette/);
+    expect(validateLauncherIconBmp(patched((v) => v.setUint16(28, 8, true)))).toMatch(/bits/);
+    expect(validateLauncherIconBmp(patched((v) => v.setInt32(18, 48, true)))).toMatch(/48x32/);
+    expect(validateLauncherIconBmp(patched((v) => v.setUint32(30, 1, true)))).toMatch(/compressed/);
+    expect(validateLauncherIconBmp(patched((v) => v.setUint32(10, 100, true)))).toMatch(/offset/);
+    expect(validateLauncherIconBmp(patched((_v, b) => b.set([0x42, 0x41], 0)))).toMatch(/magic/);
+  });
+
+  it('rejects truncated files', () => {
+    const bmp = encodeIconBmp(makeGoldenIconRgba());
+    expect(validateLauncherIconBmp(bmp.subarray(0, 100))).toMatch(/small/);
+    expect(validateLauncherIconBmp(bmp.subarray(0, 600))).toMatch(/truncated/);
   });
 });

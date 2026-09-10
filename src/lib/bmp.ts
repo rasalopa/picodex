@@ -7,8 +7,13 @@
  * 106x96 pixels are visible on screen; the caller composes art into that area
  * (columns 106-127 are conventionally black).
  *
+ * Custom icons (`tools/png2iconbmp.py`) use the same container at 32x32 4bpp:
+ * 16-entry palette with `clrUsed = 16`, index 0 reserved as transparent.
+ *
  * Browser-compatible: uses only Uint8Array/DataView, no Node APIs.
  */
+
+import { ICON_SIZE } from './banner';
 
 /** Full width in pixels of a launcher cover BMP (128). */
 export const COVER_WIDTH = 128;
@@ -19,9 +24,19 @@ export const COVER_HEIGHT = 96;
 /** Width in pixels of the cover area the launcher actually displays (106). */
 export const COVER_VISIBLE_WIDTH = 106;
 
+/** Palette entries of a launcher icon BMP (4bpp). */
+export const ICON_PALETTE_ENTRIES = 16;
+
+/** Palette index the launcher draws as transparent in a custom icon BMP. */
+export const ICON_TRANSPARENT_INDEX = 0;
+
 const FILE_HEADER_SIZE = 14;
 const DIB_HEADER_SIZE = 40;
 const PALETTE_ENTRIES = 256;
+/** Alpha at or above which an icon pixel is opaque (below: transparent index 0). */
+const ICON_OPAQUE_ALPHA = 128;
+/** Color stored at the transparent index, as in png2iconbmp.py (magenta). */
+const ICON_TRANSPARENT_PLACEHOLDER: [number, number, number] = [255, 0, 255];
 /** Pixels-per-meter for a 72 DPI image, as written by Pillow and img2cover.py. */
 const PPM_72DPI = 2835;
 
@@ -274,14 +289,170 @@ export function encodeCoverBmp(
   return out;
 }
 
+/**
+ * Encodes a 32x32 RGBA image as a DSpico launcher custom icon BMP: 4bpp
+ * indexed, uncompressed, 40-byte BITMAPINFOHEADER, 16-entry palette
+ * (`clrUsed = 16`), bottom-up rows, high nibble first — the exact layout
+ * `tools/png2iconbmp.py` writes and `BmpFileIconData` reads.
+ *
+ * Pixels with alpha below 128 map to palette index 0, which the launcher
+ * draws as transparent (the entry itself holds a magenta placeholder). Opaque
+ * colors are reduced to at most 15 with the median-cut quantizer; inputs with
+ * 15 or fewer unique opaque colors are encoded losslessly, in first-seen order.
+ *
+ * @param rgba - Pixel data, 4 bytes per pixel (RGBA), row-major, top-down,
+ *   exactly {@link ICON_SIZE}x{@link ICON_SIZE}. Callers fit the art into the
+ *   square beforehand (`composeIconRgba`).
+ * @returns The complete BMP file bytes (630 bytes).
+ */
+export function encodeIconBmp(rgba: Uint8ClampedArray | Uint8Array): Uint8Array {
+  const pixelCount = ICON_SIZE * ICON_SIZE;
+  if (rgba.length !== pixelCount * 4) {
+    throw new Error(
+      `RGBA buffer length ${rgba.length} does not match ${ICON_SIZE}x${ICON_SIZE} (expected ${pixelCount * 4})`,
+    );
+  }
+
+  // Opaque colors only, in first-seen order (so a low-color icon keeps the
+  // palette order of the reference tool byte for byte).
+  const counts = new Map<number, ColorEntry>();
+  for (let i = 0; i < pixelCount; i++) {
+    const o = i * 4;
+    if (rgba[o + 3] < ICON_OPAQUE_ALPHA) continue;
+    const key = colorKey(rgba[o], rgba[o + 1], rgba[o + 2]);
+    const entry = counts.get(key);
+    if (entry) {
+      entry.count++;
+    } else {
+      counts.set(key, { r: rgba[o], g: rgba[o + 1], b: rgba[o + 2], count: 1 });
+    }
+  }
+  const maxColors = ICON_PALETTE_ENTRIES - 1;
+  const entries = [...counts.values()];
+  const colors: Array<[number, number, number]> =
+    entries.length <= maxColors
+      ? entries.map((e) => [e.r, e.g, e.b])
+      : medianCut(entries, maxColors);
+  const palette: Array<[number, number, number]> = [ICON_TRANSPARENT_PLACEHOLDER, ...colors];
+
+  // Transparent pixels take index 0; the placeholder is excluded from the
+  // nearest-color search so no opaque pixel can land on it.
+  const indexCache = new Map<number, number>();
+  const indices = new Uint8Array(pixelCount);
+  for (let i = 0; i < pixelCount; i++) {
+    const o = i * 4;
+    if (rgba[o + 3] < ICON_OPAQUE_ALPHA) continue; // stays ICON_TRANSPARENT_INDEX
+    const key = colorKey(rgba[o], rgba[o + 1], rgba[o + 2]);
+    let index = indexCache.get(key);
+    if (index === undefined) {
+      index = 1 + nearestPaletteIndex(colors, rgba[o], rgba[o + 1], rgba[o + 2]);
+      indexCache.set(key, index);
+    }
+    indices[i] = index;
+  }
+
+  const rowSize = ICON_SIZE / 2; // 16 bytes: 4bpp, already a multiple of 4
+  const imageSize = rowSize * ICON_SIZE;
+  const dataOffset = FILE_HEADER_SIZE + DIB_HEADER_SIZE + ICON_PALETTE_ENTRIES * 4;
+  const out = new Uint8Array(dataOffset + imageSize);
+  const view = new DataView(out.buffer);
+
+  // BITMAPFILEHEADER
+  out[0] = 0x42; // 'B'
+  out[1] = 0x4d; // 'M'
+  view.setUint32(2, out.length, true);
+  view.setUint32(10, dataOffset, true);
+
+  // BITMAPINFOHEADER
+  view.setUint32(14, DIB_HEADER_SIZE, true);
+  view.setInt32(18, ICON_SIZE, true);
+  view.setInt32(22, ICON_SIZE, true); // positive: bottom-up
+  view.setUint16(26, 1, true); // planes
+  view.setUint16(28, 4, true); // bits per pixel
+  view.setUint32(30, 0, true); // BI_RGB (uncompressed)
+  view.setUint32(34, imageSize, true);
+  view.setInt32(38, PPM_72DPI, true);
+  view.setInt32(42, PPM_72DPI, true);
+  view.setUint32(46, ICON_PALETTE_ENTRIES, true); // clrUsed
+  view.setUint32(50, ICON_PALETTE_ENTRIES, true); // clrImportant, as the reference tool
+
+  // Palette: BGRA quads; entries beyond the used colors stay zeroed.
+  for (let i = 0; i < palette.length; i++) {
+    const o = FILE_HEADER_SIZE + DIB_HEADER_SIZE + i * 4;
+    out[o] = palette[i][2];
+    out[o + 1] = palette[i][1];
+    out[o + 2] = palette[i][0];
+  }
+
+  // Pixel rows, bottom-up, two pixels per byte with the left one in the high nibble.
+  for (let storedRow = 0; storedRow < ICON_SIZE; storedRow++) {
+    const imageRow = ICON_SIZE - 1 - storedRow;
+    const rowOffset = dataOffset + storedRow * rowSize;
+    for (let x = 0; x < ICON_SIZE; x += 2) {
+      const p = imageRow * ICON_SIZE + x;
+      out[rowOffset + (x >> 1)] = (indices[p] << 4) | indices[p + 1];
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Checks a BMP against what the launcher's icon reader accepts, mirroring
+ * `BmpHeader::Validate(32, 32, 4)` and `BmpFileIconData::Load`: 'BM' magic,
+ * 40-byte DIB header, 32x32 (either row order), 4bpp, uncompressed, `clrUsed`
+ * 0 or 16, pixel data at offset >= 118 and fully present. Anything else the
+ * launcher silently draws as a BLANK icon (it does not fall back to the
+ * generic one), so a preview must not pretend such a file works.
+ *
+ * @param bytes - The complete BMP file bytes.
+ * @returns `null` when the launcher would display the file, else the reason.
+ */
+export function validateLauncherIconBmp(bytes: Uint8Array): string | null {
+  const headerSize = FILE_HEADER_SIZE + DIB_HEADER_SIZE + ICON_PALETTE_ENTRIES * 4; // 118
+  if (bytes.length < headerSize) return `file too small (${bytes.length} bytes)`;
+  if (bytes[0] !== 0x42 || bytes[1] !== 0x4d) return "missing 'BM' magic";
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const dataOffset = view.getUint32(10, true);
+  const dibSize = view.getUint32(14, true);
+  const width = view.getInt32(18, true);
+  const height = Math.abs(view.getInt32(22, true));
+  const bitsPerPixel = view.getUint16(28, true);
+  const compression = view.getUint32(30, true);
+  const clrUsed = view.getUint32(46, true);
+  if (dibSize !== DIB_HEADER_SIZE) return `DIB header is ${dibSize} bytes, launcher needs 40`;
+  if (width !== ICON_SIZE || height !== ICON_SIZE)
+    return `${width}x${height}, launcher needs 32x32`;
+  if (bitsPerPixel !== 4) return `${bitsPerPixel} bits per pixel, launcher needs 4`;
+  if (compression !== 0) return 'compressed, launcher needs uncompressed';
+  if (clrUsed !== 0 && clrUsed !== ICON_PALETTE_ENTRIES) {
+    return `${clrUsed} palette colors, launcher needs 16`;
+  }
+  if (dataOffset < headerSize) return `pixel data at offset ${dataOffset}, launcher needs >= 118`;
+  if (dataOffset + (ICON_SIZE / 2) * ICON_SIZE > bytes.length) return 'truncated pixel data';
+  return null;
+}
+
 /** Result of {@link decodeBmp}: dimensions plus top-down RGBA pixel data. */
 export interface DecodedBmp {
   /** Image width in pixels. */
   width: number;
   /** Image height in pixels (always positive, even for top-down files). */
   height: number;
-  /** Pixel data, 4 bytes per pixel (RGBA), row-major, top-down, alpha = 255. */
+  /**
+   * Pixel data, 4 bytes per pixel (RGBA), row-major, top-down. Alpha is 255
+   * except for pixels of the `transparentIndex` a caller asked for.
+   */
   rgba: Uint8ClampedArray;
+}
+
+/** Options of {@link decodeBmp}. */
+export interface DecodeBmpOptions {
+  /**
+   * Palette index to decode as fully transparent black instead of its palette
+   * color. Launcher icons reserve {@link ICON_TRANSPARENT_INDEX} that way.
+   */
+  transparentIndex?: number;
 }
 
 /**
@@ -293,10 +464,12 @@ export interface DecodedBmp {
  * opaque black. Used to preview existing covers and icons from the SD card.
  *
  * @param bytes - The complete BMP file bytes.
+ * @param options - Optional `transparentIndex` (see {@link DecodeBmpOptions}).
  * @returns The decoded dimensions and RGBA data.
  * @throws Error if the file is truncated, not a BMP, compressed, or not 4/8bpp.
  */
-export function decodeBmp(bytes: Uint8Array): DecodedBmp {
+export function decodeBmp(bytes: Uint8Array, options: DecodeBmpOptions = {}): DecodedBmp {
+  const transparentIndex = options.transparentIndex ?? -1;
   if (bytes.length < FILE_HEADER_SIZE + DIB_HEADER_SIZE) {
     throw new Error(`File too small to be a BMP (${bytes.length} bytes)`);
   }
@@ -352,6 +525,7 @@ export function decodeBmp(bytes: Uint8Array): DecodedBmp {
         index = x % 2 === 0 ? packed >> 4 : packed & 0x0f;
       }
       const o = (y * width + x) * 4;
+      if (index === transparentIndex) continue; // stays (0, 0, 0, 0)
       if (index < paletteCount) {
         const p = paletteOffset + index * 4;
         rgba[o] = bytes[p + 2]; // R
