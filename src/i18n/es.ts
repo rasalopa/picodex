@@ -212,6 +212,20 @@ export const es: Dict = {
     useCover: 'Usar esta carátula',
     writing: 'Escribiendo…',
     coversDirMissing: 'No se pudo abrir la carpeta de carátulas',
+    iconTitle: 'Icono',
+    iconOwnImage: 'Imagen de tu equipo:',
+    iconHint:
+      'La imagen pequeña que va junto al nombre en la lista del launcher. Los juegos de GBA y de otros sistemas no traen icono propio; en los de DS sustituye al que llevan dentro. La imagen se encaja en un cuadrado de 32×32 y las zonas transparentes siguen transparentes.',
+    iconNone: 'Sin icono personalizado',
+    iconInvalidOnCard:
+      'El fichero de icono de la tarjeta no está en el formato que lee el launcher, así que la consola muestra un icono en blanco. Al guardar uno nuevo se reemplaza.',
+    iconBannerNote:
+      'Este juego tiene un banner personalizado en _pico/banners. El launcher muestra el icono del banner e ignora un icono BMP, así que aquí no hay nada que poner.',
+    iconCurrentAlt: (game: string) => `Icono actual de ${game}`,
+    iconNewAlt: (game: string) => `Vista previa del nuevo icono de ${game}`,
+    useIcon: 'Usar este icono',
+    useCoverAndIcon: 'Usar esta carátula y este icono',
+    iconsDirMissing: 'No se pudo abrir la carpeta de iconos',
   },
   library: {
     overviewLabel: 'Resumen de la biblioteca',

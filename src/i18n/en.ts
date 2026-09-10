@@ -224,6 +224,20 @@ export const en = {
     useCover: 'Use this cover',
     writing: 'Writing…',
     coversDirMissing: 'Could not open the covers directory',
+    iconTitle: 'Icon',
+    iconOwnImage: 'Image from your computer:',
+    iconHint:
+      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; for DS games it replaces the built-in one. The image is fitted into a 32×32 square and transparent areas stay transparent.',
+    iconNone: 'No custom icon',
+    iconInvalidOnCard:
+      'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
+    iconBannerNote:
+      'This game has a custom banner in _pico/banners. The launcher shows the banner’s icon and ignores a BMP icon, so there is nothing to set here.',
+    iconCurrentAlt: (game: string) => `Current icon of ${game}`,
+    iconNewAlt: (game: string) => `New icon preview for ${game}`,
+    useIcon: 'Use this icon',
+    useCoverAndIcon: 'Use this cover and icon',
+    iconsDirMissing: 'Could not open the icons directory',
   },
   library: {
     overviewLabel: 'Library overview',

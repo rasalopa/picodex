@@ -20,6 +20,8 @@
   gap: 0.75rem;
   width: min(58rem, 100%);
   max-height: 100%;
+  /* the candidate grid shrinks first; on short viewports the whole dialog scrolls */
+  overflow-y: auto;
   padding: 1rem 1.25rem;
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -112,7 +114,7 @@
   /* small padding keeps focus outlines + selection rings inside the scroll clip */
   padding: 3px;
   flex: 1 1 auto;
-  min-height: 8rem;
+  min-height: 6rem;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
@@ -244,4 +246,54 @@
   color: var(--text-dim);
   font-size: 0.78rem;
   overflow-wrap: anywhere;
+}
+
+/* icon row: current vs new at 2x (64px); a checkerboard shows the transparency */
+
+.cover-picker__icon {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.cover-picker__icon-img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  background: repeating-conic-gradient(var(--bg) 0 25%, var(--bg-raised) 0 50%) 0 0 / 16px 16px;
+  image-rendering: pixelated;
+}
+
+.cover-picker__icon-img--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 1.1rem;
+}
+
+.cover-picker__icon-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.cover-picker__icon-img--invalid {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.cover-picker__icon-note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--warn);
 }
