@@ -22,7 +22,9 @@ import { isEnhancedLauncher, parseLoaderApiVersion, parseNdsRomTitle } from '../
 import { parseApList, parsePatchList, parseSaveList, type LoaderLists } from '../lib/loaderlists';
 import { parseSettings, type ParsedSettings } from '../lib/settings';
 import {
+  BANNERS,
   COVERS,
+  ICONS,
   GAMEDATA_FILE,
   SETTINGS_FILE,
   PICO_DIR,
@@ -52,7 +54,11 @@ export interface CardInfo {
   isEnhancedFork: boolean;
 }
 
-/** Names present in each cover folder, lowercased, extension included. */
+/**
+ * Names present in each cover folder, lowercased, extension included. The
+ * icon and banner folders (`/_pico/icons`, `/_pico/banners`) share the layout,
+ * so `iconIndex` and `bannerIndex` reuse it.
+ */
 export interface CoverIndex {
   nds: Set<string>;
   gba: Set<string>;
@@ -88,6 +94,10 @@ export interface SdState {
   error: SdMessage | null;
   games: LibraryFile[];
   coverIndex: CoverIndex;
+  /** Custom icon files present in `/_pico/icons/{nds,gba,user}`. */
+  iconIndex: CoverIndex;
+  /** Per-game banner files present in `/_pico/banners/{nds,gba,user}`. */
+  bannerIndex: CoverIndex;
   /** Parsed /_pico/gamedata.json, or null on stock launchers. */
   gameData: GameData | null;
   /** Parsed /_pico/settings.json, or null when missing/unreadable. */
@@ -139,10 +149,14 @@ export interface SdState {
 
 const SdContext = createContext<SdState | null>(null);
 
-async function readCoverIndex(root: FileSystemDirectoryHandle): Promise<CoverIndex> {
+/** Lists the files of the three art folders (`COVERS` or `ICONS`), lowercased. */
+async function readArtIndex(
+  root: FileSystemDirectoryHandle,
+  folders: typeof COVERS,
+): Promise<CoverIndex> {
   const index: CoverIndex = { nds: new Set(), gba: new Set(), user: new Set() };
   for (const key of ['nds', 'gba', 'user'] as const) {
-    const dir = await getDir(root, COVERS[key]);
+    const dir = await getDir(root, folders[key]);
     if (!dir) continue;
     for (const entry of await listEntries(dir)) {
       if (entry.kind === 'file' && !entry.name.startsWith('.')) {
@@ -248,6 +262,16 @@ export function SdProvider({ children }: { children: ReactNode }) {
     gba: new Set(),
     user: new Set(),
   });
+  const [iconIndex, setIconIndex] = useState<CoverIndex>({
+    nds: new Set(),
+    gba: new Set(),
+    user: new Set(),
+  });
+  const [bannerIndex, setBannerIndex] = useState<CoverIndex>({
+    nds: new Set(),
+    gba: new Set(),
+    user: new Set(),
+  });
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [settings, setSettings] = useState<ParsedSettings | null>(null);
   const [cardInfo, setCardInfo] = useState<CardInfo>(EMPTY_CARD_INFO);
@@ -273,7 +297,9 @@ export function SdProvider({ children }: { children: ReactNode }) {
       }),
     );
     setProgress({ key: 'readingCovers' });
-    setCoverIndex(await readCoverIndex(rootHandle));
+    setCoverIndex(await readArtIndex(rootHandle, COVERS));
+    setIconIndex(await readArtIndex(rootHandle, ICONS));
+    setBannerIndex(await readArtIndex(rootHandle, BANNERS));
     setProgress({ key: 'readingLauncherData' });
     const launcher = await readLauncherFiles(rootHandle);
     gameDataRef.current = launcher.gameData;
@@ -448,6 +474,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
       error,
       games,
       coverIndex,
+      iconIndex,
+      bannerIndex,
       gameData,
       settings,
       cardInfo,
@@ -468,6 +496,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
       error,
       games,
       coverIndex,
+      iconIndex,
+      bannerIndex,
       gameData,
       settings,
       cardInfo,

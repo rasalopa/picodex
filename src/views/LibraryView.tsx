@@ -3,7 +3,7 @@ import { BannerEditor } from '../components/BannerEditor';
 import { bannerBnrIconPreviewUrl, iconBmpPreviewUrl } from '../lib/coverart';
 import { gameDataTotals } from '../lib/gamedata';
 import { loaderApiCapabilities } from '../lib/loader';
-import { GAMES_DIR, PICO_DIR, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
+import { GAMES_DIR, ICONS, getDir, readFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { systemsSharingGamesDir } from '../lib/systems';
 import { useSd, type CoverIndex } from '../state/SdContext';
@@ -100,7 +100,7 @@ async function readGameUserIcon(
       const bytes = await readFileBytes(userIconsDir, `${game.fileName}.bmp`);
       if (bytes !== null) return await iconBmpPreviewUrl(bytes);
     } catch {
-      // unreadable icon: try the next game
+      // unreadable icon, or one the launcher would not display: try the next game
     }
   }
   return null;
@@ -130,7 +130,7 @@ export function LibraryView() {
     const urls: string[] = [];
     async function loadIcons(rootHandle: FileSystemDirectoryHandle) {
       const icons = new Map<string, string>();
-      const userIconsDir = await getDir(rootHandle, [PICO_DIR, 'icons', 'user']);
+      const userIconsDir = await getDir(rootHandle, ICONS.user);
       const folderCache = new Map<string, string | null>();
       for (const { system } of groups) {
         const shared = systemsSharingGamesDir(system.gamesDir).length > 1;

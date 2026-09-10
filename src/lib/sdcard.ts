@@ -72,6 +72,27 @@ export const COVERS: Record<'nds' | 'gba' | 'user', readonly string[]> = {
   user: [PICO_DIR, 'covers', 'user'],
 };
 
+/**
+ * Custom icon folders inside `_pico/`, laid out exactly like {@link COVERS}:
+ * by gamecode for NDS/GBA, by full file name under `user/`.
+ */
+export const ICONS: Record<'nds' | 'gba' | 'user', readonly string[]> = {
+  nds: [PICO_DIR, 'icons', 'nds'],
+  gba: [PICO_DIR, 'icons', 'gba'],
+  user: [PICO_DIR, 'icons', 'user'],
+};
+
+/**
+ * Per-game custom banner (`.bnr`) folders inside `_pico/`, same layout again.
+ * A banner replaces a game's title AND icon in the launcher, so when one
+ * exists the icon folders above are never consulted for that game.
+ */
+export const BANNERS: Record<'nds' | 'gba' | 'user', readonly string[]> = {
+  nds: [PICO_DIR, 'banners', 'nds'],
+  gba: [PICO_DIR, 'banners', 'gba'],
+  user: [PICO_DIR, 'banners', 'user'],
+};
+
 /** File name of the per-game data store (favorites, launch counts) inside `_pico/`. */
 export const GAMEDATA_FILE = 'gamedata.json';
 
