@@ -401,17 +401,18 @@ export function SdProvider({ children }: { children: ReactNode }) {
   }, [loadFrom]);
 
   /**
-   * The rescan in flight, if any. Two overlapping rescans would interleave
-   * their state writes and the first to finish would hide the progress of the
-   * other, so a refresh requested during one simply joins it.
+   * Tail of the rescan queue. Two rescans running at once would interleave
+   * their state writes and the first to finish would hide the other's
+   * progress, so a rescan requested during one QUEUES behind it rather than
+   * joining it: a caller that has just written to the card must get a read
+   * that postdates its write, and the scan already running does not.
    */
-  const refreshInFlight = useRef<Promise<boolean> | null>(null);
+  const refreshQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   const refresh = useCallback((): Promise<boolean> => {
     if (!root) return Promise.resolve(false);
-    if (refreshInFlight.current !== null) return refreshInFlight.current;
     const rootHandle = root;
-    const run = (async () => {
+    async function run(): Promise<boolean> {
       setLoading(true);
       try {
         await loadFrom(rootHandle);
@@ -422,11 +423,15 @@ export function SdProvider({ children }: { children: ReactNode }) {
       } finally {
         setLoading(false);
         setProgress(null);
-        refreshInFlight.current = null;
       }
-    })();
-    refreshInFlight.current = run;
-    return run;
+    }
+    const next = refreshQueue.current.then(run, run);
+    // the queue must survive a rejected scan, and never leave one unhandled
+    refreshQueue.current = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
   }, [root, loadFrom]);
 
   // Serialized gamedata.json write: applies `mutate` to the current data,
