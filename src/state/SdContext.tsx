@@ -400,19 +400,33 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [loadFrom]);
 
-  const refresh = useCallback(async (): Promise<boolean> => {
-    if (!root) return false;
-    setLoading(true);
-    try {
-      await loadFrom(root);
-      return true;
-    } catch (e) {
-      setError(fsMessage(e));
-      return false;
-    } finally {
-      setLoading(false);
-      setProgress(null);
-    }
+  /**
+   * The rescan in flight, if any. Two overlapping rescans would interleave
+   * their state writes and the first to finish would hide the progress of the
+   * other, so a refresh requested during one simply joins it.
+   */
+  const refreshInFlight = useRef<Promise<boolean> | null>(null);
+
+  const refresh = useCallback((): Promise<boolean> => {
+    if (!root) return Promise.resolve(false);
+    if (refreshInFlight.current !== null) return refreshInFlight.current;
+    const rootHandle = root;
+    const run = (async () => {
+      setLoading(true);
+      try {
+        await loadFrom(rootHandle);
+        return true;
+      } catch (e) {
+        setError(fsMessage(e));
+        return false;
+      } finally {
+        setLoading(false);
+        setProgress(null);
+        refreshInFlight.current = null;
+      }
+    })();
+    refreshInFlight.current = run;
+    return run;
   }, [root, loadFrom]);
 
   // Serialized gamedata.json write: applies `mutate` to the current data,
