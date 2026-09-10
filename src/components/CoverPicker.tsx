@@ -159,13 +159,18 @@ export interface CoverPickerProps {
 }
 
 /**
- * Modal dialog to change a game's cover and, for systems whose ROMs carry no
- * icon of their own, its list icon. It shows the game the way the console
- * does — the cover on the top screen, the game's row with icon and name on
- * the bottom screen — and marks whatever a save will change. Sources sit in
- * tabs below: the system's libretro-thumbnails catalog, a cover image from
- * the computer, an icon image from the computer. The previews are the real
- * composed and BMP-encoded files, exactly what the launcher will display.
+ * Modal dialog to change a game's cover and its list icon. It shows the game
+ * the way the console does — the cover on the top screen, the game's row with
+ * icon and name on the bottom screen — and marks whatever a save will change.
+ * Sources sit in tabs below: the system's libretro-thumbnails catalog, a
+ * cover image from the computer, an icon image from the computer. The
+ * previews are the real composed and BMP-encoded files, exactly what the
+ * launcher will display.
+ *
+ * The icon tab is offered for every system, DS included: `IconRepository`
+ * reads `icons/user/<file>.bmp` and `icons/<nds|gba>/<CODE>.bmp` whatever the
+ * file type, so a custom icon replaces the one a DS ROM carries — and DS
+ * homebrew often carries none at all.
  *
  * One Save writes everything pending, in order, and reports each file on its
  * own: the dialog closes when all of it landed, and stays open with the
@@ -184,9 +189,6 @@ export function CoverPicker({
   const t = useT();
   const repo = game.system.libretroRepo;
   const title = titleOf(game.fileName);
-  // NDS ROMs ship their own banner icon; a custom one would only replace it.
-  // The icon tab exists for GBA and the other systems, which have none.
-  const iconTabShown = game.system.id !== 'nds';
 
   const [tab, setTab] = useState<Tab>('boxart');
   const [catalog, setCatalog] = useState<string[] | null>(() => catalogCache.get(repo) ?? null);
@@ -374,7 +376,7 @@ export function CoverPicker({
   // (partially failed) save stays on screen but is not written again; an icon
   // is never written while a banner would make the launcher ignore it.
   const coverPending = cover.composed !== null && !saved.cover;
-  const iconPending = iconTabShown && icon.composed !== null && !saved.icon && !hasBanner;
+  const iconPending = icon.composed !== null && !saved.icon && !hasBanner;
   const canSave = (coverPending || iconPending) && !saving;
 
   // index once per catalog; per keystroke only the query-dependent half runs
@@ -458,7 +460,7 @@ export function CoverPicker({
   const before = neighbours?.before ?? [];
   const after = neighbours?.after ?? [];
   const showNewCover = cover.composed !== null;
-  const showNewIcon = iconTabShown && icon.composed !== null && !hasBanner;
+  const showNewIcon = icon.composed !== null && !hasBanner;
 
   return (
     <div
@@ -549,7 +551,7 @@ export function CoverPicker({
                 </div>
               ))}
               <div className="cover-picker__row cover-picker__row--selected">
-                {icon.composing && iconTabShown ? (
+                {icon.composing ? (
                   <span
                     className="cover-picker__row-icon cover-picker__row-icon--empty"
                     role="status"
@@ -644,22 +646,20 @@ export function CoverPicker({
               <span className="cover-picker__tab-dot" aria-hidden="true" />
             )}
           </button>
-          {iconTabShown && (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'iconFile'}
-              className={
-                tab === 'iconFile'
-                  ? 'cover-picker__tab cover-picker__tab--active'
-                  : 'cover-picker__tab'
-              }
-              onClick={() => setTab('iconFile')}
-            >
-              {t.coverPicker.tabIconFile}
-              {iconPending && <span className="cover-picker__tab-dot" aria-hidden="true" />}
-            </button>
-          )}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'iconFile'}
+            className={
+              tab === 'iconFile'
+                ? 'cover-picker__tab cover-picker__tab--active'
+                : 'cover-picker__tab'
+            }
+            onClick={() => setTab('iconFile')}
+          >
+            {t.coverPicker.tabIconFile}
+            {iconPending && <span className="cover-picker__tab-dot" aria-hidden="true" />}
+          </button>
         </div>
 
         {tab === 'boxart' && (
@@ -741,7 +741,7 @@ export function CoverPicker({
           </div>
         )}
 
-        {tab === 'iconFile' && iconTabShown && (
+        {tab === 'iconFile' && (
           <div className="cover-picker__tabpanel" role="tabpanel">
             <label className="cover-picker__file-label">
               <span>{t.coverPicker.tabIconFile}</span>

@@ -211,7 +211,7 @@ export const es: Dict = {
     writing: 'Escribiendo…',
     coversDirMissing: 'No se pudo abrir la carpeta de carátulas',
     iconHint:
-      'La imagen pequeña que va junto al nombre en la lista del launcher, que los juegos de GBA y de otros sistemas no traen de serie. La imagen se encaja en un cuadrado de 32×32 y las zonas transparentes siguen transparentes.',
+      'La imagen pequeña que va junto al nombre en la lista del launcher. Los juegos de GBA y de otros sistemas no traen ninguna; un juego de DS muestra la que lleva dentro, y esta la sustituye. La imagen se encaja en un cuadrado de 32×32 y las zonas transparentes siguen transparentes.',
     iconNone: 'Sin icono personalizado',
     iconInvalidOnCard:
       'El fichero de icono de la tarjeta no está en el formato que lee el launcher, así que la consola muestra un icono en blanco. Al guardar uno nuevo se reemplaza.',

@@ -223,7 +223,7 @@ export const en = {
     writing: 'Writing…',
     coversDirMissing: 'Could not open the covers directory',
     iconHint:
-      'The small picture next to the name in the launcher list, which GBA games and other systems do not have on their own. The image is fitted into a 32×32 square and transparent areas stay transparent.',
+      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; a DS game shows the one inside the ROM, and this replaces it. The image is fitted into a 32×32 square and transparent areas stay transparent.',
     iconNone: 'No custom icon',
     iconInvalidOnCard:
       'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
