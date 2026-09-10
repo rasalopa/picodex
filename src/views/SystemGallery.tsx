@@ -6,6 +6,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewBlob } from '../lib/coverart';
 import { readCachedCover, writeCachedCover, type CoverSlot } from '../lib/coverCache';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
+import { windowAround } from '../lib/listWindow';
 import {
   NDS_HEADER_PARSE_BYTES,
   parseGbaGameCode,
@@ -388,6 +389,18 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   });
   const filtering = normalizedQuery.length > 0 || onlyFavorites || onlyCompleted;
 
+  /**
+   * Titles listed around `game` in this grid, for the cover dialog's
+   * bottom-screen mock-up: the names the launcher shows above and below it.
+   * Four rows is what that panel fits.
+   */
+  function neighboursOf(game: LibraryFile) {
+    const key = gameKey(game);
+    const index = visibleCards.findIndex((card) => gameKey(card.game) === key);
+    const titles = visibleCards.map((card) => titleOf(card.game.fileName));
+    return windowAround(titles, index, 4);
+  }
+
   return (
     <section className="system-gallery" aria-label={t.gallery.sectionLabel(system.label)}>
       <header className="system-gallery__header">
@@ -629,6 +642,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
           game={picking.game}
           code={picking.cover.code}
           currentCoverUrl={picking.cover.url}
+          neighbours={neighboursOf(picking.game)}
           onClose={() => {
             setPicking(null);
           }}
