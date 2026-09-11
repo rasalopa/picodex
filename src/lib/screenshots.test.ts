@@ -65,7 +65,7 @@ describe('screenshotFileName', () => {
   });
 
   it('keeps the number as the card wrote it, however many digits', () => {
-    expect(screenshotFileName({ id: '0007', number: 7, top: 'a.bmp', bottom: null })).toBe(
+    expect(screenshotFileName({ id: '0007', number: 7, top: 'a.bmp', bottom: 'b.bmp' })).toBe(
       'shot0007.png',
     );
   });
