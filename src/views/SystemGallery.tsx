@@ -6,6 +6,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { coverBmpCroppedPreviewBlob } from '../lib/coverart';
 import { readCachedCover, writeCachedCover, type CoverSlot } from '../lib/coverCache';
 import { findEntry, type GameDataEntry } from '../lib/gamedata';
+import { windowAround } from '../lib/listWindow';
 import {
   NDS_HEADER_PARSE_BYTES,
   parseGbaGameCode,
@@ -138,8 +139,16 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   const [error, setError] = useState<string | null>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
   const [togglePending, setTogglePending] = useState(false);
-  /** Card whose cover is being hand-picked, `null` while the modal is closed. */
-  const [picking, setPicking] = useState<{ game: LibraryFile; cover: ResolvedCover } | null>(null);
+  /**
+   * Card whose art is being hand-picked, `null` while the modal is closed.
+   *
+   * The gamecode is snapshotted here because the dialog's write target hangs
+   * off it, but the cover's object URL is NOT: this effect owns those URLs and
+   * revokes them whenever it re-runs, which a save inside the dialog causes.
+   * The url is read from `resolved` at render time instead, so a revoked one
+   * turns into the placeholder rather than a broken image.
+   */
+  const [picking, setPicking] = useState<{ game: LibraryFile; code: string | null } | null>(null);
   const [editingStats, setEditingStats] = useState<{
     game: LibraryFile;
     gameCode: string | null;
@@ -388,6 +397,18 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   });
   const filtering = normalizedQuery.length > 0 || onlyFavorites || onlyCompleted;
 
+  /**
+   * Titles listed around `game` in this grid, for the cover dialog's
+   * bottom-screen mock-up: the names the launcher shows above and below it.
+   * Four rows is what that panel fits.
+   */
+  function neighboursOf(game: LibraryFile) {
+    const key = gameKey(game);
+    const index = visibleCards.findIndex((card) => gameKey(card.game) === key);
+    const titles = visibleCards.map((card) => titleOf(card.game.fileName));
+    return windowAround(titles, index, 4);
+  }
+
   return (
     <section className="system-gallery" aria-label={t.gallery.sectionLabel(system.label)}>
       <header className="system-gallery__header">
@@ -498,7 +519,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
                     // code the picker could not target covers/<nds|gba>/
                     disabled={cover === undefined}
                     onClick={() => {
-                      if (cover !== undefined) setPicking({ game, cover });
+                      if (cover !== undefined) setPicking({ game, code: cover.code });
                     }}
                   >
                     <span aria-hidden="true">🖉</span>
@@ -627,8 +648,9 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
       {picking !== null && (
         <CoverPicker
           game={picking.game}
-          code={picking.cover.code}
-          currentCoverUrl={picking.cover.url}
+          code={picking.code}
+          currentCoverUrl={resolved.get(gameKey(picking.game))?.url ?? null}
+          neighbours={neighboursOf(picking.game)}
           onClose={() => {
             setPicking(null);
           }}

@@ -400,19 +400,38 @@ export function SdProvider({ children }: { children: ReactNode }) {
     }
   }, [loadFrom]);
 
-  const refresh = useCallback(async (): Promise<boolean> => {
-    if (!root) return false;
-    setLoading(true);
-    try {
-      await loadFrom(root);
-      return true;
-    } catch (e) {
-      setError(fsMessage(e));
-      return false;
-    } finally {
-      setLoading(false);
-      setProgress(null);
+  /**
+   * Tail of the rescan queue. Two rescans running at once would interleave
+   * their state writes and the first to finish would hide the other's
+   * progress, so a rescan requested during one QUEUES behind it rather than
+   * joining it: a caller that has just written to the card must get a read
+   * that postdates its write, and the scan already running does not.
+   */
+  const refreshQueue = useRef<Promise<unknown>>(Promise.resolve());
+
+  const refresh = useCallback((): Promise<boolean> => {
+    if (!root) return Promise.resolve(false);
+    const rootHandle = root;
+    async function run(): Promise<boolean> {
+      setLoading(true);
+      try {
+        await loadFrom(rootHandle);
+        return true;
+      } catch (e) {
+        setError(fsMessage(e));
+        return false;
+      } finally {
+        setLoading(false);
+        setProgress(null);
+      }
     }
+    const next = refreshQueue.current.then(run, run);
+    // the queue must survive a rejected scan, and never leave one unhandled
+    refreshQueue.current = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
   }, [root, loadFrom]);
 
   // Serialized gamedata.json write: applies `mutate` to the current data,

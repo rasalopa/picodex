@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
-import { encodeCoverBmp, encodeIconBmp } from '../lib/bmp';
-import { isUsableGameCode } from '../lib/gamedata';
+import { findArt, resolveArtTarget, type ArtIndex, type ArtTarget } from '../lib/artPaths';
+import { decodeBannerIcon } from '../lib/banner';
+import { encodeCoverBmp, encodeIconBmp, validateLauncherIconBmp } from '../lib/bmp';
 import {
+  bannerIconRgbaPreviewUrl,
   composeCoverRgba,
   composeIconRgba,
   coverBmpCroppedPreviewUrl,
@@ -11,6 +13,7 @@ import {
 } from '../lib/coverart';
 import { buildCatalogIndex, searchCatalog } from '../lib/matching';
 import {
+  BANNERS,
   COVERS,
   ICONS,
   getDir,
@@ -19,7 +22,7 @@ import {
   type LibraryFile,
 } from '../lib/sdcard';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
-import { useSd, type CoverIndex } from '../state/SdContext';
+import { useSd } from '../state/SdContext';
 import './CoverPicker.css';
 
 /**
@@ -28,6 +31,13 @@ import './CoverPicker.css';
  * same system) is instant.
  */
 const catalogCache = new Map<string, string[]>();
+
+/**
+ * Smallest `.bnr` the launcher accepts: header, icon bitmap and palette
+ * (`NdsBannerInternalFileInfo::ReadBannerChunks`). Shorter files are ignored
+ * and the game falls back to its BMP icon.
+ */
+const MIN_BANNER_BYTES = 0x240;
 
 /** File name without its final extension. */
 function titleOf(fileName: string): string {
@@ -64,35 +74,6 @@ interface ComposedArt {
   bmp: Uint8Array;
   /** Preview object URL of {@link bmp} (owned by the composing effect). */
   url: string;
-}
-
-/** One of the three launcher art folders, for covers and icons alike. */
-type ArtDir = 'nds' | 'gba' | 'user';
-
-/** Which file a save writes: folder key plus file name. */
-interface ArtTarget {
-  dir: ArtDir;
-  name: string;
-}
-
-/**
- * Resolves the file a new cover or icon must be written to, following the
- * launcher's lookup order. It resolves `<art>/user/<file>.bmp` BEFORE the
- * gamecode folders, so when a user/ override exists the new file must replace
- * it there — writing the code path would be shadowed and look like a silent
- * no-op. Otherwise gamecode-keyed systems with a resolved code use
- * `<art>/<nds|gba>/<CODE>.bmp` — unless the code is not an identity (the
- * `####` homebrew placeholder): every homebrew shares it, so a file written
- * under it would show up on all of them, on the card and in the launcher
- * alike. Those go by file name.
- */
-function resolveTarget(game: LibraryFile, code: string | null, index: CoverIndex): ArtTarget {
-  const userName = `${game.fileName}.bmp`;
-  const hasUserOverride = index.user.has(userName.toLowerCase());
-  const usableCode = code !== null && isUsableGameCode(code) ? code : null;
-  return !hasUserOverride && game.system.coverKeying === 'gamecode' && usableCode !== null
-    ? { dir: game.system.id === 'nds' ? 'nds' : 'gba', name: `${usableCode.toUpperCase()}.bmp` }
-    : { dir: 'user', name: userName };
 }
 
 /**
@@ -146,34 +127,70 @@ function useComposedArt<T>(
   };
 }
 
+/**
+ * What the launcher shows next to this game's name today, resolved in its own
+ * order: a per-game banner replaces everything, else a custom BMP icon, else
+ * (DS only) the icon built into the ROM.
+ */
+interface CurrentIcon {
+  kind: 'banner' | 'custom' | 'builtin' | 'invalid' | 'none';
+  /** Preview URL; `null` for `invalid` (the launcher draws it blank) and `none`. */
+  url: string | null;
+}
+
+/** One of the two things a save can write. */
+type ArtKind = 'cover' | 'icon';
+
+/** Where a tab's picker lives. */
+type Tab = 'boxart' | 'coverFile' | 'iconFile';
+
 export interface CoverPickerProps {
-  /** Game whose cover is being replaced. */
+  /** Game whose art is being changed. */
   game: LibraryFile;
   /** Header gamecode (NDS/GBA), `null` when not applicable or unreadable. */
   code: string | null;
   /** Preview URL of the cover currently on the card, `null` when none. */
   currentCoverUrl: string | null;
+  /** Titles listed just before and after this game in the gallery, for the list mock-up. */
+  neighbours?: { before: readonly string[]; after: readonly string[] };
   onClose: () => void;
-  /** Called after a cover or icon was written, before {@link onClose}. */
+  /** Called once after anything was written to the card. */
   onSaved: () => void;
 }
 
 /**
- * Modal dialog to hand-pick a game's cover when the automatic matcher got it
- * wrong: browse/search the system's libretro-thumbnails catalog (or pick an
- * image from the computer), preview the real composed cover (downloaded,
- * composed and BMP-encoded — exactly what the launcher will display) next to
- * the current one, and write it to the SD card. A second row does the same
- * for the game's 32x32 list icon from an image on the computer. Writing
- * intentionally overwrites any existing file, and only happens on the
- * explicit "Use this cover" / "Use this icon" click.
+ * Modal dialog to change a game's cover and its list icon. It shows the game
+ * the way the console does — the cover on the top screen, the game's row with
+ * icon and name on the bottom screen — and marks whatever a save will change.
+ * Sources sit in tabs below: the system's libretro-thumbnails catalog, a
+ * cover image from the computer, an icon image from the computer. The
+ * previews are the real composed and BMP-encoded files, exactly what the
+ * launcher will display.
+ *
+ * The icon tab is offered for every system, DS included: `IconRepository`
+ * reads `icons/user/<file>.bmp` and `icons/<nds|gba>/<CODE>.bmp` whatever the
+ * file type, so a custom icon replaces the one a DS ROM carries — and DS
+ * homebrew often carries none at all.
+ *
+ * One Save writes everything pending, in order, and reports each file on its
+ * own: the dialog closes when all of it landed, and stays open with the
+ * failed file marked when something did not, so a partial write is never
+ * mistaken for a full one. Writing intentionally overwrites existing files.
  */
-export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: CoverPickerProps) {
-  const { root, coverIndex, iconIndex } = useSd();
+export function CoverPicker({
+  game,
+  code,
+  currentCoverUrl,
+  neighbours,
+  onClose,
+  onSaved,
+}: CoverPickerProps) {
+  const { root, coverIndex, iconIndex, bannerIndex } = useSd();
   const t = useT();
   const repo = game.system.libretroRepo;
   const title = titleOf(game.fileName);
 
+  const [tab, setTab] = useState<Tab>('boxart');
   const [catalog, setCatalog] = useState<string[] | null>(() => catalogCache.get(repo) ?? null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   /** Bumped by the retry button to re-run the catalog fetch effect. */
@@ -183,35 +200,38 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
   const [source, setSource] = useState<CoverSource | null>(null);
   /** Catalog entry highlighted in the grid (none while a file is the source). */
   const selected = source?.kind === 'catalog' ? source.name : null;
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const coverFileRef = useRef<HTMLInputElement | null>(null);
   /** Image picked for the new icon, `null` before the first pick. */
   const [iconFile, setIconFile] = useState<File | null>(null);
+  const iconFileRef = useRef<HTMLInputElement | null>(null);
   /**
-   * Custom icon found on the card for this game, tagged with what it was
-   * resolved from so a result for another game or an older index is ignored.
+   * The card's icon for this game, tagged with what it was resolved from so a
+   * result for another game or an older index is ignored.
    */
-  const [currentIcon, setCurrentIcon] = useState<{
-    game: LibraryFile;
-    code: string | null;
-    index: CoverIndex;
-    url: string;
-  } | null>(null);
-  const currentIconUrl =
-    currentIcon !== null &&
-    currentIcon.game === game &&
-    currentIcon.code === code &&
-    currentIcon.index === iconIndex
-      ? currentIcon.url
-      : null;
+  const [cardIcon, setCardIcon] = useState<
+    (CurrentIcon & { game: LibraryFile; icons: ArtIndex; banners: ArtIndex }) | null
+  >(null);
+  const currentIcon: CurrentIcon =
+    cardIcon !== null &&
+    cardIcon.game === game &&
+    cardIcon.icons === iconIndex &&
+    cardIcon.banners === bannerIndex
+      ? cardIcon
+      : { kind: 'none', url: null };
+  const hasBanner = currentIcon.kind === 'banner';
   const [saving, setSaving] = useState(false);
   /** Mirror for event handlers registered once (Escape). */
   const savingRef = useRef(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [iconSaveError, setIconSaveError] = useState<string | null>(null);
+  /** Per file: written by the last save (so it is no longer pending) or why it failed. */
+  const [saved, setSaved] = useState<Record<ArtKind, boolean>>({ cover: false, icon: false });
+  const [writeErrors, setWriteErrors] = useState<Record<ArtKind, string | null>>({
+    cover: null,
+    icon: null,
+  });
   const searchRef = useRef<HTMLInputElement | null>(null);
 
-  const target = resolveTarget(game, code, coverIndex);
-  const iconTarget = resolveTarget(game, code, iconIndex);
+  const coverTarget = resolveArtTarget(game, code, coverIndex);
+  const iconTarget = resolveArtTarget(game, code, iconIndex);
 
   // Focus the search input when the dialog opens (select the prefilled title
   // so typing starts a fresh query).
@@ -256,48 +276,66 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     };
   }, [repo, retryToken]);
 
-  // Show the custom icon the card has for this game today, resolved the way
-  // the launcher does (user/ by file name first, then the gamecode folder).
+  // Resolve the icon the console shows for this game today, in the launcher's
+  // order: banner file, custom BMP (a launcher-invalid one is reported, not
+  // previewed: the console draws it blank), then the ROM's own banner on DS.
   useEffect(() => {
     if (root === null) return;
     const rootHandle = root;
     let cancelled = false;
     let url: string | null = null;
+    const tag = { game, icons: iconIndex, banners: bannerIndex };
+
+    async function bannerIcon(): Promise<CurrentIcon | null> {
+      const found = findArt(game, code, bannerIndex, 'bnr');
+      if (found === null) return null;
+      const dir = await getDir(rootHandle, BANNERS[found.dir]);
+      const bytes = dir === null ? null : await readFileBytes(dir, found.name);
+      if (bytes === null || bytes.length < MIN_BANNER_BYTES) return null;
+      const rgba = decodeBannerIcon(bytes.subarray(0x20, 0x220), bytes.subarray(0x220, 0x240));
+      return { kind: 'banner', url: await bannerIconRgbaPreviewUrl(rgba) };
+    }
+
+    async function customIcon(): Promise<CurrentIcon | null> {
+      const found = findArt(game, code, iconIndex, 'bmp');
+      if (found === null) return null;
+      const dir = await getDir(rootHandle, ICONS[found.dir]);
+      const bytes = dir === null ? null : await readFileBytes(dir, found.name);
+      if (bytes === null) return null;
+      if (validateLauncherIconBmp(bytes) !== null) return { kind: 'invalid', url: null };
+      return { kind: 'custom', url: await iconBmpPreviewUrl(bytes) };
+    }
+
+    async function builtInIcon(): Promise<CurrentIcon | null> {
+      if (game.system.id !== 'nds') return null;
+      const dir = await getDir(rootHandle, game.path);
+      if (dir === null) return null;
+      const file = await (await dir.getFileHandle(game.fileName)).getFile();
+      const header = new DataView(await file.slice(0x68, 0x6c).arrayBuffer());
+      const offset = header.getUint32(0, true);
+      if (offset === 0 || offset + 0x240 > file.size) return null;
+      const banner = new Uint8Array(await file.slice(offset + 0x20, offset + 0x240).arrayBuffer());
+      const rgba = decodeBannerIcon(banner.subarray(0, 0x200), banner.subarray(0x200, 0x220));
+      return { kind: 'builtin', url: await bannerIconRgbaPreviewUrl(rgba) };
+    }
+
     async function load() {
-      const userName = `${game.fileName}.bmp`;
-      let dir: ArtDir | null = null;
-      let name: string | null = null;
-      if (iconIndex.user.has(userName.toLowerCase())) {
-        dir = 'user';
-        name = userName;
-      } else if (code !== null && game.system.coverKeying === 'gamecode') {
-        const codeDir: ArtDir = game.system.id === 'nds' ? 'nds' : 'gba';
-        const codeName = `${code.toUpperCase()}.bmp`;
-        if (iconIndex[codeDir].has(codeName.toLowerCase())) {
-          dir = codeDir;
-          name = codeName;
-        }
-      }
-      if (dir === null || name === null) return;
-      const iconsDir = await getDir(rootHandle, ICONS[dir]);
-      if (iconsDir === null) return;
-      const bytes = await readFileBytes(iconsDir, name);
-      if (bytes === null) return;
-      const previewUrl = await iconBmpPreviewUrl(bytes);
+      const icon = (await bannerIcon()) ?? (await customIcon()) ?? (await builtInIcon());
+      if (icon === null) return;
       if (cancelled) {
-        URL.revokeObjectURL(previewUrl);
+        if (icon.url !== null) URL.revokeObjectURL(icon.url);
         return;
       }
-      url = previewUrl;
-      setCurrentIcon({ game, code, index: iconIndex, url: previewUrl });
+      url = icon.url;
+      setCardIcon({ ...icon, ...tag });
     }
-    // an unreadable or malformed icon file simply shows as "none"
+    // an unreadable file simply shows as "none"
     load().catch(() => undefined);
     return () => {
       cancelled = true;
       if (url !== null) URL.revokeObjectURL(url);
     };
-  }, [root, game, code, iconIndex]);
+  }, [root, game, code, iconIndex, bannerIndex]);
 
   // Compose the real cover for the picked source: decode it (download the
   // catalog PNG, or read the user's file), compose it into the launcher
@@ -334,6 +372,13 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
   }, []);
   const icon = useComposedArt(iconFile, buildIcon);
 
+  // What a save would write. A composed file already written by an earlier
+  // (partially failed) save stays on screen but is not written again; an icon
+  // is never written while a banner would make the launcher ignore it.
+  const coverPending = cover.composed !== null && !saved.cover;
+  const iconPending = icon.composed !== null && !saved.icon && !hasBanner;
+  const canSave = (coverPending || iconPending) && !saving;
+
   // index once per catalog; per keystroke only the query-dependent half runs
   const searchIndex = useMemo(
     () => (catalog === null ? null : buildCatalogIndex(catalog)),
@@ -344,51 +389,78 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
     [searchIndex, query],
   );
 
+  function pickCover(next: CoverSource) {
+    setSource(next);
+    setSaved((s) => ({ ...s, cover: false }));
+    setWriteErrors((w) => ({ ...w, cover: null }));
+  }
+
+  function pickIcon(file: File) {
+    setIconFile(file);
+    setSaved((s) => ({ ...s, icon: false }));
+    setWriteErrors((w) => ({ ...w, icon: null }));
+  }
+
   /**
-   * Writes already-encoded BMP bytes from a preview step to the SD card. This
-   * is the one and only write path of the picker, and it intentionally
-   * overwrites any existing file — replacing a wrong cover or icon is the
-   * whole point.
+   * Writes every pending file, one after the other, and reports each on its
+   * own. Anything that landed triggers one card reload; the dialog closes only
+   * when everything landed, otherwise the failed file stays pending with its
+   * error shown and the written one is marked as saved.
    */
-  function saveArt(
-    folders: typeof COVERS,
-    art: ArtTarget,
-    bmp: Uint8Array,
-    dirMissing: string,
-    setError: (message: string | null) => void,
-  ) {
-    if (root === null || saving) return;
+  function handleSave() {
+    if (root === null || !canSave) return;
     const rootHandle = root;
+    const plan: Array<{
+      kind: ArtKind;
+      folders: typeof COVERS;
+      target: ArtTarget;
+      bmp: Uint8Array;
+    }> = [];
+    if (coverPending && cover.composed !== null) {
+      plan.push({ kind: 'cover', folders: COVERS, target: coverTarget, bmp: cover.composed.bmp });
+    }
+    if (iconPending && icon.composed !== null) {
+      plan.push({ kind: 'icon', folders: ICONS, target: iconTarget, bmp: icon.composed.bmp });
+    }
     setSaving(true);
     savingRef.current = true;
-    setError(null);
+    setWriteErrors({ cover: null, icon: null });
     async function write() {
-      const dir = await getDir(rootHandle, folders[art.dir], true);
-      if (dir === null) throw new Error(dirMissing);
-      await writeFileBytes(dir, art.name, bmp);
+      const errors: Record<ArtKind, string | null> = { cover: null, icon: null };
+      let wrote = false;
+      for (const w of plan) {
+        try {
+          const dir = await getDir(rootHandle, w.folders[w.target.dir], true);
+          if (dir === null) {
+            throw new Error(
+              w.kind === 'cover' ? t.coverPicker.coversDirMissing : t.coverPicker.iconsDirMissing,
+            );
+          }
+          await writeFileBytes(dir, w.target.name, w.bmp);
+          wrote = true;
+          setSaved((s) => ({ ...s, [w.kind]: true }));
+        } catch (e) {
+          errors[w.kind] = errorMessage(e);
+        }
+      }
+      if (wrote) onSaved();
+      return errors;
     }
-    write().then(
-      () => {
-        onSaved();
+    write().then((errors) => {
+      if (errors.cover === null && errors.icon === null) {
         onClose();
-      },
-      (e: unknown) => {
-        setError(errorMessage(e));
-        setSaving(false);
-        savingRef.current = false;
-      },
-    );
+        return;
+      }
+      setWriteErrors(errors);
+      setSaving(false);
+      savingRef.current = false;
+    });
   }
 
-  function handleSaveCover() {
-    if (cover.composed === null) return;
-    saveArt(COVERS, target, cover.composed.bmp, t.coverPicker.coversDirMissing, setSaveError);
-  }
-
-  function handleSaveIcon() {
-    if (icon.composed === null) return;
-    saveArt(ICONS, iconTarget, icon.composed.bmp, t.coverPicker.iconsDirMissing, setIconSaveError);
-  }
+  const before = neighbours?.before ?? [];
+  const after = neighbours?.after ?? [];
+  const showNewCover = cover.composed !== null;
+  const showNewIcon = icon.composed !== null && !hasBanner;
 
   return (
     <div
@@ -407,6 +479,10 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
           <h3 className="cover-picker__title" title={game.fileName}>
             {t.coverPicker.title(title)}
           </h3>
+          <span className="cover-picker__meta">
+            {game.system.label}
+            {code !== null && ` · ${code}`}
+          </span>
           <button
             type="button"
             className="cover-picker__close"
@@ -418,241 +494,336 @@ export function CoverPicker({ game, code, currentCoverUrl, onClose, onSaved }: C
           </button>
         </header>
 
-        <input
-          ref={searchRef}
-          className="cover-picker__search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t.coverPicker.searchPlaceholder(game.system.label)}
-          aria-label={t.coverPicker.searchLabel}
-        />
+        <div className="cover-picker__screens">
+          <section className="cover-picker__screen" aria-label={t.coverPicker.topScreen}>
+            <div className="cover-picker__panel">
+              {cover.composing ? (
+                <span
+                  className="cover-picker__top-cover cover-picker__top-cover--empty"
+                  role="status"
+                  aria-label={t.coverPicker.composingPreview}
+                >
+                  <span className="cover-picker__spinner" aria-hidden="true" />
+                </span>
+              ) : showNewCover && cover.composed !== null ? (
+                <img
+                  className="cover-picker__top-cover"
+                  src={cover.composed.url}
+                  alt={t.coverPicker.newAlt(title)}
+                  width={106}
+                  height={96}
+                />
+              ) : currentCoverUrl !== null ? (
+                <img
+                  className="cover-picker__top-cover"
+                  src={currentCoverUrl}
+                  alt={t.coverPicker.currentAlt(title)}
+                  width={106}
+                  height={96}
+                />
+              ) : (
+                <span className="cover-picker__top-cover cover-picker__top-cover--empty">
+                  <span aria-hidden="true">?</span>
+                </span>
+              )}
+              <span className="cover-picker__title-chip">{title}</span>
+              {coverPending && <span className="cover-picker__pill">{t.coverPicker.newCover}</span>}
+              {showNewCover && currentCoverUrl !== null && (
+                <span className="cover-picker__before">
+                  <img
+                    src={currentCoverUrl}
+                    alt={t.coverPicker.currentAlt(title)}
+                    width={53}
+                    height={48}
+                  />
+                  {t.coverPicker.current}
+                </span>
+              )}
+            </div>
+          </section>
 
-        <div className="cover-picker__own">
-          <label className="cover-picker__own-label">
-            <span>{t.coverPicker.ownImage}</span>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file !== undefined) setSource({ kind: 'file', file });
-              }}
-            />
-          </label>
-          <p className="cover-picker__own-hint">{t.coverPicker.ownImageHint}</p>
+          <section className="cover-picker__screen" aria-label={t.coverPicker.bottomScreen}>
+            <div className="cover-picker__panel cover-picker__list">
+              {before.map((name) => (
+                <div key={`b-${name}`} className="cover-picker__row cover-picker__row--dim">
+                  <span className="cover-picker__row-icon cover-picker__row-icon--empty" />
+                  <span className="cover-picker__row-name">{name}</span>
+                </div>
+              ))}
+              <div className="cover-picker__row cover-picker__row--selected">
+                {icon.composing ? (
+                  <span
+                    className="cover-picker__row-icon cover-picker__row-icon--empty"
+                    role="status"
+                    aria-label={t.coverPicker.composingPreview}
+                  >
+                    <span className="cover-picker__spinner" aria-hidden="true" />
+                  </span>
+                ) : showNewIcon && icon.composed !== null ? (
+                  <img
+                    className="cover-picker__row-icon"
+                    src={icon.composed.url}
+                    alt={t.coverPicker.iconNewAlt(title)}
+                    width={32}
+                    height={32}
+                  />
+                ) : currentIcon.url !== null ? (
+                  <img
+                    className="cover-picker__row-icon"
+                    src={currentIcon.url}
+                    alt={
+                      currentIcon.kind === 'banner'
+                        ? t.coverPicker.bannerIconAlt(title)
+                        : currentIcon.kind === 'builtin'
+                          ? t.coverPicker.builtInIconAlt(title)
+                          : t.coverPicker.iconCurrentAlt(title)
+                    }
+                    width={32}
+                    height={32}
+                  />
+                ) : currentIcon.kind === 'invalid' ? (
+                  <span
+                    className="cover-picker__row-icon cover-picker__row-icon--invalid"
+                    role="img"
+                    aria-label={t.coverPicker.iconInvalidOnCard}
+                    title={t.coverPicker.iconInvalidOnCard}
+                  >
+                    <span aria-hidden="true">!</span>
+                  </span>
+                ) : (
+                  <span
+                    className="cover-picker__row-icon cover-picker__row-icon--empty"
+                    role="img"
+                    aria-label={t.coverPicker.iconNone}
+                    title={t.coverPicker.iconNone}
+                  >
+                    <span aria-hidden="true">?</span>
+                  </span>
+                )}
+                <span className="cover-picker__row-name">{title}</span>
+                {iconPending && (
+                  <span className="cover-picker__pill">{t.coverPicker.newCover}</span>
+                )}
+              </div>
+              {after.map((name) => (
+                <div key={`a-${name}`} className="cover-picker__row cover-picker__row--dim">
+                  <span className="cover-picker__row-icon cover-picker__row-icon--empty" />
+                  <span className="cover-picker__row-name">{name}</span>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
 
-        {catalogError !== null ? (
-          <div className="cover-picker__error" role="alert">
-            <span>{t.coverPicker.catalogFailed(catalogError)}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setRetryToken((n) => n + 1);
-              }}
-            >
-              {t.coverPicker.retry}
-            </button>
-          </div>
-        ) : catalog === null ? (
-          <p className="cover-picker__status" role="status">
-            {t.coverPicker.loadingCatalog}
-          </p>
-        ) : results.length === 0 ? (
-          <p className="cover-picker__status">{t.coverPicker.noMatches(query)}</p>
-        ) : (
-          <ul className="cover-picker__results">
-            {results.map((name) => (
-              <li key={name}>
+        <div className="cover-picker__tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'boxart'}
+            className={
+              tab === 'boxart' ? 'cover-picker__tab cover-picker__tab--active' : 'cover-picker__tab'
+            }
+            onClick={() => setTab('boxart')}
+          >
+            {t.coverPicker.tabBoxArt}
+            {coverPending && source?.kind === 'catalog' && (
+              <span className="cover-picker__tab-dot" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'coverFile'}
+            className={
+              tab === 'coverFile'
+                ? 'cover-picker__tab cover-picker__tab--active'
+                : 'cover-picker__tab'
+            }
+            onClick={() => setTab('coverFile')}
+          >
+            {t.coverPicker.tabCoverFile}
+            {coverPending && source?.kind === 'file' && (
+              <span className="cover-picker__tab-dot" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'iconFile'}
+            className={
+              tab === 'iconFile'
+                ? 'cover-picker__tab cover-picker__tab--active'
+                : 'cover-picker__tab'
+            }
+            onClick={() => setTab('iconFile')}
+          >
+            {t.coverPicker.tabIconFile}
+            {iconPending && <span className="cover-picker__tab-dot" aria-hidden="true" />}
+          </button>
+        </div>
+
+        {tab === 'boxart' && (
+          <div className="cover-picker__tabpanel" role="tabpanel">
+            <input
+              ref={searchRef}
+              className="cover-picker__search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t.coverPicker.searchPlaceholder(game.system.label)}
+              aria-label={t.coverPicker.searchLabel}
+            />
+            {catalogError !== null ? (
+              <div className="cover-picker__error" role="alert">
+                <span>{t.coverPicker.catalogFailed(catalogError)}</span>
                 <button
                   type="button"
-                  className={
-                    name === selected
-                      ? 'cover-picker__candidate cover-picker__candidate--selected'
-                      : 'cover-picker__candidate'
-                  }
-                  aria-pressed={name === selected}
                   onClick={() => {
-                    if (fileRef.current !== null) fileRef.current.value = '';
-                    setSource({ kind: 'catalog', name });
+                    setRetryToken((n) => n + 1);
                   }}
                 >
-                  <img
-                    className="cover-picker__thumb"
-                    loading="lazy"
-                    src={boxartUrl(repo, name)}
-                    alt=""
-                  />
-                  <span className="cover-picker__candidate-name">{displayName(name)}</span>
+                  {t.coverPicker.retry}
                 </button>
-              </li>
-            ))}
-          </ul>
+              </div>
+            ) : catalog === null ? (
+              <p className="cover-picker__status" role="status">
+                {t.coverPicker.loadingCatalog}
+              </p>
+            ) : results.length === 0 ? (
+              <p className="cover-picker__status">{t.coverPicker.noMatches(query)}</p>
+            ) : (
+              <ul className="cover-picker__results">
+                {results.map((name) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      className={
+                        name === selected
+                          ? 'cover-picker__candidate cover-picker__candidate--selected'
+                          : 'cover-picker__candidate'
+                      }
+                      aria-pressed={name === selected}
+                      onClick={() => {
+                        if (coverFileRef.current !== null) coverFileRef.current.value = '';
+                        pickCover({ kind: 'catalog', name });
+                      }}
+                    >
+                      <img
+                        className="cover-picker__thumb"
+                        loading="lazy"
+                        src={boxartUrl(repo, name)}
+                        alt=""
+                      />
+                      <span className="cover-picker__candidate-name">{displayName(name)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
-        <footer className="cover-picker__compare">
-          <figure className="cover-picker__side">
-            <figcaption className="section-title">{t.coverPicker.current}</figcaption>
-            {currentCoverUrl !== null ? (
-              <img
-                className="cover-picker__cover"
-                src={currentCoverUrl}
-                alt={t.coverPicker.currentAlt(title)}
-                width={106}
-                height={96}
-              />
-            ) : (
-              <span className="cover-picker__cover cover-picker__cover--empty">
-                <span aria-hidden="true">?</span>
-              </span>
-            )}
-          </figure>
-          <span className="cover-picker__arrow" aria-hidden="true">
-            →
-          </span>
-          <figure className="cover-picker__side">
-            <figcaption className="section-title">{t.coverPicker.newCover}</figcaption>
-            {cover.composing ? (
-              <span
-                className="cover-picker__cover cover-picker__cover--empty"
-                role="status"
-                aria-label={t.coverPicker.composingPreview}
-              >
-                <span className="cover-picker__spinner" aria-hidden="true" />
-              </span>
-            ) : cover.composed !== null ? (
-              <img
-                className="cover-picker__cover"
-                src={cover.composed.url}
-                alt={t.coverPicker.newAlt(title)}
-                width={106}
-                height={96}
-              />
-            ) : (
-              <span className="cover-picker__cover cover-picker__cover--empty">
-                <span aria-hidden="true">?</span>
-              </span>
-            )}
-          </figure>
-          <div className="cover-picker__actions">
-            {cover.error !== null && (
-              <p className="cover-picker__inline-error" role="alert">
-                {t.coverPicker.previewFailed(cover.error)}
-              </p>
-            )}
-            {saveError !== null && (
-              <p className="cover-picker__inline-error" role="alert">
-                {t.coverPicker.writeFailed(saveError)}
-              </p>
-            )}
-            <p className="cover-picker__target">
-              {t.coverPicker.writes}{' '}
-              <code>
-                covers/{target.dir}/{target.name}
-              </code>
-            </p>
-            <button
-              type="button"
-              className="primary"
-              disabled={cover.composed === null || saving}
-              onClick={handleSaveCover}
-            >
-              {saving ? t.coverPicker.writing : t.coverPicker.useCover}
-            </button>
-          </div>
-        </footer>
-
-        <section className="cover-picker__icon" aria-label={t.coverPicker.iconTitle}>
-          <figure className="cover-picker__side">
-            <figcaption className="section-title">{t.coverPicker.iconTitle}</figcaption>
-            {currentIconUrl !== null ? (
-              <img
-                className="cover-picker__icon-img"
-                src={currentIconUrl}
-                alt={t.coverPicker.iconCurrentAlt(title)}
-                width={32}
-                height={32}
-              />
-            ) : (
-              <span
-                className="cover-picker__icon-img cover-picker__icon-img--empty"
-                role="img"
-                aria-label={t.coverPicker.iconNone}
-              >
-                <span aria-hidden="true">?</span>
-              </span>
-            )}
-          </figure>
-          <span className="cover-picker__arrow" aria-hidden="true">
-            →
-          </span>
-          <figure className="cover-picker__side">
-            <figcaption className="section-title">{t.coverPicker.newCover}</figcaption>
-            {icon.composing ? (
-              <span
-                className="cover-picker__icon-img cover-picker__icon-img--empty"
-                role="status"
-                aria-label={t.coverPicker.composingPreview}
-              >
-                <span className="cover-picker__spinner" aria-hidden="true" />
-              </span>
-            ) : icon.composed !== null ? (
-              <img
-                className="cover-picker__icon-img"
-                src={icon.composed.url}
-                alt={t.coverPicker.iconNewAlt(title)}
-                width={32}
-                height={32}
-              />
-            ) : (
-              <span className="cover-picker__icon-img cover-picker__icon-img--empty">
-                <span aria-hidden="true">?</span>
-              </span>
-            )}
-          </figure>
-          <div className="cover-picker__icon-body">
-            <label className="cover-picker__own-label">
-              <span>{t.coverPicker.iconOwnImage}</span>
+        {tab === 'coverFile' && (
+          <div className="cover-picker__tabpanel" role="tabpanel">
+            <label className="cover-picker__file-label">
+              <span>{t.coverPicker.tabCoverFile}</span>
               <input
+                ref={coverFileRef}
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file !== undefined) setIconFile(file);
+                  if (file !== undefined) pickCover({ kind: 'file', file });
                 }}
               />
             </label>
-            <p className="cover-picker__own-hint">{t.coverPicker.iconHint}</p>
+            <p className="cover-picker__hint">{t.coverPicker.ownImageHint}</p>
           </div>
-          <div className="cover-picker__actions">
-            {icon.error !== null && (
-              <p className="cover-picker__inline-error" role="alert">
-                {t.coverPicker.previewFailed(icon.error)}
-              </p>
+        )}
+
+        {tab === 'iconFile' && (
+          <div className="cover-picker__tabpanel" role="tabpanel">
+            <label className="cover-picker__file-label">
+              <span>{t.coverPicker.tabIconFile}</span>
+              <input
+                ref={iconFileRef}
+                type="file"
+                accept="image/*"
+                disabled={hasBanner}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file !== undefined) pickIcon(file);
+                }}
+              />
+            </label>
+            {hasBanner ? (
+              <p className="cover-picker__note">{t.coverPicker.iconBannerNote}</p>
+            ) : (
+              <p className="cover-picker__hint">{t.coverPicker.iconHint}</p>
             )}
-            {iconSaveError !== null && (
-              <p className="cover-picker__inline-error" role="alert">
-                {t.coverPicker.writeFailed(iconSaveError)}
-              </p>
-            )}
-            <p className="cover-picker__target">
-              {t.coverPicker.writes}{' '}
-              <code>
-                icons/{iconTarget.dir}/{iconTarget.name}
-              </code>
-            </p>
-            <button
-              type="button"
-              className="primary"
-              disabled={icon.composed === null || saving}
-              onClick={handleSaveIcon}
+          </div>
+        )}
+
+        <footer className="cover-picker__footer">
+          {(coverPending || iconPending) && (
+            <span className="cover-picker__writes">{t.coverPicker.writes}</span>
+          )}
+          {coverPending && (
+            <code
+              className={
+                writeErrors.cover !== null
+                  ? 'cover-picker__chip cover-picker__chip--failed'
+                  : 'cover-picker__chip'
+              }
             >
-              {saving ? t.coverPicker.writing : t.coverPicker.useIcon}
-            </button>
-          </div>
-        </section>
+              covers/{coverTarget.dir}/{coverTarget.name}
+            </code>
+          )}
+          {iconPending && (
+            <code
+              className={
+                writeErrors.icon !== null
+                  ? 'cover-picker__chip cover-picker__chip--failed'
+                  : 'cover-picker__chip'
+              }
+            >
+              icons/{iconTarget.dir}/{iconTarget.name}
+            </code>
+          )}
+          <span className="cover-picker__spacer" />
+          <button type="button" disabled={saving} onClick={onClose}>
+            {t.coverPicker.close}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            disabled={!canSave}
+            title={coverPending || iconPending ? undefined : t.coverPicker.nothingToSave}
+            onClick={handleSave}
+          >
+            {saving ? t.coverPicker.writing : t.coverPicker.save}
+          </button>
+          {cover.error !== null && (
+            <p className="cover-picker__inline-error" role="alert">
+              {t.coverPicker.previewFailed(cover.error)}
+            </p>
+          )}
+          {icon.error !== null && (
+            <p className="cover-picker__inline-error" role="alert">
+              {t.coverPicker.previewFailed(icon.error)}
+            </p>
+          )}
+          {writeErrors.cover !== null && (
+            <p className="cover-picker__inline-error" role="alert">
+              {t.coverPicker.writeFailed(writeErrors.cover)}
+            </p>
+          )}
+          {writeErrors.icon !== null && (
+            <p className="cover-picker__inline-error" role="alert">
+              {t.coverPicker.writeFailed(writeErrors.icon)}
+            </p>
+          )}
+        </footer>
       </div>
     </div>
   );

@@ -17,10 +17,10 @@
 .cover-picker {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
   width: min(58rem, 100%);
   max-height: 100%;
-  /* the candidate grid shrinks first; on short viewports the whole dialog scrolls */
+  /* on short viewports the whole dialog scrolls rather than clipping its footer */
   overflow-y: auto;
   padding: 1rem 1.25rem;
   background: var(--bg-raised);
@@ -37,7 +37,7 @@
   }
 }
 
-/* header */
+/* header: title, system · code, close */
 
 .cover-picker__header {
   display: flex;
@@ -53,6 +53,12 @@
   white-space: nowrap;
 }
 
+.cover-picker__meta {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
 .cover-picker__close {
   flex: none;
   padding: 0.2rem 0.6rem;
@@ -60,35 +66,238 @@
   line-height: 1.4;
 }
 
-/* search + own-image row + status lines */
+/* the two console screens: cover on top, game list below */
+
+.cover-picker__screens {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.cover-picker__screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/* a screen is darker than the dialog, like a lit LCD in a dark room */
+
+.cover-picker__panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 250px;
+  background: #0b0d13;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+
+/* the launcher's visible 106x96 cover area at 2x */
+
+.cover-picker__top-cover {
+  display: block;
+  width: 212px;
+  height: 192px;
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+
+.cover-picker__top-cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-dim);
+  font-size: 1.5rem;
+}
+
+.cover-picker__title-chip {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 48px);
+  padding: 0.1rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-strong);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "new" marker on whatever a save will change */
+
+.cover-picker__pill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* the cover on the card today, kept in a corner while a new one is previewed:
+   top left, clear of the "new" pill (top right) and the centred title chip */
+
+.cover-picker__before {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.cover-picker__before img {
+  display: block;
+  width: 53px;
+  height: 48px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  image-rendering: pixelated;
+}
+
+/* bottom screen: the game list with this game highlighted */
+
+.cover-picker__list {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.85rem;
+}
+
+.cover-picker__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.cover-picker__row--dim {
+  opacity: 0.55;
+}
+
+.cover-picker__row--selected {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.cover-picker__row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 3px;
+  background: repeating-conic-gradient(var(--bg) 0 25%, var(--bg-hover) 0 50%) 0 0 / 10px 10px;
+  image-rendering: pixelated;
+}
+
+.cover-picker__row-icon--empty {
+  background: var(--bg-hover);
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.cover-picker__row-icon--invalid {
+  background: var(--bg-hover);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.cover-picker__row-name {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover-picker__row--selected .cover-picker__row-name {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.cover-picker__row .cover-picker__pill {
+  top: -8px;
+}
+
+/* tabs: where the new art comes from */
+
+.cover-picker__tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cover-picker__tab {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.cover-picker__tab:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text);
+}
+
+.cover-picker__tab--active,
+.cover-picker__tab--active:hover:not(:disabled) {
+  color: var(--text-strong);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.cover-picker__tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.cover-picker__tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 9rem;
+}
 
 .cover-picker__search {
   width: 100%;
 }
 
-.cover-picker__own {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.cover-picker__own-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  font-size: 0.92rem;
-}
-
-.cover-picker__own-hint {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text-dim);
-}
-
 .cover-picker__status {
   margin: 0;
-  padding: 2.5rem 1rem;
+  padding: 2rem 1rem;
   text-align: center;
   color: var(--text-dim);
 }
@@ -106,15 +315,14 @@
   padding: 0.5rem 0.75rem;
 }
 
-/* candidate grid (scrolls; the compare footer stays pinned below it) */
+/* candidate grid (scrolls inside the tab; the footer stays put) */
 
 .cover-picker__results {
   list-style: none;
   margin: 0;
   /* small padding keeps focus outlines + selection rings inside the scroll clip */
   padding: 3px;
-  flex: 1 1 auto;
-  min-height: 6rem;
+  max-height: 13rem;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
@@ -162,52 +370,63 @@
   color: var(--text);
 }
 
-/* current vs new compare + save action */
+/* file tabs: a picker plus a hint, or a note when the launcher would ignore the file */
 
-.cover-picker__compare {
+.cover-picker__file-label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.cover-picker__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.cover-picker__note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--warn);
+}
+
+/* footer: what a save writes, errors, and the one Save button */
+
+.cover-picker__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   flex-wrap: wrap;
   border-top: 1px solid var(--border);
   padding-top: 0.75rem;
 }
 
-.cover-picker__side {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.cover-picker__side .section-title {
-  margin: 0;
-}
-
-/* the launcher's visible 106x96 cover area at 2x (matches the Covers view) */
-
-.cover-picker__cover {
-  display: block;
-  width: 212px;
-  height: 192px;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--bg);
-  image-rendering: pixelated;
-}
-
-.cover-picker__cover--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-style: dashed;
+.cover-picker__writes {
+  font-size: 0.78rem;
   color: var(--text-dim);
-  font-size: 1.5rem;
 }
 
-.cover-picker__arrow {
-  color: var(--text-dim);
-  font-size: 1.25rem;
+.cover-picker__chip {
+  font-size: 0.78rem;
+}
+
+.cover-picker__chip--failed {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.cover-picker__inline-error {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.cover-picker__spacer {
+  flex: 1 1 auto;
 }
 
 .cover-picker__spinner {
@@ -223,77 +442,4 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-.cover-picker__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-  margin-left: auto;
-  min-width: 0;
-}
-
-.cover-picker__inline-error {
-  margin: 0;
-  color: var(--warn);
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
-}
-
-.cover-picker__target {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 0.78rem;
-  overflow-wrap: anywhere;
-}
-
-/* icon row: current vs new at 2x (64px); a checkerboard shows the transparency */
-
-.cover-picker__icon {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-}
-
-.cover-picker__icon-img {
-  display: block;
-  width: 64px;
-  height: 64px;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) / 2);
-  background: repeating-conic-gradient(var(--bg) 0 25%, var(--bg-raised) 0 50%) 0 0 / 16px 16px;
-  image-rendering: pixelated;
-}
-
-.cover-picker__icon-img--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-style: dashed;
-  background: var(--bg);
-  color: var(--text-dim);
-  font-size: 1.1rem;
-}
-
-.cover-picker__icon-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  flex: 1 1 14rem;
-  min-width: 0;
-}
-
-.cover-picker__icon-img--invalid {
-  color: var(--warn);
-  border-color: var(--warn);
-}
-
-.cover-picker__icon-note {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--warn);
 }

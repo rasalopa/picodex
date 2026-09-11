@@ -205,7 +205,6 @@ export const en = {
     close: 'Close',
     searchPlaceholder: (system: string) => `Search ${system} box art…`,
     searchLabel: 'Search box art',
-    ownImage: 'Or use an image from your computer:',
     ownImageHint:
       'Any PNG or JPG works. It is stretched to fill the cover, the same way the downloaded box art is.',
     catalogFailed: (message: string) => `Could not load the box art catalog: ${message}`,
@@ -221,13 +220,10 @@ export const en = {
     writeFailed: (message: string) => `Write failed: ${message}`,
     // Rendered before a <code> path; the JSX adds the space and the path.
     writes: 'Writes',
-    useCover: 'Use this cover',
     writing: 'Writing…',
     coversDirMissing: 'Could not open the covers directory',
-    iconTitle: 'Icon',
-    iconOwnImage: 'Image from your computer:',
     iconHint:
-      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; for DS games it replaces the built-in one. The image is fitted into a 32×32 square and transparent areas stay transparent.',
+      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; a DS game shows the one inside the ROM, and this replaces it. The image is fitted into a 32×32 square and transparent areas stay transparent.',
     iconNone: 'No custom icon',
     iconInvalidOnCard:
       'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
@@ -235,9 +231,16 @@ export const en = {
       'This game has a custom banner in _pico/banners. The launcher shows the banner’s icon and ignores a BMP icon, so there is nothing to set here.',
     iconCurrentAlt: (game: string) => `Current icon of ${game}`,
     iconNewAlt: (game: string) => `New icon preview for ${game}`,
-    useIcon: 'Use this icon',
-    useCoverAndIcon: 'Use this cover and icon',
     iconsDirMissing: 'Could not open the icons directory',
+    tabBoxArt: 'Box art',
+    tabCoverFile: 'Cover from your computer',
+    tabIconFile: 'Icon from your computer',
+    topScreen: 'Top screen',
+    bottomScreen: 'Bottom screen',
+    save: 'Save',
+    nothingToSave: 'Pick a cover or an icon first',
+    builtInIconAlt: (game: string) => `Icon built into ${game}`,
+    bannerIconAlt: (game: string) => `Icon from the banner file of ${game}`,
   },
   library: {
     overviewLabel: 'Library overview',
