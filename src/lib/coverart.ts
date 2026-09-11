@@ -206,6 +206,44 @@ export async function bannerIconRgbaPreviewUrl(rgba: Uint8ClampedArray): Promise
 }
 
 /**
+ * Decodes the two halves of a capture and stacks them the way the console
+ * shows them, top screen above bottom screen, as one PNG blob.
+ *
+ * A capture whose other half never reached the card is rendered on its own,
+ * in its place: a lone bottom half keeps the lower slot so it does not read
+ * as a top screen. The gap between the screens is painted with `gap`, which
+ * is also what a missing half leaves behind.
+ *
+ * @param top - `shotNNN_top.bmp` bytes, `null` when the card has none.
+ * @param bottom - `shotNNN_bot.bmp` bytes, `null` when the card has none.
+ * @param gap - Pixels drawn between the screens (the DS hinge). Defaults to 0.
+ * @throws {Error} When neither half was given, or a file cannot be decoded.
+ */
+export async function screenshotPngBlob(
+  top: Uint8Array | null,
+  bottom: Uint8Array | null,
+  gap = 0,
+): Promise<Blob> {
+  const halves = [top, bottom].map((bytes) => (bytes === null ? null : decodeBmp(bytes)));
+  const present = halves.filter((half) => half !== null);
+  if (present.length === 0) {
+    throw new Error('A screenshot needs at least one of its two screens');
+  }
+  const width = Math.max(...present.map((half) => half.width));
+  const screenHeight = Math.max(...present.map((half) => half.height));
+  const [canvas, ctx] = makeCanvas(width, screenHeight * 2 + gap);
+  halves.forEach((half, index) => {
+    if (half === null) return;
+    ctx.putImageData(
+      bmpImageData(half.rgba, half.width, half.height),
+      Math.floor((width - half.width) / 2),
+      index === 0 ? 0 : screenHeight + gap,
+    );
+  });
+  return canvasPngBlob(canvas);
+}
+
+/**
  * Decodes a launcher custom-icon BMP (32x32, 4bpp, palette index
  * {@link ICON_TRANSPARENT_INDEX} = transparent) to a PNG object URL, keeping
  * the transparent pixels transparent. Only files the launcher itself would

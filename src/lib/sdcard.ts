@@ -82,6 +82,9 @@ export const ICONS: Record<'nds' | 'gba' | 'user', readonly string[]> = {
   user: [PICO_DIR, 'icons', 'user'],
 };
 
+/** Where the launcher saves screenshots, two BMPs per capture. */
+export const SCREENSHOTS: readonly string[] = [PICO_DIR, 'screenshots'];
+
 /**
  * Per-game custom banner (`.bnr`) folders inside `_pico/`, same layout again.
  * A banner replaces a game's title AND icon in the launcher, so when one
