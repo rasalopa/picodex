@@ -66,3 +66,16 @@ export function groupScreenshots(names: readonly string[]): Shot[] {
     ...loose.sort((a, b) => a.id.localeCompare(b.id)),
   ];
 }
+
+/**
+ * What to call a capture once it has been saved out as a PNG.
+ *
+ * A whole capture keeps the number the card gave it, `shot007.png`; a lone
+ * half says which screen it is, so two files saved from the same folder cannot
+ * collide; anything unnumbered keeps its own name with a new extension.
+ */
+export function screenshotFileName(shot: Shot): string {
+  if (shot.number === null) return `${shot.id.replace(BMP, '')}.png`;
+  const half = shot.top === null ? '_bot' : shot.bottom === null ? '_top' : '';
+  return `shot${shot.id}${half}.png`;
+}

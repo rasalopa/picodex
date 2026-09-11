@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupScreenshots } from './screenshots';
+import { groupScreenshots, screenshotFileName } from './screenshots';
 
 describe('groupScreenshots', () => {
   it('pairs the two halves the launcher writes for one capture', () => {
@@ -49,5 +49,39 @@ describe('groupScreenshots', () => {
   it('takes the last name when a folder somehow holds the same half twice', () => {
     // FAT cannot really do this, but a listing is untrusted input
     expect(groupScreenshots(['shot000_top.bmp', 'SHOT000_TOP.BMP'])[0].top).toBe('SHOT000_TOP.BMP');
+  });
+});
+
+describe('screenshotFileName', () => {
+  it('names a numbered capture after its number', () => {
+    expect(
+      screenshotFileName({
+        id: '007',
+        number: 7,
+        top: 'shot007_top.bmp',
+        bottom: 'shot007_bot.bmp',
+      }),
+    ).toBe('shot007.png');
+  });
+
+  it('keeps the number as the card wrote it, however many digits', () => {
+    expect(screenshotFileName({ id: '0007', number: 7, top: 'a.bmp', bottom: null })).toBe(
+      'shot0007.png',
+    );
+  });
+
+  it('says which half it is when the capture has only one', () => {
+    expect(screenshotFileName({ id: '007', number: 7, top: 'x.bmp', bottom: null })).toBe(
+      'shot007_top.png',
+    );
+    expect(screenshotFileName({ id: '007', number: 7, top: null, bottom: 'x.bmp' })).toBe(
+      'shot007_bot.png',
+    );
+  });
+
+  it('renames an unnumbered file rather than inventing a number for it', () => {
+    expect(
+      screenshotFileName({ id: 'holiday.BMP', number: null, top: 'holiday.BMP', bottom: null }),
+    ).toBe('holiday.png');
   });
 });
