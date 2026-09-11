@@ -28,6 +28,7 @@ import {
   GAMEDATA_FILE,
   SETTINGS_FILE,
   PICO_DIR,
+  SCREENSHOTS,
   getDir,
   isAccessError,
   listEntries,
@@ -52,6 +53,12 @@ export interface CardInfo {
   loaderApiVersion: number | null;
   /** True when `_picoboot.nds` is the Pico Launcher Enhanced fork (banner marker). */
   isEnhancedFork: boolean;
+  /**
+   * True when `/_pico/screenshots` exists. Only the fork can write there, and
+   * only once someone has held START, so the gallery hides itself rather than
+   * offering an empty tab to every stock card.
+   */
+  hasScreenshots: boolean;
 }
 
 /**
@@ -172,6 +179,7 @@ const EMPTY_CARD_INFO: CardInfo = {
   launcherModified: null,
   loaderApiVersion: null,
   isEnhancedFork: false,
+  hasScreenshots: false,
 };
 
 async function readCardInfo(root: FileSystemDirectoryHandle): Promise<CardInfo> {
@@ -193,6 +201,7 @@ async function readCardInfo(root: FileSystemDirectoryHandle): Promise<CardInfo> 
       info.loaderApiVersion = parseLoaderApiVersion(loader7);
     }
   }
+  info.hasScreenshots = (await getDir(root, SCREENSHOTS)) !== null;
   return info;
 }
 
