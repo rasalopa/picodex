@@ -456,12 +456,14 @@ export interface DecodeBmpOptions {
 }
 
 /**
- * Decodes an indexed BMP (8bpp or 4bpp, uncompressed) to top-down RGBA pixels.
+ * Decodes an uncompressed BMP to top-down RGBA pixels: 4bpp and 8bpp indexed
+ * (covers and icons) and 24bpp true colour (the launcher's screenshots).
  *
  * Supports bottom-up (positive height) and top-down (negative height) files,
  * any BITMAPINFOHEADER-family DIB header (size >= 40), and `clrUsed = 0`
  * (meaning a full 2^bpp palette). Pixel indices outside the palette decode as
- * opaque black. Used to preview existing covers and icons from the SD card.
+ * opaque black; `transparentIndex` means nothing to a 24bpp file and is
+ * ignored there.
  *
  * @param bytes - The complete BMP file bytes.
  * @param options - Optional `transparentIndex` (see {@link DecodeBmpOptions}).
@@ -492,8 +494,8 @@ export function decodeBmp(bytes: Uint8Array, options: DecodeBmpOptions = {}): De
   if (width <= 0 || rawHeight === 0) {
     throw new Error(`Invalid BMP dimensions ${width}x${rawHeight}`);
   }
-  if (bitsPerPixel !== 8 && bitsPerPixel !== 4) {
-    throw new Error(`Unsupported BMP bit depth ${bitsPerPixel} (only 4bpp and 8bpp)`);
+  if (bitsPerPixel !== 8 && bitsPerPixel !== 4 && bitsPerPixel !== 24) {
+    throw new Error(`Unsupported BMP bit depth ${bitsPerPixel} (only 4, 8 and 24 bpp)`);
   }
   if (compression !== 0) {
     throw new Error(`Unsupported BMP compression ${compression} (only uncompressed BI_RGB)`);
@@ -501,7 +503,7 @@ export function decodeBmp(bytes: Uint8Array, options: DecodeBmpOptions = {}): De
 
   const topDown = rawHeight < 0;
   const height = Math.abs(rawHeight);
-  const paletteCount = clrUsed !== 0 ? clrUsed : 1 << bitsPerPixel;
+  const paletteCount = bitsPerPixel === 24 ? clrUsed : clrUsed !== 0 ? clrUsed : 1 << bitsPerPixel;
   const paletteOffset = FILE_HEADER_SIZE + dibSize;
   if (paletteOffset + paletteCount * 4 > bytes.length) {
     throw new Error('Truncated BMP: palette extends past end of file');
@@ -517,6 +519,16 @@ export function decodeBmp(bytes: Uint8Array, options: DecodeBmpOptions = {}): De
     const storedRow = topDown ? y : height - 1 - y;
     const rowOffset = dataOffset + storedRow * rowSize;
     for (let x = 0; x < width; x++) {
+      const o = (y * width + x) * 4;
+      if (bitsPerPixel === 24) {
+        // blue, green, red per pixel, no palette in between
+        const p = rowOffset + x * 3;
+        rgba[o] = bytes[p + 2];
+        rgba[o + 1] = bytes[p + 1];
+        rgba[o + 2] = bytes[p];
+        rgba[o + 3] = 255;
+        continue;
+      }
       let index: number;
       if (bitsPerPixel === 8) {
         index = bytes[rowOffset + x];
@@ -524,7 +536,6 @@ export function decodeBmp(bytes: Uint8Array, options: DecodeBmpOptions = {}): De
         const packed = bytes[rowOffset + (x >> 1)];
         index = x % 2 === 0 ? packed >> 4 : packed & 0x0f;
       }
-      const o = (y * width + x) * 4;
       if (index === transparentIndex) continue; // stays (0, 0, 0, 0)
       if (index < paletteCount) {
         const p = paletteOffset + index * 4;

@@ -334,7 +334,7 @@ describe('decodeBmp', () => {
     notBmp[1] = 0x4b;
     expect(() => decodeBmp(notBmp)).toThrow(/magic/);
 
-    const bpp24 = buildBmp({
+    const bpp32 = buildBmp({
       width: 2,
       height: 1,
       bitsPerPixel: 8,
@@ -342,8 +342,9 @@ describe('decodeBmp', () => {
       palette: [RED],
       rows: [[0, 0]],
     });
-    new DataView(bpp24.buffer).setUint16(28, 24, true);
-    expect(() => decodeBmp(bpp24)).toThrow(/bit depth/);
+    // 24bpp is supported now (screenshots); 32 is the nearest depth that is not
+    new DataView(bpp32.buffer).setUint16(28, 32, true);
+    expect(() => decodeBmp(bpp32)).toThrow(/bit depth/);
 
     const rle = buildBmp({
       width: 2,
@@ -553,5 +554,93 @@ describe('validateLauncherIconBmp', () => {
     const bmp = encodeIconBmp(makeGoldenIconRgba());
     expect(validateLauncherIconBmp(bmp.subarray(0, 100))).toMatch(/small/);
     expect(validateLauncherIconBmp(bmp.subarray(0, 600))).toMatch(/truncated/);
+  });
+});
+
+/** Builds a 24bpp BMP the way the launcher's screenshot writer does. */
+function build24BitBmp(
+  width: number,
+  height: number,
+  pixel: (x: number, y: number) => [number, number, number],
+  topDown = false,
+): Uint8Array {
+  const rowSize = (width * 3 + 3) & ~3;
+  const imageSize = rowSize * height;
+  const dataOffset = 14 + 40;
+  const out = new Uint8Array(dataOffset + imageSize);
+  const view = new DataView(out.buffer);
+  out[0] = 0x42;
+  out[1] = 0x4d;
+  view.setUint32(2, out.length, true);
+  view.setUint32(10, dataOffset, true);
+  view.setUint32(14, 40, true);
+  view.setInt32(18, width, true);
+  view.setInt32(22, topDown ? -height : height, true);
+  view.setUint16(26, 1, true);
+  view.setUint16(28, 24, true);
+  view.setUint32(30, 0, true);
+  view.setUint32(34, imageSize, true);
+  for (let y = 0; y < height; y++) {
+    const storedRow = topDown ? y : height - 1 - y;
+    const rowOffset = dataOffset + storedRow * rowSize;
+    for (let x = 0; x < width; x++) {
+      const [r, g, b] = pixel(x, y);
+      out[rowOffset + x * 3] = b;
+      out[rowOffset + x * 3 + 1] = g;
+      out[rowOffset + x * 3 + 2] = r;
+    }
+  }
+  return out;
+}
+
+describe('decodeBmp, 24bpp (the launcher writes screenshots that way)', () => {
+  it('decodes a DS screen bottom-up, the shape the launcher writes', () => {
+    // 256x192, 24bpp, no palette, 54-byte offset: exactly shotNNN_top.bmp
+    const bmp = build24BitBmp(256, 192, (x, y) => [x, y, (x + y) & 0xff]);
+    expect(bmp.length).toBe(147510); // the size every screenshot on a card has
+
+    const { width, height, rgba } = decodeBmp(bmp);
+    expect([width, height]).toEqual([256, 192]);
+    for (const [x, y] of [
+      [0, 0],
+      [255, 0],
+      [0, 191],
+      [255, 191],
+      [17, 133],
+    ]) {
+      const o = (y * width + x) * 4;
+      expect(Array.from(rgba.subarray(o, o + 4))).toEqual([x, y, (x + y) & 0xff, 255]);
+    }
+  });
+
+  it('reads a top-down 24bpp file the right way up', () => {
+    const down = decodeBmp(build24BitBmp(4, 3, (x, y) => [x * 10, y * 10, 0], true));
+    const up = decodeBmp(build24BitBmp(4, 3, (x, y) => [x * 10, y * 10, 0], false));
+    expect(Array.from(down.rgba)).toEqual(Array.from(up.rgba));
+  });
+
+  it('pads rows to a multiple of four bytes', () => {
+    // width 3 -> 9 pixel bytes padded to 12
+    const bmp = build24BitBmp(3, 2, (x) => [x, 0, 0]);
+    expect(bmp.length).toBe(14 + 40 + 12 * 2);
+    const { rgba } = decodeBmp(bmp);
+    expect(Array.from(rgba.subarray(0, 12))).toEqual([0, 0, 0, 255, 1, 0, 0, 255, 2, 0, 0, 255]);
+  });
+
+  it('ignores transparentIndex, which only means something for indexed files', () => {
+    const bmp = build24BitBmp(2, 1, () => [0, 0, 0]);
+    const { rgba } = decodeBmp(bmp, { transparentIndex: 0 });
+    expect(Array.from(rgba)).toEqual([0, 0, 0, 255, 0, 0, 0, 255]);
+  });
+
+  it('still refuses depths nothing on a card uses', () => {
+    const bmp = build24BitBmp(2, 1, () => [0, 0, 0]);
+    new DataView(bmp.buffer).setUint16(28, 16, true);
+    expect(() => decodeBmp(bmp)).toThrow(/bit depth 16/);
+  });
+
+  it('refuses a truncated 24bpp file instead of reading past the end', () => {
+    const bmp = build24BitBmp(256, 192, () => [1, 2, 3]);
+    expect(() => decodeBmp(bmp.subarray(0, 1000))).toThrow(/Truncated/);
   });
 });
