@@ -93,6 +93,11 @@ enough: the language switch works on the landing page.
   your language are expected, not missing.
 - **Open an issue first.** Two people translating the same language into two different dictionaries
   is the one outcome nobody wants, and 515 lines is too much work to duplicate.
+- **The best moment to translate is right after a release.** Between them the interface moves:
+  strings get reworded, added, or dropped when a screen is redesigned, and anything you translated
+  for a screen that changed is work thrown away. When a version ships I post the exact list of new
+  or changed keys in the translations issue, so waiting for that costs you nothing — whatever a
+  language has not covered yet reads in English until you get to it.
 
 ## Commit style
 
