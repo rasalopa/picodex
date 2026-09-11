@@ -12,6 +12,7 @@ export const es: Dict = {
       covers: 'Carátulas',
       stats: 'Pico Enhanced',
       associations: 'Asociaciones',
+      screenshots: 'Capturas',
       health: 'Salud',
     },
     sections: 'Secciones',
@@ -533,5 +534,22 @@ export const es: Dict = {
     coversCleanLabel: (count: number) => `Limpiar seleccionadas (${count})`,
     coversConfirmLabel: (count: number) =>
       count === 1 ? '¿Confirmas borrar 1 carátula?' : `¿Confirmas borrar ${count} carátulas?`,
+  },
+  screenshots: {
+    regionLabel: 'Capturas',
+    title: 'Capturas',
+    intro:
+      'Todas las capturas de la tarjeta, con las dos pantallas de un momento en una sola imagen.',
+    openCard: 'Abre una tarjeta SD para ver sus capturas.',
+    // Va alrededor de un <kbd>; el JSX pone la tecla entre las dos mitades.
+    empty1: 'Esta tarjeta aún no tiene capturas. En el launcher, mantén ',
+    empty2: ' medio segundo para guardar las dos pantallas.',
+    loading: (done: number, total: number) => `Leyendo capturas ${done}/${total}…`,
+    loadError: (message: string) => `No se pudieron leer las capturas: ${message}`,
+    count: (count: number) => (count === 1 ? '1 captura' : `${String(count)} capturas`),
+    captureAlt: (id: string) => `Captura ${id}`,
+    topOnly: 'solo la pantalla superior',
+    bottomOnly: 'solo la pantalla inferior',
+    unreadable: 'No se pudo leer',
   },
 };

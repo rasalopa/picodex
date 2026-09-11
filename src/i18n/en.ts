@@ -22,6 +22,7 @@ export const en = {
       covers: 'Covers',
       stats: 'Pico Enhanced',
       associations: 'Associations',
+      screenshots: 'Screenshots',
       health: 'Health',
     },
     sections: 'Sections',
@@ -546,6 +547,22 @@ export const en = {
     coversCleanLabel: (count: number) => `Clean up selected (${count})`,
     coversConfirmLabel: (count: number) =>
       `Confirm delete ${count} ${count === 1 ? 'cover' : 'covers'}?`,
+  },
+  screenshots: {
+    regionLabel: 'Screenshots',
+    title: 'Screenshots',
+    intro: 'Every capture on the card, both screens of a moment stacked into one picture.',
+    openCard: 'Open an SD card to see its screenshots.',
+    // Sentence around a <kbd> element; the JSX puts the key between the halves.
+    empty1: 'This card has no screenshots yet. On the launcher, hold ',
+    empty2: ' for about half a second to save both screens.',
+    loading: (done: number, total: number) => `Reading screenshots ${done}/${total}…`,
+    loadError: (message: string) => `Could not read the screenshots: ${message}`,
+    count: (count: number) => (count === 1 ? '1 capture' : `${String(count)} captures`),
+    captureAlt: (id: string) => `Capture ${id}`,
+    topOnly: 'top screen only',
+    bottomOnly: 'bottom screen only',
+    unreadable: 'Could not be read',
   },
 };
 
