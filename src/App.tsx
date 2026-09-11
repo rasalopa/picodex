@@ -180,12 +180,14 @@ function Workspace() {
   // its tab, while a stock Pico Launcher on any flashcart has neither and stays
   // generic.
   const runsEnhancedFork = cardInfo.isEnhancedFork || gameData !== null;
-  // the stats tab needs the fork's gamedata.json; the gallery needs a folder
-  // only the fork writes, and only after someone has held START
+  // the stats tab needs the fork's gamedata.json. The gallery shows on any fork
+  // card, even before the first capture: the folder only appears once someone
+  // has held START, and a tab that explains the shortcut beats a hidden one. A
+  // card left with the folder from an older install keeps it too.
   const tabs = TABS.filter(
     (tabDef) =>
       (tabDef.id !== 'stats' || runsEnhancedFork) &&
-      (tabDef.id !== 'screenshots' || cardInfo.hasScreenshots),
+      (tabDef.id !== 'screenshots' || cardInfo.hasScreenshots || runsEnhancedFork),
   );
   // If the active tab is no longer available (switched to a stock card while on
   // the Pico Enhanced tab), fall back to the library rather than show a phantom.
