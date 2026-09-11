@@ -1,0 +1,116 @@
+.screenshots-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.screenshots-view__header h2 {
+  margin: 0 0 0.25rem;
+}
+
+.screenshots-view__hint,
+.screenshots-view__count {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.screenshots-view__empty {
+  margin: 0;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.screenshots-view__empty kbd {
+  padding: 0.1em 0.4em;
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.screenshots-view__error {
+  margin: 0;
+  color: var(--warn);
+}
+
+.screenshots-view__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+/* one card per capture; a DS screen is 4:3 and a capture stacks two of them */
+
+.screenshots-view__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.screenshots-view__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.screenshots-view__shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* 256 wide by (192 + 6 + 192) tall: the two screens and the hinge between */
+  aspect-ratio: 256 / 390;
+  object-fit: contain;
+  background: #0b0d13;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  image-rendering: pixelated;
+}
+
+.screenshots-view__shot--skeleton {
+  background: linear-gradient(90deg, var(--bg) 25%, var(--bg-hover) 50%, var(--bg) 75%) 0 0 / 200%
+    100%;
+  animation: screenshots-shimmer 1.2s linear infinite;
+}
+
+@keyframes screenshots-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.screenshots-view__shot--failed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  text-align: center;
+  color: var(--warn);
+  font-size: 0.82rem;
+  border-style: dashed;
+}
+
+.screenshots-view__name {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screenshots-view__half {
+  color: var(--text-dim);
+}
