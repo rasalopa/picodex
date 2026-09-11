@@ -45,6 +45,16 @@ export function IconImage(props: IconProps) {
   );
 }
 
+/** Screenshots: the console's two screens, one above the other. */
+export function IconScreens(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="3" width="16" height="8" rx="1.5" />
+      <rect x="4" y="13" width="16" height="8" rx="1.5" />
+    </Icon>
+  );
+}
+
 /** Play stats: bars on a baseline. */
 export function IconChart(props: IconProps) {
   return (

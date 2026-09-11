@@ -9,6 +9,7 @@ import { LibraryView } from './views/LibraryView';
 import { CoversView } from './views/CoversView';
 import { StatsView } from './views/StatsView';
 import { AssociationsView } from './views/AssociationsView';
+import { ScreenshotsView } from './views/ScreenshotsView';
 import { HealthView } from './views/HealthView';
 import { DropImport } from './components/DropImport';
 import { Changelog } from './components/Changelog';
@@ -18,11 +19,12 @@ import {
   IconGrid,
   IconImage,
   IconLink,
+  IconScreens,
   IconPulse,
 } from './components/icons';
 import './App.css';
 
-type Tab = 'library' | 'covers' | 'stats' | 'associations' | 'health';
+type Tab = 'library' | 'covers' | 'stats' | 'associations' | 'screenshots' | 'health';
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -31,6 +33,7 @@ const TABS: { id: Tab; label: (t: Dict) => string; Icon: IconComponent }[] = [
   { id: 'covers', label: (t) => t.app.tabs.covers, Icon: IconImage },
   { id: 'stats', label: (t) => t.app.tabs.stats, Icon: IconChart },
   { id: 'associations', label: (t) => t.app.tabs.associations, Icon: IconLink },
+  { id: 'screenshots', label: (t) => t.app.tabs.screenshots, Icon: IconScreens },
   { id: 'health', label: (t) => t.app.tabs.health, Icon: IconPulse },
 ];
 
@@ -177,7 +180,13 @@ function Workspace() {
   // its tab, while a stock Pico Launcher on any flashcart has neither and stays
   // generic.
   const runsEnhancedFork = cardInfo.isEnhancedFork || gameData !== null;
-  const tabs = TABS.filter((tabDef) => tabDef.id !== 'stats' || runsEnhancedFork);
+  // the stats tab needs the fork's gamedata.json; the gallery needs a folder
+  // only the fork writes, and only after someone has held START
+  const tabs = TABS.filter(
+    (tabDef) =>
+      (tabDef.id !== 'stats' || runsEnhancedFork) &&
+      (tabDef.id !== 'screenshots' || cardInfo.hasScreenshots),
+  );
   // If the active tab is no longer available (switched to a stock card while on
   // the Pico Enhanced tab), fall back to the library rather than show a phantom.
   const activeTab = tabs.some((tabDef) => tabDef.id === tab) ? tab : 'library';
@@ -217,6 +226,7 @@ function Workspace() {
         {activeTab === 'covers' && <CoversView />}
         {activeTab === 'stats' && <StatsView />}
         {activeTab === 'associations' && <AssociationsView />}
+        {activeTab === 'screenshots' && <ScreenshotsView />}
         {activeTab === 'health' && <HealthView />}
       </main>
       <DropImport />
