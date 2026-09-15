@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ProgressBar } from '../components/ProgressBar';
 import { ScreenshotViewer } from '../components/ScreenshotViewer';
+import { Toast } from '../components/Toast';
 import { screenshotPngBlob } from '../lib/coverart';
 import { groupScreenshots, shotAt, type Shot } from '../lib/screenshots';
 import { SCREENSHOTS, getDir, listEntries, readFileBytes } from '../lib/sdcard';
@@ -15,6 +16,9 @@ const MAX_CONCURRENCY = 4;
 
 /** Pixels of dark hinge drawn between the two screens, as on the console. */
 const SCREEN_GAP = 6;
+
+/** How long the "deleted" message stays up before it gets out of the way. */
+const TOAST_MS = 3200;
 
 /** Shared empty map, so a card with nothing read yet does not make a new one. */
 const EMPTY_RENDERED: ReadonlyMap<string, Rendered> = new Map();
@@ -67,6 +71,18 @@ export function ScreenshotsView() {
   const [deleteError, setDeleteError] = useState<SdMessage | null>(null);
   /** Name of the capture just removed, so a silent success is not silent. */
   const [deleted, setDeleted] = useState<string | null>(null);
+
+  // the message goes away on its own; it reports what happened, it is not
+  // something the user has to dismiss
+  useEffect(() => {
+    if (deleted === null) return;
+    const timer = setTimeout(() => {
+      setDeleted(null);
+    }, TOAST_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [deleted]);
   const current = state !== null && state.root === root ? state : null;
   const shots = current?.shots ?? null;
   const rendered = current?.rendered ?? EMPTY_RENDERED;
@@ -156,7 +172,6 @@ export function ScreenshotsView() {
   /** Opens a capture, or closes the viewer; either way last error goes away. */
   const show = (id: string | null) => {
     setDeleteError(null);
-    setDeleted(null);
     setOpen(id === null || root === null ? null : { root, id });
   };
   const stepTo = (delta: number) => {
@@ -213,12 +228,6 @@ export function ScreenshotsView() {
 
       {error !== null && (
         <p className="screenshots-view__error">{t.screenshots.loadError(error)}</p>
-      )}
-
-      {deleted !== null && (
-        <p className="screenshots-view__done" role="status">
-          {t.screenshots.deleted(deleted)}
-        </p>
       )}
 
       {loading && total > 0 && (
@@ -301,6 +310,8 @@ export function ScreenshotsView() {
           error={deleteError === null ? null : resolveSdMessage(t, deleteError)}
         />
       )}
+
+      {deleted !== null && <Toast message={t.screenshots.deleted(deleted)} />}
     </section>
   );
 }
