@@ -74,6 +74,23 @@ export function groupScreenshots(names: readonly string[]): Shot[] {
  * half says which screen it is, so two files saved from the same folder cannot
  * collide; anything unnumbered keeps its own name with a new extension.
  */
+/**
+ * The capture `delta` places away from `current`, or `null` past either end.
+ *
+ * The gallery hands this the captures it can actually show, so paging skips
+ * the ones whose files could not be read rather than stopping on them.
+ *
+ * @param ids - Capture ids in the order they are shown.
+ * @param current - Id of the capture on screen.
+ * @param delta - How far to move, usually -1 or 1.
+ */
+export function shotAt(ids: readonly string[], current: string, delta: number): string | null {
+  const index = ids.indexOf(current);
+  if (index === -1) return null;
+  const next = index + delta;
+  return next >= 0 && next < ids.length ? ids[next] : null;
+}
+
 export function screenshotFileName(shot: Shot): string {
   if (shot.number === null) return `${shot.id.replace(BMP, '')}.png`;
   const half = shot.top === null ? '_bot' : shot.bottom === null ? '_top' : '';

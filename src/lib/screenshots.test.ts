@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupScreenshots, screenshotFileName } from './screenshots';
+import { groupScreenshots, screenshotFileName, shotAt } from './screenshots';
 
 describe('groupScreenshots', () => {
   it('pairs the two halves the launcher writes for one capture', () => {
@@ -83,5 +83,30 @@ describe('screenshotFileName', () => {
     expect(
       screenshotFileName({ id: 'holiday.BMP', number: null, top: 'holiday.BMP', bottom: null }),
     ).toBe('holiday.png');
+  });
+});
+
+describe('shotAt', () => {
+  const ids = ['000', '001', '002'];
+
+  it('walks forward and back through the captures', () => {
+    expect(shotAt(ids, '001', 1)).toBe('002');
+    expect(shotAt(ids, '001', -1)).toBe('000');
+  });
+
+  it('stops at both ends instead of wrapping around', () => {
+    expect(shotAt(ids, '002', 1)).toBeNull();
+    expect(shotAt(ids, '000', -1)).toBeNull();
+  });
+
+  it('returns nothing for a capture that is not on the list', () => {
+    // the open capture can vanish when another card is opened
+    expect(shotAt(ids, '404', 1)).toBeNull();
+    expect(shotAt([], '000', 1)).toBeNull();
+  });
+
+  it('takes a step of any size, clamped by the ends', () => {
+    expect(shotAt(ids, '000', 2)).toBe('002');
+    expect(shotAt(ids, '000', 3)).toBeNull();
   });
 });
