@@ -4,7 +4,9 @@ import { ScreenshotViewer } from '../components/ScreenshotViewer';
 import { screenshotPngBlob } from '../lib/coverart';
 import { groupScreenshots, shotAt, type Shot } from '../lib/screenshots';
 import { SCREENSHOTS, getDir, listEntries, readFileBytes } from '../lib/sdcard';
-import { useSd } from '../state/SdContext';
+import { useSd, type SdMessage } from '../state/SdContext';
+import { fsMessage } from '../state/fsMessage';
+import { resolveSdMessage } from '../i18n/messages';
 import { useT } from '../i18n';
 import './ScreenshotsView.css';
 
@@ -61,6 +63,10 @@ export function ScreenshotsView() {
    * picture that belongs to the card that was just unplugged.
    */
   const [open, setOpen] = useState<{ root: FileSystemDirectoryHandle; id: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<SdMessage | null>(null);
+  /** Name of the capture just removed, so a silent success is not silent. */
+  const [deleted, setDeleted] = useState<string | null>(null);
   const current = state !== null && state.root === root ? state : null;
   const shots = current?.shots ?? null;
   const rendered = current?.rendered ?? EMPTY_RENDERED;
@@ -147,15 +153,56 @@ export function ScreenshotsView() {
   const viewable = (shots ?? []).filter((s) => rendered.get(s.id)?.url != null).map((s) => s.id);
   const openId = open !== null && open.root === root ? open.id : null;
   const openItem = openId === null ? undefined : rendered.get(openId);
+  /** Opens a capture, or closes the viewer; either way last error goes away. */
+  const show = (id: string | null) => {
+    setDeleteError(null);
+    setDeleted(null);
+    setOpen(id === null || root === null ? null : { root, id });
+  };
   const stepTo = (delta: number) => {
     if (openId === null) return null;
     const id = shotAt(viewable, openId, delta);
     return id === null
       ? null
       : () => {
-          setOpen({ root, id });
+          show(id);
         };
   };
+
+  /**
+   * Removes a capture from the card: both halves, then the gallery drops it
+   * without rereading the folder. A failure keeps the viewer open and says
+   * why, since the files may well still be there.
+   */
+  async function deleteShot(shot: Shot) {
+    if (root === null || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const dir = await getDir(root, SCREENSHOTS);
+      if (dir !== null) {
+        for (const name of [shot.top, shot.bottom]) {
+          if (name !== null) await dir.removeEntry(name);
+        }
+      }
+      const gone = rendered.get(shot.id);
+      if (gone?.url != null) URL.revokeObjectURL(gone.url);
+      setState((prev) =>
+        prev === null || prev.root !== root
+          ? prev
+          : {
+              ...prev,
+              shots: (prev.shots ?? []).filter((s) => s.id !== shot.id),
+              rendered: new Map([...prev.rendered].filter(([id]) => id !== shot.id)),
+            },
+      );
+      setOpen(null);
+      setDeleted(shot.number === null ? shot.id : t.screenshots.captureAlt(shot.id));
+    } catch (e) {
+      setDeleteError(fsMessage(e));
+    }
+    setDeleting(false);
+  }
 
   return (
     <section className="screenshots-view" aria-label={t.screenshots.regionLabel}>
@@ -166,6 +213,12 @@ export function ScreenshotsView() {
 
       {error !== null && (
         <p className="screenshots-view__error">{t.screenshots.loadError(error)}</p>
+      )}
+
+      {deleted !== null && (
+        <p className="screenshots-view__done" role="status">
+          {t.screenshots.deleted(deleted)}
+        </p>
       )}
 
       {loading && total > 0 && (
@@ -210,7 +263,7 @@ export function ScreenshotsView() {
                       className="screenshots-view__open"
                       aria-label={t.screenshots.open}
                       onClick={() => {
-                        setOpen({ root, id: shot.id });
+                        show(shot.id);
                       }}
                     >
                       <img
@@ -239,8 +292,13 @@ export function ScreenshotsView() {
           onPrev={stepTo(-1)}
           onNext={stepTo(1)}
           onClose={() => {
-            setOpen(null);
+            show(null);
           }}
+          onDelete={() => {
+            void deleteShot(openItem.shot);
+          }}
+          deleting={deleting}
+          error={deleteError === null ? null : resolveSdMessage(t, deleteError)}
         />
       )}
     </section>

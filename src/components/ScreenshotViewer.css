@@ -87,9 +87,44 @@
   opacity: 0.35;
 }
 
+/* the prompt gets its own line, so confirming never widens the dialog past
+   the picture it belongs to */
+
 .shot-viewer__actions {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shot-viewer__prompt {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.shot-viewer__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shot-viewer__group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* destructive action: two steps, same recipe as the health tab */
+
+.shot-viewer__danger {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.shot-viewer__error {
+  margin: 0;
+  color: var(--warn);
+  font-size: 0.85rem;
 }
 
 /* an <a download>, dressed as the primary button of the dialog */
