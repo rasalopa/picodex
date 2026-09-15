@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ProgressBar } from '../components/ProgressBar';
+import { ScreenshotViewer } from '../components/ScreenshotViewer';
 import { screenshotPngBlob } from '../lib/coverart';
-import { groupScreenshots, type Shot } from '../lib/screenshots';
+import { groupScreenshots, shotAt, type Shot } from '../lib/screenshots';
 import { SCREENSHOTS, getDir, listEntries, readFileBytes } from '../lib/sdcard';
 import { useSd } from '../state/SdContext';
 import { useT } from '../i18n';
@@ -54,6 +55,12 @@ export function ScreenshotsView() {
    * inside the effect, which would rerender twice for nothing.
    */
   const [state, setState] = useState<CardShots | null>(null);
+  /**
+   * The capture being viewed, tagged with its card for the same reason the
+   * gallery is: opening another card closes the viewer instead of showing a
+   * picture that belongs to the card that was just unplugged.
+   */
+  const [open, setOpen] = useState<{ root: FileSystemDirectoryHandle; id: string } | null>(null);
   const current = state !== null && state.root === root ? state : null;
   const shots = current?.shots ?? null;
   const rendered = current?.rendered ?? EMPTY_RENDERED;
@@ -135,6 +142,20 @@ export function ScreenshotsView() {
 
   const total = shots?.length ?? 0;
   const loading = shots === null || rendered.size < total;
+  // paging walks the captures that can actually be shown, so a half that
+  // failed to decode is stepped over rather than opening an empty viewer
+  const viewable = (shots ?? []).filter((s) => rendered.get(s.id)?.url != null).map((s) => s.id);
+  const openId = open !== null && open.root === root ? open.id : null;
+  const openItem = openId === null ? undefined : rendered.get(openId);
+  const stepTo = (delta: number) => {
+    if (openId === null) return null;
+    const id = shotAt(viewable, openId, delta);
+    return id === null
+      ? null
+      : () => {
+          setOpen({ root, id });
+        };
+  };
 
   return (
     <section className="screenshots-view" aria-label={t.screenshots.regionLabel}>
@@ -184,12 +205,21 @@ export function ScreenshotsView() {
                       {t.screenshots.unreadable}
                     </span>
                   ) : (
-                    <img
-                      className="screenshots-view__shot"
-                      src={item.url}
-                      alt={t.screenshots.captureAlt(shot.id)}
-                      loading="lazy"
-                    />
+                    <button
+                      type="button"
+                      className="screenshots-view__open"
+                      aria-label={t.screenshots.open}
+                      onClick={() => {
+                        setOpen({ root, id: shot.id });
+                      }}
+                    >
+                      <img
+                        className="screenshots-view__shot"
+                        src={item.url}
+                        alt={t.screenshots.captureAlt(shot.id)}
+                        loading="lazy"
+                      />
+                    </button>
                   )}
                   <span className="screenshots-view__name">
                     {shot.number === null ? shot.id : t.screenshots.captureAlt(shot.id)}
@@ -200,6 +230,18 @@ export function ScreenshotsView() {
             })}
           </ul>
         </>
+      )}
+
+      {openItem?.url != null && (
+        <ScreenshotViewer
+          shot={openItem.shot}
+          url={openItem.url}
+          onPrev={stepTo(-1)}
+          onNext={stepTo(1)}
+          onClose={() => {
+            setOpen(null);
+          }}
+        />
       )}
     </section>
   );

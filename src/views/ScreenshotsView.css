@@ -68,6 +68,21 @@
   box-shadow: var(--shadow-card);
 }
 
+/* the whole picture is the button; the card keeps its own padding */
+
+.screenshots-view__open {
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: calc(var(--radius) / 2);
+  cursor: pointer;
+}
+
+.screenshots-view__open:hover .screenshots-view__shot {
+  border-color: var(--accent);
+}
+
 .screenshots-view__shot {
   display: block;
   width: 100%;

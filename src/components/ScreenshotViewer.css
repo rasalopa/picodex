@@ -1,0 +1,120 @@
+/* fullscreen overlay + centered dialog (shares the modal recipe with StatsEditor) */
+
+.shot-viewer__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(0 0 0 / 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.shot-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 0.85rem 1rem 1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-modal);
+  animation: shot-viewer-enter 0.18s ease;
+}
+
+@keyframes shot-viewer-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.shot-viewer__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shot-viewer__title {
+  margin: 0 auto 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.shot-viewer__close {
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.shot-viewer__stage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+/* 256 wide by (192 + 6 + 192) tall: the two screens and the hinge between.
+   The picture grows to whatever the window allows and stays pixel-exact. */
+
+.shot-viewer__shot {
+  display: block;
+  min-height: 0;
+  max-height: calc(100vh - 12rem);
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 256 / 390;
+  object-fit: contain;
+  background: #0b0d13;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) / 2);
+  image-rendering: pixelated;
+}
+
+.shot-viewer__step {
+  flex: none;
+  padding: 0.5rem 0.55rem;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.shot-viewer__step:disabled {
+  opacity: 0.35;
+}
+
+.shot-viewer__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* an <a download>, dressed as the primary button of the dialog */
+
+.shot-viewer__save {
+  padding: 0.4rem 0.9rem;
+  color: #fff;
+  font-weight: 600;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.shot-viewer__save:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 30rem) {
+  .shot-viewer__shot {
+    max-height: calc(100vh - 14rem);
+  }
+
+  .shot-viewer__step {
+    padding: 0.5rem 0.35rem;
+  }
+}
