@@ -568,6 +568,13 @@ export const en = {
     download: 'Save as PNG',
     previous: 'Previous capture',
     next: 'Next capture',
+    deleteCapture: 'Delete',
+    confirmDelete: 'Delete this capture from the card?',
+    yesDelete: 'Yes, delete',
+    no: 'No',
+    deleting: 'Deleting…',
+    deleteError: (message: string) => `Could not delete it: ${message}`,
+    deleted: (name: string) => `${name} deleted from the card.`,
   },
 };
 

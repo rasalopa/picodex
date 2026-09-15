@@ -556,5 +556,12 @@ export const es: Dict = {
     download: 'Guardar como PNG',
     previous: 'Captura anterior',
     next: 'Captura siguiente',
+    deleteCapture: 'Borrar',
+    confirmDelete: '¿Borrar esta captura de la tarjeta?',
+    yesDelete: 'Sí, borrar',
+    no: 'No',
+    deleting: 'Borrando…',
+    deleteError: (message: string) => `No se pudo borrar: ${message}`,
+    deleted: (name: string) => `${name} borrada de la tarjeta.`,
   },
 };
