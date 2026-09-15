@@ -551,5 +551,10 @@ export const es: Dict = {
     topOnly: 'solo la pantalla superior',
     bottomOnly: 'solo la pantalla inferior',
     unreadable: 'No se pudo leer',
+    open: 'Ver a tamaño completo',
+    close: 'Cerrar',
+    download: 'Guardar como PNG',
+    previous: 'Captura anterior',
+    next: 'Captura siguiente',
   },
 };

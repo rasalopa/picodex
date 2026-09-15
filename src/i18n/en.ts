@@ -563,6 +563,11 @@ export const en = {
     topOnly: 'top screen only',
     bottomOnly: 'bottom screen only',
     unreadable: 'Could not be read',
+    open: 'View full size',
+    close: 'Close',
+    download: 'Save as PNG',
+    previous: 'Previous capture',
+    next: 'Next capture',
   },
 };
 
