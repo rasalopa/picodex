@@ -7,17 +7,33 @@ notes for each version.
 
 ## 0.10.0 — 2026-09-16
 
-- **Your screenshots, on a screen you can actually see.** Pico Launcher Enhanced saves both DS
-  screens when you hold START; PicoDex now shows every capture on the card, stacked the way the
-  console showed them. Open one full size, save it as a PNG under the launcher's own numbering, or
-  delete it from the card — both halves go together.
+The release that closes the list. Everything people asked for since v0.9.0 is in here.
+
+- **Your own cover art, and your own icons.** Point the cover dialog at any image on your computer
+  and PicoDex converts it to what the launcher expects — 128x96 for a cover, 32x32 at 4 bits for an
+  icon, validated the same way the launcher validates it, so a file it would refuse never reaches
+  your card. Icons work on every system, GBA included: those games carry no icon of their own and
+  the launcher drew them all the same, which is what people kept asking about.
+  ([#5](https://github.com/rasalopa/picodex/issues/5))
+- **The cover dialog is laid out like the console.** The game's cover and title on the top screen,
+  the browser row among its real neighbours on the bottom one, so you can see what it will look like
+  before you save. Cover and icon save together.
+- **Your screenshots, on a screen you can see.** Pico Launcher Enhanced saves both DS screens when
+  you hold START; PicoDex now shows every capture on the card, stacked the way the console had them.
+  Open one full size, save it as a PNG under the launcher's own numbering, or delete it from the
+  card — both halves go together.
 - **Covers for games whose file names are not Latin.** A Chinese, Japanese, Korean or Cyrillic name
   left nothing to match on, so a DS game either got no cover or got someone else's. PicoDex now
   reads the title the ROM carries inside itself and matches on that. And when there is nothing to go
   on it leaves the cover empty rather than guessing: better none than the wrong one.
-- **No more kiosk demos where the real cover should be.** The catalog files demo and beta builds
+  ([#6](https://github.com/rasalopa/picodex/issues/6))
+- **No more kiosk demos where the real cover should be.** The catalogs file demo and beta builds
   under the same name as the game, and the pick was whichever came first — Mario Kart DS ended up
   with a kiosk build's box. On the DS catalog that went from 137 games to one.
+- **The cover batch stopped racing itself.** On a card without a `covers/nds` folder yet, four
+  workers created it and wrote at the same time and most of the batch failed. Reported from a real
+  card where 25 of 36 covers came back as errors.
+- **Russian follows the changelog now**, thanks to [@BrooksPMA](https://github.com/BrooksPMA) again.
 
 ## 0.9.0 — 2026-08-31
 

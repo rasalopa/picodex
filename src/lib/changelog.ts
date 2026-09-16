@@ -40,21 +40,40 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
+          en: 'Use any image on your computer as a game\u2019s cover or icon. PicoDex converts it to what the launcher expects and refuses what the launcher would refuse. Icons work on GBA too, where games carry none of their own.',
+          es: 'Usa cualquier imagen de tu ordenador como car\u00e1tula o icono de un juego. PicoDex la convierte a lo que espera el launcher y rechaza lo que el launcher rechazar\u00eda. Los iconos tambi\u00e9n funcionan en GBA, donde los juegos no traen ninguno.',
+        },
+        issue: 5,
+      },
+      {
+        text: {
+          en: 'The cover dialog is laid out like the console: the cover and title on the top screen, the browser row among its real neighbours on the bottom one. Cover and icon save together.',
+          es: 'El di\u00e1logo de car\u00e1tula se ve como la consola: la car\u00e1tula y el t\u00edtulo en la pantalla de arriba, y la fila del navegador entre sus vecinos reales en la de abajo. La car\u00e1tula y el icono se guardan juntos.',
+        },
+      },
+      {
+        text: {
           en: 'Every screenshot on your card, both DS screens in one picture. Open one full size, save it as a PNG, or delete it from the card.',
-          es: 'Todas las capturas de tu tarjeta, con las dos pantallas en una sola imagen. Ábrelas a tamaño completo, guárdalas como PNG o bórralas de la tarjeta.',
+          es: 'Todas las capturas de tu tarjeta, con las dos pantallas en una sola imagen. \u00c1brelas a tama\u00f1o completo, gu\u00e1rdalas como PNG o b\u00f3rralas de la tarjeta.',
         },
       },
       {
         text: {
           en: 'Games with Chinese, Japanese, Korean or Cyrillic file names get their covers: PicoDex reads the title the ROM carries inside itself. And when there is nothing to match on, it leaves the cover empty rather than fetching the wrong one.',
-          es: 'Los juegos con el nombre de fichero en chino, japonés, coreano o cirílico ya encuentran su carátula: PicoDex lee el título que el ROM lleva dentro. Y cuando no hay nada con lo que emparejar, deja la carátula vacía en vez de traer la equivocada.',
+          es: 'Los juegos con el nombre de fichero en chino, japon\u00e9s, coreano o cir\u00edlico ya encuentran su car\u00e1tula: PicoDex lee el t\u00edtulo que el ROM lleva dentro. Y cuando no hay nada con lo que emparejar, deja la car\u00e1tula vac\u00eda en vez de traer la equivocada.',
         },
         issue: 6,
       },
       {
         text: {
           en: 'Covers no longer land on a kiosk demo or a beta build when the release itself is in the catalog.',
-          es: 'Las carátulas ya no acaban en una demo de quiosco o una beta cuando la versión de verdad está en el catálogo.',
+          es: 'Las car\u00e1tulas ya no acaban en una demo de quiosco o una beta cuando la versi\u00f3n de verdad est\u00e1 en el cat\u00e1logo.',
+        },
+      },
+      {
+        text: {
+          en: 'The cover batch no longer races itself on a card that has no covers folder yet, which used to fail most of the batch.',
+          es: 'El lote de car\u00e1tulas ya no compite consigo mismo en una tarjeta que a\u00fan no tiene carpeta de car\u00e1tulas, que hac\u00eda fallar casi todo el lote.',
         },
       },
     ],
