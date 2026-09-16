@@ -185,6 +185,7 @@ export const en = {
       'no-match': 'No match',
       error: 'Failed',
     },
+    viaBannerTitle: 'matched on the title inside the ROM',
     noBoxartFound: 'No box art found in the catalog',
     unknownError: 'Unknown error',
     catalogUnavailable: 'Boxart catalog unavailable',

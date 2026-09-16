@@ -173,6 +173,7 @@ export const es: Dict = {
       'no-match': 'Sin coincidencia',
       error: 'Falló',
     },
+    viaBannerTitle: 'emparejada por el título interno del ROM',
     noBoxartFound: 'No se encontró carátula en el catálogo',
     unknownError: 'Error desconocido',
     catalogUnavailable: 'El catálogo de carátulas no está disponible',
