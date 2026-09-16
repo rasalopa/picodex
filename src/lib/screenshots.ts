@@ -38,7 +38,10 @@ const BMP = /\.bmp$/i;
  * @param names - File names in `/_pico/screenshots`, in any order.
  */
 export function groupScreenshots(names: readonly string[]): Shot[] {
-  const numbered = new Map<number, Shot>();
+  // keyed by the digits as written, not by their value: 'shot7' and 'shot007'
+  // are two files the card can hold at once, and folding them together would
+  // hide one of them and delete the other's half along with it
+  const numbered = new Map<string, Shot>();
   const loose: Shot[] = [];
 
   for (const name of names) {
@@ -48,11 +51,10 @@ export function groupScreenshots(names: readonly string[]): Shot[] {
       loose.push({ id: name, number: null, top: name, bottom: null });
       continue;
     }
-    const number = Number(half[1]);
-    let shot = numbered.get(number);
+    let shot = numbered.get(half[1]);
     if (shot === undefined) {
-      shot = { id: half[1], number, top: null, bottom: null };
-      numbered.set(number, shot);
+      shot = { id: half[1], number: Number(half[1]), top: null, bottom: null };
+      numbered.set(half[1], shot);
     }
     if (half[2].toLowerCase() === 'top') {
       shot.top = name;
@@ -67,13 +69,6 @@ export function groupScreenshots(names: readonly string[]): Shot[] {
   ];
 }
 
-/**
- * What to call a capture once it has been saved out as a PNG.
- *
- * A whole capture keeps the number the card gave it, `shot007.png`; a lone
- * half says which screen it is, so two files saved from the same folder cannot
- * collide; anything unnumbered keeps its own name with a new extension.
- */
 /**
  * The capture `delta` places away from `current`, or `null` past either end.
  *
@@ -91,6 +86,13 @@ export function shotAt(ids: readonly string[], current: string, delta: number): 
   return next >= 0 && next < ids.length ? ids[next] : null;
 }
 
+/**
+ * What to call a capture once it has been saved out as a PNG.
+ *
+ * A whole capture keeps the number the card gave it, `shot007.png`; a lone
+ * half says which screen it is, so two files saved from the same folder cannot
+ * collide; anything unnumbered keeps its own name with a new extension.
+ */
 export function screenshotFileName(shot: Shot): string {
   if (shot.number === null) return `${shot.id.replace(BMP, '')}.png`;
   const half = shot.top === null ? '_bot' : shot.bottom === null ? '_top' : '';

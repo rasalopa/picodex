@@ -189,6 +189,22 @@ export function similarityRatio(a: string, b: string): number {
 }
 
 /**
+ * Tells whether a title keeps too little for {@link pickBoxart} to relate it
+ * to anything — the same one or two character rule the matcher refuses on.
+ *
+ * A file name written in Chinese, Japanese, Korean or Cyrillic loses every
+ * character to {@link normalizeTitle}, and what survives is a fragment like
+ * `ds` or `2`. Callers use this to decide whether to go looking for a better
+ * title elsewhere, e.g. inside the ROM's own banner. Note the asymmetry: here
+ * it opens a door, inside `pickBoxart` it closes one.
+ *
+ * @param title ROM title (file name without extension).
+ */
+export function isDegenerateTitle(title: string): boolean {
+  return normalizeTitle(title).length <= 2;
+}
+
+/**
  * Picks the best boxart file name from a libretro-thumbnails catalog for a
  * ROM title, or `null` when nothing matches.
  *
@@ -214,22 +230,6 @@ export function similarityRatio(a: string, b: string): number {
  * @param catalog Boxart file names, e.g. `'Golden Sun (USA).png'`.
  * @param regionPrefs Ordered region probes, e.g. `['(Europe', '(USA']`.
  */
-/**
- * Tells whether a title keeps too little for {@link pickBoxart} to relate it
- * to anything — the same one or two character rule the matcher refuses on.
- *
- * A file name written in Chinese, Japanese, Korean or Cyrillic loses every
- * character to {@link normalizeTitle}, and what survives is a fragment like
- * `ds` or `2`. Callers use this to decide whether to go looking for a better
- * title elsewhere, e.g. inside the ROM's own banner. Note the asymmetry: here
- * it opens a door, inside `pickBoxart` it closes one.
- *
- * @param title ROM title (file name without extension).
- */
-export function isDegenerateTitle(title: string): boolean {
-  return normalizeTitle(title).length <= 2;
-}
-
 export function pickBoxart(
   title: string,
   catalog: readonly string[],

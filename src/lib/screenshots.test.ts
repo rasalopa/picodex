@@ -42,6 +42,17 @@ describe('groupScreenshots', () => {
     expect(groupScreenshots(names).map((s) => s.id)).toEqual(['000']);
   });
 
+  it('keeps shot7 and shot007 apart, however the file got there', () => {
+    // the launcher always writes three digits, but a file copied back from a
+    // pc can carry fewer — folding them together would hide one and delete
+    // the other's half with it
+    const shots = groupScreenshots(['shot007_top.bmp', 'shot007_bot.bmp', 'shot7_top.bmp']);
+    expect(shots).toEqual([
+      { id: '007', number: 7, top: 'shot007_top.bmp', bottom: 'shot007_bot.bmp' },
+      { id: '7', number: 7, top: 'shot7_top.bmp', bottom: null },
+    ]);
+  });
+
   it('returns nothing for an empty folder', () => {
     expect(groupScreenshots([])).toEqual([]);
   });
