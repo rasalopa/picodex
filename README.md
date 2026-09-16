@@ -1,6 +1,6 @@
-<img src="docs/logo.png" width="96" align="right" alt="" />
-
 # PicoDex
+
+<img src="docs/logo.png" width="96" align="right" alt="" />
 
 [![CI](https://github.com/rasalopa/picodex/actions/workflows/ci.yml/badge.svg)](https://github.com/rasalopa/picodex/actions/workflows/ci.yml)
 [![Deploy](https://github.com/rasalopa/picodex/actions/workflows/deploy.yml/badge.svg)](https://rasalopa.github.io/picodex/)
@@ -24,6 +24,9 @@
     <td width="50%"><img src="docs/screenshots/compat.jpg" alt="Per-game loader compatibility: anti-piracy fix, save type and size, game patches" /></td>
     <td width="50%"><img src="docs/screenshots/landing.png" alt="PicoDex landing page with its feature cards" /></td>
   </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/screenshots.jpg" alt="Screenshot gallery: every capture on the card, both DS screens stacked into one picture" /></td>
+  </tr>
 </table>
 
 ## What it does
@@ -34,6 +37,7 @@
 - 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.
 - 🔗 **File association editor**: point each ROM extension at its emulator without hand-editing `settings.json`.
 - 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers — nothing is deleted without confirmation. It also identifies which [Pico Loader](https://github.com/LNH-team/pico-loader) release your card is running, and spots a card whose loader files came from different releases.
+- 📸 **Screenshot gallery**: every capture [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) saves when you hold START, both DS screens stacked into one picture. View one full size, save it as a PNG, or delete it from the card.
 - 🎮 **Per-game loader compatibility**: for any NDS game, what the loader will do for it at boot — anti-piracy fix, save type and size, game-specific patches — matched against your ROM's exact revision.
 
 Everything runs client-side. PicoDex has no server, no accounts and no telemetry.
