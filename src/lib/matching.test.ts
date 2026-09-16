@@ -171,6 +171,59 @@ describe('pickBoxart', () => {
     );
   });
 
+  it('refuses to guess from a key too short to identify a game (issue #6)', () => {
+    // A Chinese file name loses every character to normalizeTitle; the ascii
+    // residue then prefixes dozens of catalog keys and the pick is arbitrary.
+    // These are the covers the launcher actually fetched for these names.
+    expect(
+      pickBoxart('马里奥赛车DS', ['DS Yamamura Misa Suspense (Japan).png'], DEFAULT_REGION_PREFS),
+    ).toBeNull();
+    expect(
+      pickBoxart(
+        '口袋妖怪 黑2',
+        ['2 in 1 - Best of Bibi Blocksberg (Germany).png'],
+        DEFAULT_REGION_PREFS,
+      ),
+    ).toBeNull();
+    expect(
+      pickBoxart(
+        '逆转裁判4',
+        ['4 in 1 - Meine Tierarztpraxis (Germany).png'],
+        DEFAULT_REGION_PREFS,
+      ),
+    ).toBeNull();
+    expect(
+      pickBoxart('牧场物语 DS', ['DS Yamamura Misa Suspense (Japan).png'], DEFAULT_REGION_PREFS),
+    ).toBeNull();
+  });
+
+  it('refuses a name that normalizes to nothing, even against a non-ascii entry', () => {
+    // '' == '' says only that both names vanished, so it must not match.
+    expect(pickBoxart('超级公主桃子', ['ゼルダの伝説.png'], DEFAULT_REGION_PREFS)).toBeNull();
+    expect(
+      pickBoxart('塞尔达传说 幻影沙漏', ['ゼルダの伝説.png'], DEFAULT_REGION_PREFS),
+    ).toBeNull();
+  });
+
+  it('still takes an exact hit on a short key, since that one is not a guess', () => {
+    expect(pickBoxart('Up', ['Up (Europe).png'], DEFAULT_REGION_PREFS)).toBe('Up (Europe).png');
+    expect(pickBoxart('F1', ['F1 (Europe).png'], DEFAULT_REGION_PREFS)).toBe('F1 (Europe).png');
+    expect(pickBoxart('N+', ['N+ (USA).png'], DEFAULT_REGION_PREFS)).toBe('N+ (USA).png');
+  });
+
+  it('keeps matching the games whose title is a number (no digits-only rule)', () => {
+    // 720, 688, 007, 1942, 2010... the digits are the title, not a residue.
+    expect(pickBoxart('720', ['720 Degrees (USA, Europe).png'], DEFAULT_REGION_PREFS)).toBe(
+      '720 Degrees (USA, Europe).png',
+    );
+    expect(pickBoxart('688', ['688 Attack Sub (Europe).png'], DEFAULT_REGION_PREFS)).toBe(
+      '688 Attack Sub (Europe).png',
+    );
+    expect(pickBoxart('1942', ['1942 (USA, Europe).png'], DEFAULT_REGION_PREFS)).toBe(
+      '1942 (USA, Europe).png',
+    );
+  });
+
   it('returns null when nothing relates', () => {
     const catalog = ['Golden Sun (USA).png', 'Phalanx (Europe).png'];
     expect(pickBoxart('Totally Unrelated Game', catalog, DEFAULT_REGION_PREFS)).toBeNull();

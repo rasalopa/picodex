@@ -209,7 +209,30 @@ export function pickBoxart(
   }
 
   const key = normalizeTitle(title);
+  // A file name written entirely in Chinese, Japanese, Korean or Cyrillic
+  // loses every character to normalizeTitle. Two empty keys are equal only
+  // because both names vanished, so refuse before the lookup: otherwise a
+  // catalog entry that is itself non-ASCII would hand its cover to every
+  // non-Latin ROM on the card.
+  if (key === '') {
+    return null;
+  }
+
   let candidates = byNorm.get(key);
+  // What survives a non-Latin name is a fragment: '马里奥赛车DS' keeps 'ds',
+  // '口袋妖怪 黑2' keeps '2'. One or two characters cannot identify a game,
+  // and every step below relates keys rather than comparing them, so 'ds'
+  // prefixes 32 catalog keys and '2' prefixes 16 — the pick among them is
+  // arbitrary and lands on an unrelated game (issue #6). The exact hit above
+  // is deliberately left alone: 'n' really is N+, 'up' is Up, 'f1' is F1.
+  //
+  // Only the length rule is safe here. Refusing digits-only keys as well
+  // would break a whole family of titles that are numbers — 720 Degrees,
+  // 688 Attack Sub, 007, 1942, 2010 Street Fighter — all of which resolve
+  // correctly through the prefix fallback today.
+  if (!candidates && key.length <= 2) {
+    return null;
+  }
 
   let prefixKey: string | null = null;
   if (!candidates) {
