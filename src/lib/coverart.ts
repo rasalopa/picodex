@@ -205,14 +205,18 @@ export async function bannerIconRgbaPreviewUrl(rgba: Uint8ClampedArray): Promise
   return canvasPngUrl(canvas);
 }
 
+/** Behind the screens: the console's dark hinge, and the gallery's own ground. */
+const SCREEN_GROUND = '#0b0d13';
+
 /**
  * Decodes the two halves of a capture and stacks them the way the console
  * shows them, top screen above bottom screen, as one PNG blob.
  *
  * A capture whose other half never reached the card is rendered on its own,
  * in its place: a lone bottom half keeps the lower slot so it does not read
- * as a top screen. The gap between the screens is painted with `gap`, which
- * is also what a missing half leaves behind.
+ * as a top screen. The hinge between the screens, and the slot a missing half
+ * leaves behind, are filled rather than left transparent — the picture is
+ * saved to disk and read on whatever background the viewer happens to use.
  *
  * @param top - `shotNNN_top.bmp` bytes, `null` when the card has none.
  * @param bottom - `shotNNN_bot.bmp` bytes, `null` when the card has none.
@@ -232,6 +236,8 @@ export async function screenshotPngBlob(
   const width = Math.max(...present.map((half) => half.width));
   const screenHeight = Math.max(...present.map((half) => half.height));
   const [canvas, ctx] = makeCanvas(width, screenHeight * 2 + gap);
+  ctx.fillStyle = SCREEN_GROUND;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   halves.forEach((half, index) => {
     if (half === null) return;
     ctx.putImageData(
