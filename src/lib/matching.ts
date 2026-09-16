@@ -49,6 +49,26 @@ export const REGION_PREFS_BY_GBA_CODE: Readonly<Record<string, readonly string[]
 };
 
 /**
+ * Catalog entries whose parenthesized groups mark them as something other
+ * than the game that shipped: kiosk and prototype builds, betas, samples,
+ * press demos. {@link normalizeTitle} drops those groups, so
+ * `'Mario Kart DS (Europe) (Demo) (Kiosk, Multiplayer)'` and
+ * `'Mario Kart DS (Europe)'` collapse to one key and compete for the same ROM.
+ *
+ * Only the parenthesized groups are read, never the title: `Brain Boost -
+ * Beta Wave`, `WarioWare, Inc. - Trial Version` and `Mega Man Battle Network
+ * 5 - Team Proto Man` are retail games whose name happens to carry a marker
+ * word, and there are fifty-odd more like them across these catalogs.
+ *
+ * `(Unl)`, `(Pirate)` and `(Aftermarket)` are deliberately absent: they mark
+ * a release status, not a build stage. For the Camerica, Color Dreams and
+ * Tengen libraries the unlicensed release is the only one there ever was, and
+ * demoting it swaps a correct cover for an arbitrary one.
+ */
+const VARIANT_ENTRY =
+  /\([^()]*\b(?:demo|kiosk|proto(?:type)?|beta|sample|promo|debug|trial)\b[^()]*\)/i;
+
+/**
  * Normalizes a game title into a comparison key, mirroring the Python
  * `norm()`: NFKD-decompose and drop every non-ASCII code point (strips
  * diacritics), remove parenthesized groups (`(USA)`, `(Rev 1)`, ...),
@@ -183,14 +203,33 @@ export function similarityRatio(a: string, b: string): number {
  *    catalog key);
  * 4. the deferred prefix relation from step 2, if any, as a last resort.
  *
- * Among the candidate files sharing the winning key, the first entry
- * containing a region preference substring wins ({@link DEFAULT_REGION_PREFS}
- * / {@link REGION_PREFS_BY_GBA_CODE}); otherwise the first candidate.
+ * Among the candidate files sharing the winning key, the first region
+ * preference with any candidate wins ({@link DEFAULT_REGION_PREFS} /
+ * {@link REGION_PREFS_BY_GBA_CODE}), and inside that region a normal release
+ * beats a {@link VARIANT_ENTRY} build. The region is chosen first on purpose:
+ * where a catalog files the retail box under a beta's name and has nothing
+ * else for that region, keeping the beta beats crossing to another region.
  *
  * @param title ROM title (file name without extension).
  * @param catalog Boxart file names, e.g. `'Golden Sun (USA).png'`.
  * @param regionPrefs Ordered region probes, e.g. `['(Europe', '(USA']`.
  */
+/**
+ * Tells whether a title keeps too little for {@link pickBoxart} to relate it
+ * to anything — the same one or two character rule the matcher refuses on.
+ *
+ * A file name written in Chinese, Japanese, Korean or Cyrillic loses every
+ * character to {@link normalizeTitle}, and what survives is a fragment like
+ * `ds` or `2`. Callers use this to decide whether to go looking for a better
+ * title elsewhere, e.g. inside the ROM's own banner. Note the asymmetry: here
+ * it opens a door, inside `pickBoxart` it closes one.
+ *
+ * @param title ROM title (file name without extension).
+ */
+export function isDegenerateTitle(title: string): boolean {
+  return normalizeTitle(title).length <= 2;
+}
+
 export function pickBoxart(
   title: string,
   catalog: readonly string[],
@@ -271,13 +310,13 @@ export function pickBoxart(
   }
 
   for (const pref of regionPrefs) {
-    for (const candidate of candidates) {
-      if (candidate.includes(pref)) {
-        return candidate;
-      }
+    const inRegion = candidates.filter((candidate) => candidate.includes(pref));
+    if (inRegion.length === 0) {
+      continue;
     }
+    return inRegion.find((candidate) => !VARIANT_ENTRY.test(candidate)) ?? inRegion[0];
   }
-  return candidates[0] ?? null;
+  return candidates.find((candidate) => !VARIANT_ENTRY.test(candidate)) ?? candidates[0] ?? null;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_REGION_PREFS,
+  isDegenerateTitle,
   normalizeTitle,
   pickBoxart,
   REGION_PREFS_BY_GBA_CODE,
@@ -224,6 +225,45 @@ describe('pickBoxart', () => {
     );
   });
 
+  it('prefers the release over a kiosk demo sharing its key (Mario Kart DS regression)', () => {
+    // normalizeTitle drops the parenthesized groups, so both collapse to
+    // 'mario kart ds' and the kiosk build sorted first in the catalog
+    const catalog = [
+      'Mario Kart DS (Europe) (Demo) (Kiosk, Multiplayer).png',
+      'Mario Kart DS (Europe) (En,Fr,De,Es,It).png',
+    ];
+    expect(pickBoxart('Mario Kart DS', catalog, DEFAULT_REGION_PREFS)).toBe(
+      'Mario Kart DS (Europe) (En,Fr,De,Es,It).png',
+    );
+  });
+
+  it('keeps a beta rather than crossing regions for it (Marvel Super Heroes regression)', () => {
+    // the catalog filed the US box under the beta's name and has nothing else
+    // for that region, so avoiding the variant would cost the right region
+    const catalog = [
+      'Marvel Super Heroes - War of the Gems (Japan).png',
+      'Marvel Super Heroes - War of the Gems (USA) (Beta).png',
+    ];
+    expect(
+      pickBoxart('Marvel Super Heroes - War of the Gems', catalog, REGION_PREFS_BY_GBA_CODE['E']),
+    ).toBe('Marvel Super Heroes - War of the Gems (USA) (Beta).png');
+  });
+
+  it('reads the marker only inside parentheses, never in the title', () => {
+    // real retail games whose name carries a marker word
+    const catalog = ['Brain Boost - Beta Wave (USA).png'];
+    expect(pickBoxart('Brain Boost - Beta Wave', catalog, DEFAULT_REGION_PREFS)).toBe(
+      'Brain Boost - Beta Wave (USA).png',
+    );
+  });
+
+  it('does not demote an unlicensed release, which is often the only one', () => {
+    const catalog = ['Tanglewood (Europe) (Unl).png', 'Tanglewood (Japan).png'];
+    expect(pickBoxart('Tanglewood', catalog, DEFAULT_REGION_PREFS)).toBe(
+      'Tanglewood (Europe) (Unl).png',
+    );
+  });
+
   it('returns null when nothing relates', () => {
     const catalog = ['Golden Sun (USA).png', 'Phalanx (Europe).png'];
     expect(pickBoxart('Totally Unrelated Game', catalog, DEFAULT_REGION_PREFS)).toBeNull();
@@ -321,5 +361,25 @@ describe('region preference tables', () => {
       I: ['(Italy', '(Europe', '(USA'],
       J: ['(Japan', '(USA', '(Europe'],
     });
+  });
+});
+
+describe('isDegenerateTitle', () => {
+  it('flags a name that keeps nothing, or almost nothing, after normalizing', () => {
+    expect(isDegenerateTitle('超级公主桃子')).toBe(true);
+    expect(isDegenerateTitle('马里奥赛车DS')).toBe(true);
+    expect(isDegenerateTitle('口袋妖怪 黑2')).toBe(true);
+  });
+
+  it('does not flag a name the matcher can work with', () => {
+    expect(isDegenerateTitle('Mario Kart DS')).toBe(false);
+    expect(isDegenerateTitle('720')).toBe(false);
+    expect(isDegenerateTitle('Uno')).toBe(false);
+  });
+
+  it('flags the short names pickBoxart only accepts as exact hits', () => {
+    // these still match, but through step 1, so the caller may look elsewhere
+    expect(isDegenerateTitle('Up')).toBe(true);
+    expect(isDegenerateTitle('N+')).toBe(true);
   });
 });
