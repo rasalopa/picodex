@@ -5,6 +5,20 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.10.0 — 2026-09-16
+
+- **Your screenshots, on a screen you can actually see.** Pico Launcher Enhanced saves both DS
+  screens when you hold START; PicoDex now shows every capture on the card, stacked the way the
+  console showed them. Open one full size, save it as a PNG under the launcher's own numbering, or
+  delete it from the card — both halves go together.
+- **Covers for games whose file names are not Latin.** A Chinese, Japanese, Korean or Cyrillic name
+  left nothing to match on, so a DS game either got no cover or got someone else's. PicoDex now
+  reads the title the ROM carries inside itself and matches on that. And when there is nothing to go
+  on it leaves the cover empty rather than guessing: better none than the wrong one.
+- **No more kiosk demos where the real cover should be.** The catalog files demo and beta builds
+  under the same name as the game, and the pick was whichever came first — Mario Kart DS ended up
+  with a kiosk build's box. On the DS catalog that went from 137 games to one.
+
 ## 0.9.0 — 2026-08-31
 
 - **PicoDex speaks Russian, and it came from the community.** [@BrooksPMA](https://github.com/BrooksPMA)

@@ -35,6 +35,31 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.0',
+    date: '2026-09-16',
+    changes: [
+      {
+        text: {
+          en: 'Every screenshot on your card, both DS screens in one picture. Open one full size, save it as a PNG, or delete it from the card.',
+          es: 'Todas las capturas de tu tarjeta, con las dos pantallas en una sola imagen. Ábrelas a tamaño completo, guárdalas como PNG o bórralas de la tarjeta.',
+        },
+      },
+      {
+        text: {
+          en: 'Games with Chinese, Japanese, Korean or Cyrillic file names get their covers: PicoDex reads the title the ROM carries inside itself. And when there is nothing to match on, it leaves the cover empty rather than fetching the wrong one.',
+          es: 'Los juegos con el nombre de fichero en chino, japonés, coreano o cirílico ya encuentran su carátula: PicoDex lee el título que el ROM lleva dentro. Y cuando no hay nada con lo que emparejar, deja la carátula vacía en vez de traer la equivocada.',
+        },
+        issue: 6,
+      },
+      {
+        text: {
+          en: 'Covers no longer land on a kiosk demo or a beta build when the release itself is in the catalog.',
+          es: 'Las carátulas ya no acaban en una demo de quiosco o una beta cuando la versión de verdad está en el catálogo.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-08-31',
     changes: [
