@@ -14,7 +14,13 @@ import { useT } from '../i18n';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, downloadPngAsBitmap } from '../lib/coverart';
 import { planImport } from '../lib/importer';
-import { DEFAULT_REGION_PREFS, REGION_PREFS_BY_GBA_CODE, pickBoxart } from '../lib/matching';
+import {
+  DEFAULT_REGION_PREFS,
+  REGION_PREFS_BY_GBA_CODE,
+  pickBoxart,
+  isDegenerateTitle,
+} from '../lib/matching';
+import { parseNdsRomTitle } from '../lib/loader';
 import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
 import { COVERS, GAMES_DIR, fileExists, getDir, writeFileBytes } from '../lib/sdcard';
 import type { System } from '../lib/systems';
@@ -117,7 +123,16 @@ async function fetchCoverBestEffort(
       system.id === 'gba' && code !== null
         ? (REGION_PREFS_BY_GBA_CODE[code.charAt(3)] ?? DEFAULT_REGION_PREFS)
         : DEFAULT_REGION_PREFS;
-    const match = pickBoxart(titleOf(fileName), catalog, regionPrefs);
+    const title = titleOf(fileName);
+    let match = pickBoxart(title, catalog, regionPrefs);
+    // Same fallback the Covers tab uses: a non-latin file name leaves nothing
+    // to match on, but the rom knows its own name. The bytes are already here.
+    if (match === null && system.id === 'nds' && isDegenerateTitle(title)) {
+      const bannerTitle = parseNdsRomTitle(bytes);
+      if (bannerTitle !== null) {
+        match = pickBoxart(bannerTitle, catalog, regionPrefs);
+      }
+    }
     if (match === null) {
       return 'no-match';
     }
