@@ -89,6 +89,29 @@ const GBA_GAME_CODE_OFFSET = 0xac;
  */
 export const NDS_HEADER_PARSE_BYTES = NDS_TWL_PRIVATE_SAV_SIZE_OFFSET + 4;
 
+/** Where an NDS header keeps the pointer to its banner. */
+const NDS_BANNER_POINTER_OFFSET = 0x68;
+
+/**
+ * Byte offset of the banner inside an NDS ROM, or `null` when the header is
+ * short or carries no banner.
+ *
+ * The pointer lives well inside the header every caller already reads, so
+ * finding the banner costs nothing extra; fetching it is a second small read
+ * at the offset this returns, never a read of the whole ROM.
+ *
+ * @param bytes First bytes of the ROM, at least {@link NDS_BANNER_POINTER_OFFSET} + 4.
+ */
+export function parseNdsBannerOffset(bytes: Uint8Array): number | null {
+  if (bytes.length < NDS_BANNER_POINTER_OFFSET + 4) {
+    return null;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const offset = view.getUint32(NDS_BANNER_POINTER_OFFSET, true);
+  // homebrew built without a banner leaves this zero
+  return offset === 0 ? null : offset;
+}
+
 /**
  * Tells whether a game code is usable as a game's identity.
  *

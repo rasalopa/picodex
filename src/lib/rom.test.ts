@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isUsableGameCode,
+  parseNdsBannerOffset,
   parseGbaGameCode,
   parseNdsGameCode,
   parseNdsNandBackupRegionStart,
@@ -347,5 +348,31 @@ describe('NDS_HEADER_PARSE_BYTES', () => {
   it('is the minimum: one byte less and the deepest parser gives up', () => {
     const short = headerWith().slice(0, NDS_HEADER_PARSE_BYTES - 1);
     expect(parseNdsDsiWareSaveSizes(short)).toBeNull();
+  });
+});
+
+describe('parseNdsBannerOffset', () => {
+  /** Header with `offset` written little-endian at 0x68. */
+  function header(offset: number, length = 0xb0): Uint8Array {
+    const bytes = new Uint8Array(length);
+    new DataView(bytes.buffer).setUint32(0x68, offset, true);
+    return bytes;
+  }
+
+  it('reads the pointer the banner lives behind', () => {
+    expect(parseNdsBannerOffset(header(0x4200))).toBe(0x4200);
+  });
+
+  it('returns null for homebrew built without a banner', () => {
+    expect(parseNdsBannerOffset(header(0))).toBeNull();
+  });
+
+  it('returns null when the header is too short to hold the pointer', () => {
+    expect(parseNdsBannerOffset(new Uint8Array(0x68))).toBeNull();
+    expect(parseNdsBannerOffset(new Uint8Array(0))).toBeNull();
+  });
+
+  it('reads a pointer past 2GB without going negative', () => {
+    expect(parseNdsBannerOffset(header(0xf0000000))).toBe(0xf0000000);
   });
 });
