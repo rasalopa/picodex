@@ -545,6 +545,7 @@ export const es: Dict = {
     // Va alrededor de un <kbd>; el JSX pone la tecla entre las dos mitades.
     empty1: 'Esta tarjeta aún no tiene capturas. En el launcher, mantén ',
     empty2: ' medio segundo para guardar las dos pantallas.',
+    listing: 'Leyendo la carpeta de capturas…',
     loading: (done: number, total: number) => `Leyendo capturas ${done}/${total}…`,
     loadError: (message: string) => `No se pudieron leer las capturas: ${message}`,
     count: (count: number) => (count === 1 ? '1 captura' : `${String(count)} capturas`),
@@ -562,6 +563,7 @@ export const es: Dict = {
     yesDelete: 'Sí, borrar',
     no: 'No',
     deleting: 'Borrando…',
+    folderGone: 'La carpeta de capturas ya no está en la tarjeta.',
     deleteError: (message: string) => `No se pudo borrar: ${message}`,
     deleted: (name: string) => `${name} borrada de la tarjeta.`,
   },

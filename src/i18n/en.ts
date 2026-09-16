@@ -557,6 +557,7 @@ export const en = {
     // Sentence around a <kbd> element; the JSX puts the key between the halves.
     empty1: 'This card has no screenshots yet. On the launcher, hold ',
     empty2: ' for about half a second to save both screens.',
+    listing: 'Reading the screenshots folder…',
     loading: (done: number, total: number) => `Reading screenshots ${done}/${total}…`,
     loadError: (message: string) => `Could not read the screenshots: ${message}`,
     count: (count: number) => (count === 1 ? '1 capture' : `${String(count)} captures`),
@@ -574,6 +575,7 @@ export const en = {
     yesDelete: 'Yes, delete',
     no: 'No',
     deleting: 'Deleting…',
+    folderGone: 'The screenshots folder is not on the card any more.',
     deleteError: (message: string) => `Could not delete it: ${message}`,
     deleted: (name: string) => `${name} deleted from the card.`,
   },
