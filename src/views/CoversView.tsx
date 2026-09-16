@@ -3,8 +3,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { isUsableGameCode } from '../lib/gamedata';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, coverBmpPreviewUrl, downloadPngAsBitmap } from '../lib/coverart';
-import { DEFAULT_REGION_PREFS, REGION_PREFS_BY_GBA_CODE, pickBoxart } from '../lib/matching';
-import { parseGbaGameCode, parseNdsGameCode } from '../lib/rom';
+import {
+  DEFAULT_REGION_PREFS,
+  REGION_PREFS_BY_GBA_CODE,
+  isDegenerateTitle,
+  pickBoxart,
+} from '../lib/matching';
+import { BANNER_SIZE, parseBannerTitle } from '../lib/banner';
+import { parseGbaGameCode, parseNdsBannerOffset, parseNdsGameCode } from '../lib/rom';
 import { COVERS, getDir, writeFileBytes, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { boxartUrl, fetchCatalog } from '../lib/thumbnails';
@@ -37,6 +43,8 @@ interface Job {
   previewUrl?: string;
   /** Failure detail (error phase). */
   message?: string;
+  /** The match came from the ROM's own title, not from the file name. */
+  viaBanner?: boolean;
 }
 
 /** Maximum simultaneous boxart downloads. */
@@ -96,6 +104,39 @@ async function readGameCode(
     const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
     return system.id === 'nds' ? parseNdsGameCode(header) : parseGbaGameCode(header);
   } catch {
+    return null;
+  }
+}
+
+/**
+ * The title an NDS ROM carries inside itself: banner, English slot, first
+ * line. Two small ranged reads — the header for the pointer, then the banner
+ * — so a 64MB ROM costs the same as a small one.
+ *
+ * Used when the file name normalizes to nothing worth matching on, which is
+ * what a name written in Chinese, Japanese, Korean or Cyrillic does.
+ */
+async function readNdsBannerTitle(
+  root: FileSystemDirectoryHandle,
+  game: LibraryFile,
+): Promise<string | null> {
+  try {
+    const dir = await getDir(root, game.path);
+    if (dir === null) {
+      return null;
+    }
+    const handle = await dir.getFileHandle(game.fileName);
+    const file = await handle.getFile();
+    const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
+    const offset = parseNdsBannerOffset(header);
+    if (offset === null || offset + BANNER_SIZE > file.size) {
+      return null;
+    }
+    const banner = new Uint8Array(await file.slice(offset, offset + BANNER_SIZE).arrayBuffer());
+    const first = parseBannerTitle(banner).split('\n')[0].trim();
+    return first.length > 0 ? first : null;
+  } catch {
+    // unreadable rom: the caller just keeps the no-match it already had
     return null;
   }
 }
@@ -284,12 +325,24 @@ export function CoversView() {
         system.id === 'gba' && code !== null
           ? (REGION_PREFS_BY_GBA_CODE[code.charAt(3)] ?? DEFAULT_REGION_PREFS)
           : DEFAULT_REGION_PREFS;
-      const match = pickBoxart(titleOf(fileName), catalog, regionPrefs);
+      const title = titleOf(fileName);
+      let match = pickBoxart(title, catalog, regionPrefs);
+      let viaBanner = false;
+      // The file name kept nothing to match on, but the rom knows its own
+      // name. Worth two extra reads only in that case, and only for DS: gba
+      // roms carry no banner title.
+      if (match === null && root !== null && system.id === 'nds' && isDegenerateTitle(title)) {
+        const bannerTitle = await readNdsBannerTitle(root, game);
+        if (bannerTitle !== null) {
+          match = pickBoxart(bannerTitle, catalog, regionPrefs);
+          viaBanner = match !== null;
+        }
+      }
       if (match === null) {
         updateJob(m.id, { phase: 'no-match' });
         return;
       }
-      updateJob(m.id, { phase: 'matched', match });
+      updateJob(m.id, { phase: 'matched', match, viaBanner });
       const bitmap = await downloadPngAsBitmap(boxartUrl(system.libretroRepo, match));
       let rgba: Uint8ClampedArray;
       try {
@@ -417,7 +470,10 @@ export function CoversView() {
   }
 
   function jobDetail(job: Job): string | null {
-    if (job.phase === 'matched' || job.phase === 'written') return job.match ?? null;
+    if (job.phase === 'matched' || job.phase === 'written') {
+      if (job.match === undefined) return null;
+      return job.viaBanner ? `${job.match} — ${t.covers.viaBannerTitle}` : job.match;
+    }
     if (job.phase === 'no-match') return t.covers.noBoxartFound;
     if (job.phase === 'error') return job.message ?? t.covers.unknownError;
     return null;
