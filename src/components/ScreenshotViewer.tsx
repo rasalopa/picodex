@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { screenshotFileName, type Shot } from '../lib/screenshots';
 import { useT } from '../i18n';
 import './ScreenshotViewer.css';
 
 export interface ScreenshotViewerProps {
   shot: Shot;
-  /** Object URL of the stacked picture, the same one the grid is showing. */
-  url: string;
+  /** Object URL of the stacked picture, or `null` when it could not be read. */
+  url: string | null;
   onPrev: (() => void) | null;
   onNext: (() => void) | null;
   onClose: () => void;
@@ -40,10 +40,37 @@ export function ScreenshotViewer({
   /** Tagged with the capture it belongs to, so paging drops a half-made prompt. */
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const confirming = confirmId === shot.id;
+  const dialog = useRef<HTMLDivElement>(null);
+  const opener = useRef<Element | null>(null);
+
+  // Take focus on open and hand it back on close, so a keyboard user is not
+  // dropped at the top of the page with the grid still behind the overlay.
+  useEffect(() => {
+    opener.current = document.activeElement;
+    dialog.current?.focus();
+    return () => {
+      const back = opener.current;
+      if (back instanceof HTMLElement && document.contains(back)) back.focus();
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (deleting) return;
+      if (e.key === 'Tab') {
+        // keep Tab inside the dialog: it is modal, and what is behind it is
+        // covered by the overlay anyway
+        const stops = dialog.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href]',
+        );
+        if (stops === undefined || stops.length === 0) return;
+        const edge = e.shiftKey ? stops[0] : stops[stops.length - 1];
+        if (document.activeElement === edge || document.activeElement === dialog.current) {
+          e.preventDefault();
+          (e.shiftKey ? stops[stops.length - 1] : stops[0]).focus();
+        }
+        return;
+      }
       if (e.key === 'Escape') {
         if (confirming) setConfirmId(null);
         else onClose();
@@ -68,6 +95,8 @@ export function ScreenshotViewer({
         role="dialog"
         aria-modal="true"
         aria-label={t.screenshots.captureAlt(shot.id)}
+        ref={dialog}
+        tabIndex={-1}
       >
         <header className="shot-viewer__header">
           <h3 className="shot-viewer__title">{name}</h3>
@@ -92,7 +121,15 @@ export function ScreenshotViewer({
           >
             <span aria-hidden="true">‹</span>
           </button>
-          <img className="shot-viewer__shot" src={url} alt={t.screenshots.captureAlt(shot.id)} />
+          {url === null ? (
+            // a capture whose files would not decode is still deletable: one
+            // you cannot see is the one you most want off a failing card
+            <span className="shot-viewer__shot shot-viewer__failed">
+              {t.screenshots.unreadable}
+            </span>
+          ) : (
+            <img className="shot-viewer__shot" src={url} alt={t.screenshots.captureAlt(shot.id)} />
+          )}
           <button
             type="button"
             className="shot-viewer__step"
@@ -113,15 +150,11 @@ export function ScreenshotViewer({
           <div className="shot-viewer__buttons">
             <span className="shot-viewer__group">
               {confirming ? (
+                // "No" takes the slot the delete button just vacated, so the
+                // second click of a double click cancels instead of deleting.
+                // The health tab is safe from this by accident: its prompt
+                // sits inline and pushes the buttons sideways.
                 <>
-                  <button
-                    type="button"
-                    className="shot-viewer__danger"
-                    disabled={deleting}
-                    onClick={onDelete}
-                  >
-                    {deleting ? t.screenshots.deleting : t.screenshots.yesDelete}
-                  </button>
                   <button
                     type="button"
                     disabled={deleting}
@@ -130,6 +163,14 @@ export function ScreenshotViewer({
                     }}
                   >
                     {t.screenshots.no}
+                  </button>
+                  <button
+                    type="button"
+                    className="shot-viewer__danger"
+                    disabled={deleting}
+                    onClick={onDelete}
+                  >
+                    {deleting ? t.screenshots.deleting : t.screenshots.yesDelete}
                   </button>
                 </>
               ) : (
@@ -144,9 +185,11 @@ export function ScreenshotViewer({
                 </button>
               )}
             </span>
-            <a className="shot-viewer__save" href={url} download={screenshotFileName(shot)}>
-              {t.screenshots.download}
-            </a>
+            {url !== null && (
+              <a className="shot-viewer__save" href={url} download={screenshotFileName(shot)}>
+                {t.screenshots.download}
+              </a>
+            )}
           </div>
         </footer>
 

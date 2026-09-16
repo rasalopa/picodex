@@ -5,7 +5,7 @@ import { Toast } from '../components/Toast';
 import { screenshotPngBlob } from '../lib/coverart';
 import { groupScreenshots, shotAt, type Shot } from '../lib/screenshots';
 import { SCREENSHOTS, getDir, listEntries, readFileBytes } from '../lib/sdcard';
-import { useSd, type SdMessage } from '../state/SdContext';
+import { useSd } from '../state/SdContext';
 import { fsMessage } from '../state/fsMessage';
 import { resolveSdMessage } from '../i18n/messages';
 import { useT } from '../i18n';
@@ -53,7 +53,7 @@ function errorMessage(e: unknown): string {
  * card with a hundred captures fills in rather than blocking on the first.
  */
 export function ScreenshotsView() {
-  const { root } = useSd();
+  const { root, cardInfo } = useSd();
   const t = useT();
   /**
    * What has been read so far, tagged with the card it was read from: opening
@@ -68,7 +68,7 @@ export function ScreenshotsView() {
    */
   const [open, setOpen] = useState<{ root: FileSystemDirectoryHandle; id: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<SdMessage | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   /** Name of the capture just removed, so a silent success is not silent. */
   const [deleted, setDeleted] = useState<string | null>(null);
 
@@ -143,7 +143,12 @@ export function ScreenshotsView() {
               return;
             }
             if (result.url !== null) urls.push(result.url);
-            update((prev) => ({ rendered: new Map(prev.rendered).set(result.shot.id, result) }));
+            update((prev) =>
+              // it may have been deleted while this worker was reading it
+              (prev.shots ?? []).some((s) => s.id === result.shot.id)
+                ? { rendered: new Map(prev.rendered).set(result.shot.id, result) }
+                : {},
+            );
           }
         }),
       );
@@ -156,7 +161,9 @@ export function ScreenshotsView() {
       cancelled = true;
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [root]);
+    // cardInfo is a fresh object on every refresh, so the Reload button in
+    // the tab bar relists the folder instead of leaving a stale gallery
+  }, [root, cardInfo]);
 
   if (root === null) {
     return <p className="screenshots-view__empty">{t.screenshots.openCard}</p>;
@@ -166,7 +173,9 @@ export function ScreenshotsView() {
   const loading = shots === null || rendered.size < total;
   // paging walks the captures that can actually be shown, so a half that
   // failed to decode is stepped over rather than opening an empty viewer
-  const viewable = (shots ?? []).filter((s) => rendered.get(s.id)?.url != null).map((s) => s.id);
+  // paging walks everything that has been read, readable or not: a capture
+  // that would not decode still needs to be reachable to be deleted
+  const viewable = (shots ?? []).filter((s) => rendered.has(s.id)).map((s) => s.id);
   const openId = open !== null && open.root === root ? open.id : null;
   const openItem = openId === null ? undefined : rendered.get(openId);
   /** Opens a capture, or closes the viewer; either way last error goes away. */
@@ -193,29 +202,65 @@ export function ScreenshotsView() {
     if (root === null || deleting) return;
     setDeleting(true);
     setDeleteError(null);
-    try {
-      const dir = await getDir(root, SCREENSHOTS);
-      if (dir !== null) {
-        for (const name of [shot.top, shot.bottom]) {
-          if (name !== null) await dir.removeEntry(name);
-        }
+
+    const dir = await getDir(root, SCREENSHOTS);
+    if (dir === null) {
+      // The folder went away between the listing and the click. Nothing was
+      // removed, so say so rather than reporting a deletion that never
+      // happened and taking the capture out of the gallery.
+      setDeleteError(t.screenshots.folderGone);
+      setDeleting(false);
+      return;
+    }
+
+    // Each half on its own. A card that fails on the second one must not
+    // leave the gallery believing the capture is still whole: the retry would
+    // then die on the half that is already gone and never reach the other.
+    const left: { top: string | null; bottom: string | null } = { top: null, bottom: null };
+    let failure: string | null = null;
+    for (const half of ['top', 'bottom'] as const) {
+      const name = shot[half];
+      if (name === null) continue;
+      try {
+        await dir.removeEntry(name);
+      } catch (e) {
+        // already gone is the outcome we wanted, whoever did it
+        if (e instanceof DOMException && e.name === 'NotFoundError') continue;
+        left[half] = name;
+        failure ??= resolveSdMessage(t, fsMessage(e));
       }
-      const gone = rendered.get(shot.id);
-      if (gone?.url != null) URL.revokeObjectURL(gone.url);
+    }
+
+    if (failure !== null) {
+      // Keep the capture, minus whatever really went, so a retry finishes it.
       setState((prev) =>
         prev === null || prev.root !== root
           ? prev
           : {
               ...prev,
-              shots: (prev.shots ?? []).filter((s) => s.id !== shot.id),
-              rendered: new Map([...prev.rendered].filter(([id]) => id !== shot.id)),
+              shots: (prev.shots ?? []).map((s) =>
+                s.id === shot.id ? { ...s, top: left.top, bottom: left.bottom } : s,
+              ),
             },
       );
-      setOpen(null);
-      setDeleted(shot.number === null ? shot.id : t.screenshots.captureAlt(shot.id));
-    } catch (e) {
-      setDeleteError(fsMessage(e));
+      setDeleteError(failure);
+      setDeleting(false);
+      return;
     }
+
+    const gone = rendered.get(shot.id);
+    if (gone?.url != null) URL.revokeObjectURL(gone.url);
+    setState((prev) =>
+      prev === null || prev.root !== root
+        ? prev
+        : {
+            ...prev,
+            shots: (prev.shots ?? []).filter((s) => s.id !== shot.id),
+            rendered: new Map([...prev.rendered].filter(([id]) => id !== shot.id)),
+          },
+    );
+    setOpen(null);
+    setDeleted(shot.number === null ? shot.id : t.screenshots.captureAlt(shot.id));
     setDeleting(false);
   }
 
@@ -237,7 +282,11 @@ export function ScreenshotsView() {
         </div>
       )}
 
-      {shots !== null && total === 0 ? (
+      {shots === null ? (
+        <p className="screenshots-view__hint" role="status">
+          {t.screenshots.listing}
+        </p>
+      ) : total === 0 ? (
         <p className="screenshots-view__empty">
           {t.screenshots.empty1}
           <kbd>START</kbd>
@@ -249,12 +298,15 @@ export function ScreenshotsView() {
           <ul className="screenshots-view__grid">
             {(shots ?? []).map((shot) => {
               const item = rendered.get(shot.id);
+              // only a numbered capture has halves; a loose bmp is just a file
               const half =
-                shot.top !== null && shot.bottom === null
-                  ? t.screenshots.topOnly
-                  : shot.top === null && shot.bottom !== null
-                    ? t.screenshots.bottomOnly
-                    : null;
+                shot.number === null
+                  ? null
+                  : shot.top !== null && shot.bottom === null
+                    ? t.screenshots.topOnly
+                    : shot.top === null && shot.bottom !== null
+                      ? t.screenshots.bottomOnly
+                      : null;
               return (
                 <li key={shot.id} className="screenshots-view__card">
                   {item === undefined ? (
@@ -262,25 +314,27 @@ export function ScreenshotsView() {
                       className="screenshots-view__shot screenshots-view__shot--skeleton"
                       aria-hidden="true"
                     />
-                  ) : item.url === null ? (
-                    <span className="screenshots-view__shot screenshots-view__shot--failed">
-                      {t.screenshots.unreadable}
-                    </span>
                   ) : (
                     <button
                       type="button"
                       className="screenshots-view__open"
-                      aria-label={t.screenshots.open}
+                      aria-label={`${t.screenshots.open} — ${t.screenshots.captureAlt(shot.id)}`}
                       onClick={() => {
                         show(shot.id);
                       }}
                     >
-                      <img
-                        className="screenshots-view__shot"
-                        src={item.url}
-                        alt={t.screenshots.captureAlt(shot.id)}
-                        loading="lazy"
-                      />
+                      {item.url === null ? (
+                        <span className="screenshots-view__shot screenshots-view__shot--failed">
+                          {t.screenshots.unreadable}
+                        </span>
+                      ) : (
+                        <img
+                          className="screenshots-view__shot"
+                          src={item.url}
+                          alt={t.screenshots.captureAlt(shot.id)}
+                          loading="lazy"
+                        />
+                      )}
                     </button>
                   )}
                   <span className="screenshots-view__name">
@@ -294,7 +348,7 @@ export function ScreenshotsView() {
         </>
       )}
 
-      {openItem?.url != null && (
+      {openItem !== undefined && (
         <ScreenshotViewer
           shot={openItem.shot}
           url={openItem.url}
@@ -307,7 +361,7 @@ export function ScreenshotsView() {
             void deleteShot(openItem.shot);
           }}
           deleting={deleting}
-          error={deleteError === null ? null : resolveSdMessage(t, deleteError)}
+          error={deleteError}
         />
       )}
 

@@ -83,6 +83,17 @@
   line-height: 1;
 }
 
+.shot-viewer__failed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 12rem;
+  padding: 1rem;
+  text-align: center;
+  color: var(--warn);
+  border-style: dashed;
+}
+
 .shot-viewer__step:disabled {
   opacity: 0.35;
 }
