@@ -42,6 +42,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'Use any image on your computer as a game\u2019s cover or icon. PicoDex converts it to what the launcher expects and refuses what the launcher would refuse. Icons work on GBA too, where games carry none of their own.',
           es: 'Usa cualquier imagen de tu ordenador como car\u00e1tula o icono de un juego. PicoDex la convierte a lo que espera el launcher y rechaza lo que el launcher rechazar\u00eda. Los iconos tambi\u00e9n funcionan en GBA, donde los juegos no traen ninguno.',
+          ru: 'Используйте любое изображение на компьютере в качестве обложки или значка игры. PicoDex преобразует его в формат, который ожидает лаунчер. Обложки также работают на GBA, где у игр нет собственных обложек.',
         },
         issue: 5,
       },
@@ -49,18 +50,21 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'The cover dialog is laid out like the console: the cover and title on the top screen, the browser row among its real neighbours on the bottom one. Cover and icon save together.',
           es: 'El di\u00e1logo de car\u00e1tula se ve como la consola: la car\u00e1tula y el t\u00edtulo en la pantalla de arriba, y la fila del navegador entre sus vecinos reales en la de abajo. La car\u00e1tula y el icono se guardan juntos.',
+          ru: 'Структура обожки как на самой консоли: обложка и название находятся на верхнем экране, а строка браузера — среди своих настоящих соседей снизу. Обложка и значок сохраняются вместе.',
         },
       },
       {
         text: {
           en: 'Every screenshot on your card, both DS screens in one picture. Open one full size, save it as a PNG, or delete it from the card.',
           es: 'Todas las capturas de tu tarjeta, con las dos pantallas en una sola imagen. \u00c1brelas a tama\u00f1o completo, gu\u00e1rdalas como PNG o b\u00f3rralas de la tarjeta.',
+          ru: 'Все скриншоты на вашей карте, оба экрана DS на одном изображении. Откройте любой в полном размере, сохраните его как PNG или удалите с карты.',
         },
       },
       {
         text: {
           en: 'Games with Chinese, Japanese, Korean or Cyrillic file names get their covers: PicoDex reads the title the ROM carries inside itself. And when there is nothing to match on, it leaves the cover empty rather than fetching the wrong one.',
           es: 'Los juegos con el nombre de fichero en chino, japon\u00e9s, coreano o cir\u00edlico ya encuentran su car\u00e1tula: PicoDex lee el t\u00edtulo que el ROM lleva dentro. Y cuando no hay nada con lo que emparejar, deja la car\u00e1tula vac\u00eda en vez de traer la equivocada.',
+          ru: 'Игры с китайскими, японскими, корейскими или кириллическими именами файлов получают свои обложки: PicoDex читает название, которое ROM хранит внутри себя. А если сопоставить не с чем, оставляет обложку пустой, вместо того чтобы загружать неправильную.',
         },
         issue: 6,
       },
@@ -68,12 +72,14 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'Covers no longer land on a kiosk demo or a beta build when the release itself is in the catalog.',
           es: 'Las car\u00e1tulas ya no acaban en una demo de quiosco o una beta cuando la versi\u00f3n de verdad est\u00e1 en el cat\u00e1logo.',
+          ru: 'Обложки больше не привязываются к демоверсии или бета-сборке, если полная версия игры уже есть в каталоге.',
         },
       },
       {
         text: {
           en: 'The cover batch no longer races itself on a card that has no covers folder yet, which used to fail most of the batch.',
           es: 'El lote de car\u00e1tulas ya no compite consigo mismo en una tarjeta que a\u00fan no tiene carpeta de car\u00e1tulas, que hac\u00eda fallar casi todo el lote.',
+          ru: 'Обработка обложек больше не запускается, если на карте памяти ещё нет папки с обложками, из-за чего раньше случалось зависание.',
         },
       },
     ],
