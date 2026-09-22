@@ -9,6 +9,7 @@ export const ru = {
       covers: 'Обложки',
       stats: 'Статистика',
       associations: 'Связи файлов',
+      screenshots: 'Скриншоты',
       health: 'Состояние',
     },
 
@@ -195,6 +196,8 @@ export const ru = {
     close: 'Закрыть',
     searchPlaceholder: (system: string) => `Поиск обложек ${system}…`,
     searchLabel: 'Поиск обложек',
+    ownImageHint:
+      'Подойдёт любой PNG или JPG. Изображение растягивается, чтобы заполнить всю обложку, тчоно так же, как загруженная обложка игры.',
     catalogFailed: (message: string) => `Не удалось загрузить каталог обложек: ${message}`,
     retry: 'Повторить',
     loadingCatalog: 'Загрузка каталога обложек…',

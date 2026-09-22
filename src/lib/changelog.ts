@@ -42,7 +42,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'Use any image on your computer as a game\u2019s cover or icon. PicoDex converts it to what the launcher expects and refuses what the launcher would refuse. Icons work on GBA too, where games carry none of their own.',
           es: 'Usa cualquier imagen de tu ordenador como car\u00e1tula o icono de un juego. PicoDex la convierte a lo que espera el launcher y rechaza lo que el launcher rechazar\u00eda. Los iconos tambi\u00e9n funcionan en GBA, donde los juegos no traen ninguno.',
-          ru: 'Используйте любое изображение на компьютере в качестве обложки или значка игры. PicoDex преобразует его в формат, который ожидает лаунчер. Обложки также работают на GBA, где у игр нет собственных обложек.',
+          ru: 'Используйте любое изображение на компьютере в качестве обложки или иконки игры. PicoDex преобразует его в формат, который ожидает лаунчер. Иконки работают и на GBA, хотя сами игры не содержат никаких иконок.',
         },
         issue: 5,
       },
@@ -50,7 +50,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'The cover dialog is laid out like the console: the cover and title on the top screen, the browser row among its real neighbours on the bottom one. Cover and icon save together.',
           es: 'El di\u00e1logo de car\u00e1tula se ve como la consola: la car\u00e1tula y el t\u00edtulo en la pantalla de arriba, y la fila del navegador entre sus vecinos reales en la de abajo. La car\u00e1tula y el icono se guardan juntos.',
-          ru: 'Структура обожки как на самой консоли: обложка и название находятся на верхнем экране, а строка браузера — среди своих настоящих соседей снизу. Обложка и значок сохраняются вместе.',
+          ru: 'Структура обложки как на самой консоли: обложка и название находятся на верхнем экране, а строка браузера — среди своих настоящих соседей снизу. Обложка и значок сохраняются вместе.',
         },
       },
       {
