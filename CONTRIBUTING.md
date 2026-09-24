@@ -88,6 +88,9 @@ enough: the language switch works on the landing page.
   ends up glued to the value, and it checks your language automatically.
 - **Some text is not ours to translate.** A loader filename, a game code, an error the browser or
   the SD card handed us — leave those alone.
+- **The English keeps changing, and that is fine.** `npm run i18n:outdated -- xx` lists the strings
+  of your language whose English changed after you translated them, and the ones still missing.
+  Before each release you get that list; nothing else needs re-reading.
 - **The "What's new" panel is a separate list** in `src/lib/changelog.ts`, one entry per release.
   Translating it is optional and English is the fallback there too, so untranslated release notes in
   your language are expected, not missing.
