@@ -514,11 +514,12 @@ export const es: Dict = {
       ' — ojo, eso también sobrescribe los archivos no reconocidos listados abajo.',
     copyAgainEnd: '.',
     unrecognisedAll:
-      'Ninguno de estos archivos coincide con una versión que PicoDex reconozca — y conoce el build de cada flashcart para cada versión, así que probablemente son de una versión más nueva que este build de PicoDex, o están editados a mano. Por lo que este chequeo puede saber, la tarjeta no tiene nada mal.',
+      'PicoDex no reconoce ninguno de estos archivos, así que no puede saber qué versión del loader tienes. Pasa cuando son de una versión más nueva que PicoDex o cuando se editaron a mano. Si tus juegos arrancan, no tienes que hacer nada.',
     unrecognisedListed1:
-      'No son de una versión que PicoDex reconozca, así que quedaron fuera de la respuesta de arriba: ',
-    unrecognisedListed2: '. Editarlos a mano es normal — la gente ajusta ',
-    unrecognisedListed3: ' — y una versión más nueva que este build de PicoDex se ve igual.',
+      'PicoDex no reconoce estos archivos, así que no los tuvo en cuenta para calcular la versión: ',
+    unrecognisedListed2: '. Pasa cuando se editan a mano (es habitual con ',
+    unrecognisedListed3:
+      '), cuando son de una versión del loader más nueva que PicoDex o cuando son de una compilación propia. Si tus juegos arrancan, no tienes que hacer nada.',
     githubNewer1: 'GitHub reporta ',
     githubNewer2: (tag: string) =>
       ` como la versión más nueva de pico-loader, que este build de PicoDex aún no conoce. Todo lo de arriba sigue valiendo: solo que no puede decirte si ${tag} es más nueva que lo que hay en tu tarjeta.`,

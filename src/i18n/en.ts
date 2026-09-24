@@ -531,11 +531,12 @@ export const en = {
     copyAgainOverwrites: ' — note that also overwrites the unrecognised files listed below.',
     copyAgainEnd: '.',
     unrecognisedAll:
-      "None of these files match a release PicoDex recognises — and it knows every flashcart's build of each release, so these are likely from a release newer than this build of PicoDex, or edited by hand. Nothing is wrong on the card as far as this check can tell.",
+      "PicoDex doesn't recognise any of these files, so it can't tell which loader version you have. That happens when they come from a release newer than PicoDex or have been edited by hand. If your games start, there is nothing to do.",
     unrecognisedListed1:
-      'Not from a release PicoDex recognises, so they were left out of the answer above: ',
-    unrecognisedListed2: '. Hand-editing them is normal — people do tune ',
-    unrecognisedListed3: ' — and a release newer than this build of PicoDex looks the same way.',
+      "PicoDex doesn't recognise these files, so it left them out when working out the version: ",
+    unrecognisedListed2: '. That happens when they have been edited by hand (common with ',
+    unrecognisedListed3:
+      '), come from a loader release newer than PicoDex or from your own build. If your games start, there is nothing to do.',
     githubNewer1: 'GitHub reports ',
     githubNewer2: (tag: string) =>
       ` as the newest pico-loader release, which this build of PicoDex does not know about yet. Everything above still holds: it just cannot tell you whether ${tag} is newer than what your card has.`,
