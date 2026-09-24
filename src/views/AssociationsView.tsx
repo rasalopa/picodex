@@ -48,13 +48,13 @@ function normalizeNewAssociation(ext: string, appPath: string): [string, string]
 
 /**
  * Editor for the launcher's file associations in `/_pico/settings.json`:
- * which application (usually an emulator) DSpico's launcher boots for each
+ * which application (usually an emulator) Pico Launcher boots for each
  * ROM file extension. Edits accumulate in a local draft and are written back
  * to the SD card only when the user hits “Save to SD”; every other key of the
  * settings file is preserved verbatim.
  */
 export function AssociationsView() {
-  const { root, settings, refresh } = useSd();
+  const { root, loading, settings, settingsProblem, launcherFilesRead, refresh } = useSd();
   const t = useT();
   /** Local edits; `null` mirrors the settings from the SD card (pristine). */
   const [draft, setDraft] = useState<Map<string, string> | null>(null);
@@ -69,6 +69,44 @@ export function AssociationsView() {
       <section className="associations-view">
         <h2>{t.associations.title}</h2>
         <p className="associations-view__info">{t.associations.openCard}</p>
+      </section>
+    );
+  }
+
+  // Until the launcher files are read, a missing settings.json cannot be told
+  // apart from one that was never looked at.
+  if (!launcherFilesRead) {
+    return (
+      <section className="associations-view">
+        <h2>{t.associations.title}</h2>
+        {!loading && <p className="associations-view__info">{t.associations.notRead}</p>}
+      </section>
+    );
+  }
+
+  if (!settings && settingsProblem !== null) {
+    const [before, after] =
+      settingsProblem.kind === 'bom'
+        ? [t.associations.settingsBom1, t.associations.settingsBom2]
+        : settingsProblem.kind === 'notObject'
+          ? [t.associations.settingsNotObject1, t.associations.settingsNotObject2]
+          : settingsProblem.kind === 'invalid'
+            ? [t.associations.settingsInvalid1, t.associations.settingsInvalid2]
+            : [t.associations.settingsUnreadable1, t.associations.settingsUnreadable2];
+    return (
+      <section className="associations-view">
+        <h2>{t.associations.title}</h2>
+        <p className="associations-view__warning" role="alert">
+          {before}
+          <code>/_pico/settings.json</code>
+          {after}
+        </p>
+        {(settingsProblem.kind === 'invalid' || settingsProblem.kind === 'unreadable') && (
+          <p className="associations-view__hint">
+            {t.associations.settingsDetail}
+            <code>{settingsProblem.detail}</code>
+          </p>
+        )}
       </section>
     );
   }

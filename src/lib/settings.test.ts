@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { parseSettings, removeAssociation, serializeSettings, setAssociation } from './settings.ts';
+import {
+  parseSettings,
+  readSettingsBytes,
+  removeAssociation,
+  serializeSettings,
+  setAssociation,
+} from './settings.ts';
 
 /**
  * Golden vector matching the launcher's own output: ArduinoJson
@@ -262,5 +268,42 @@ describe('serializeSettings', () => {
     const once = serializeSettings(parsed);
     const twice = serializeSettings(parseSettings(once));
     expect(twice).toBe(once);
+  });
+});
+
+describe('readSettingsBytes', () => {
+  const encode = (text: string) => new TextEncoder().encode(text);
+
+  it('parses a valid file', () => {
+    const read = readSettingsBytes(encode('{"fileAssociations":{"gb":{"appPath":"/a.nds"}}}'));
+    expect('settings' in read && read.settings.associations.get('gb')).toBe('/a.nds');
+  });
+
+  it('reports a byte order mark instead of skipping it, since the launcher cannot read one', () => {
+    const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...encode('{}')]);
+    expect(readSettingsBytes(bytes)).toEqual({ problem: { kind: 'bom' } });
+  });
+
+  it('reports broken JSON with the parser message', () => {
+    const text = '{"a": 1 "b": 2}';
+    let message = '';
+    try {
+      JSON.parse(text);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).not.toBe('');
+    expect(readSettingsBytes(encode(text))).toEqual({
+      problem: { kind: 'invalid', detail: message },
+    });
+  });
+
+  it.each(['[]', 'null', '"x"', '0'])('reports %s as holding no settings', (text) => {
+    expect(readSettingsBytes(encode(text))).toEqual({ problem: { kind: 'notObject' } });
+  });
+
+  it('reads an empty file as empty settings, like parseSettings', () => {
+    const read = readSettingsBytes(new Uint8Array());
+    expect('settings' in read && read.settings.associations.size).toBe(0);
   });
 });

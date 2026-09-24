@@ -81,8 +81,23 @@ export const en = {
     openCard: 'Open an SD card to edit file associations.',
     // Sentences that wrap a <code> element are split in parts; the JSX joins them.
     noSettings1: 'No ',
-    noSettings2: ' found — run Pico Launcher once on your DSpico so it creates ',
+    noSettings2: ' found — run Pico Launcher once on your flashcart so it creates ',
     noSettings3: ', then refresh.',
+    settingsInvalid1: 'PicoDex found ',
+    settingsInvalid2:
+      " but can't read it: it is not a valid settings file. Don't start Pico Launcher until it is fixed, because the launcher replaces a file it can't read with a default one and your file associations would be lost. Open it in a text editor and look for a missing comma, quote or bracket near the place below, or put back a copy you saved. Then press Reload.",
+    settingsBom1: 'PicoDex found ',
+    settingsBom2:
+      ", but it starts with a byte order mark (BOM), an invisible mark some editors add when saving. The launcher can't read a file that starts with it and would replace it with a default one, and your file associations would be lost. Don't start Pico Launcher yet: open the file in a text editor, save it as UTF-8 without BOM, then press Reload.",
+    settingsNotObject1: 'PicoDex found ',
+    settingsNotObject2:
+      ', but it does not hold settings: its content is not a JSON object, so there are no file associations to show. Replace its content with {} or delete the file, then press Reload.',
+    settingsUnreadable1: 'PicoDex found ',
+    settingsUnreadable2:
+      " but couldn't open it. Another program may be using it, or the card may have a problem. Don't start Pico Launcher until PicoDex can open it: if the launcher can't read it either, it replaces it with a default one and your file associations would be lost. Close any program that is using the card, then press Reload.",
+    settingsDetail: 'Details: ',
+    notRead:
+      "PicoDex could not finish reading this card, so it can't tell whether settings.json is there. Fix the problem shown above, then press Reload.",
     intro1: 'Choose which application the launcher opens for each file extension. Stored in ',
     intro2: '.',
     emptyList: 'No file associations yet — add one below.',

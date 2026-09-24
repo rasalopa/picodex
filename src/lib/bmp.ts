@@ -1,5 +1,5 @@
 /**
- * BMP encoding/decoding for DSpico launcher art.
+ * BMP encoding/decoding for Pico Launcher art.
  *
  * Ported from `tools/img2cover.py` (pico-enhanced). The launcher expects covers as
  * 128x96 8bpp indexed BMPs: uncompressed (BI_RGB), 40-byte BITMAPINFOHEADER,
@@ -199,7 +199,7 @@ function nearestPaletteIndex(
 }
 
 /**
- * Encodes an RGBA image as a DSpico launcher cover BMP: 8bpp indexed,
+ * Encodes an RGBA image as a Pico Launcher cover BMP: 8bpp indexed,
  * uncompressed, 40-byte BITMAPINFOHEADER, 256-entry palette (`clrUsed = 256`),
  * bottom-up rows padded to 4-byte multiples.
  *
@@ -290,7 +290,7 @@ export function encodeCoverBmp(
 }
 
 /**
- * Encodes a 32x32 RGBA image as a DSpico launcher custom icon BMP: 4bpp
+ * Encodes a 32x32 RGBA image as a Pico Launcher custom icon BMP: 4bpp
  * indexed, uncompressed, 40-byte BITMAPINFOHEADER, 16-entry palette
  * (`clrUsed = 16`), bottom-up rows, high nibble first — the exact layout
  * `tools/png2iconbmp.py` writes and `BmpFileIconData` reads.

@@ -1,5 +1,5 @@
 /**
- * Reader/writer for the DSpico launcher settings file (`/_pico/settings.json`).
+ * Reader/writer for the Pico Launcher settings file (`/_pico/settings.json`).
  *
  * The authoritative writer is the launcher's `JsonAppSettingsSerializer`
  * (ArduinoJson, 2048-byte pool). Known top-level keys are `language`,
@@ -53,6 +53,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Thrown by {@link parseSettings} for valid JSON whose root is not an object. */
+export class SettingsShapeError extends Error {
+  override name = 'SettingsShapeError';
+}
+
 /**
  * Parses the text of `/_pico/settings.json`.
  *
@@ -65,7 +70,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * @param text - Raw JSON text of the settings file.
  * @returns The raw document plus the extracted associations map.
  * @throws {SyntaxError} If `text` is non-empty but not valid JSON.
- * @throws {Error} If the JSON root is not an object.
+ * @throws {SettingsShapeError} If the JSON root is not an object.
  */
 export function parseSettings(text: string): ParsedSettings {
   if (text.trim().length === 0) {
@@ -74,7 +79,7 @@ export function parseSettings(text: string): ParsedSettings {
 
   const parsed: unknown = JSON.parse(text);
   if (!isPlainObject(parsed)) {
-    throw new Error('settings.json root must be a JSON object');
+    throw new SettingsShapeError('settings.json root must be a JSON object');
   }
 
   const associations = new Map<string, string>();
@@ -99,6 +104,44 @@ export function parseSettings(text: string): ParsedSettings {
   }
 
   return { raw: parsed, associations };
+}
+
+/** Why a settings.json that is on the card cannot be used. */
+export type SettingsProblem =
+  // Starts with a UTF-8 byte order mark, which the launcher's JSON parser rejects.
+  | { kind: 'bom' }
+  // Not valid JSON. `detail` is the browser's parser message.
+  | { kind: 'invalid'; detail: string }
+  // Valid JSON whose root is not an object, so it holds no settings.
+  | { kind: 'notObject' }
+  // The file is there but could not be opened or read.
+  | { kind: 'unreadable'; detail: string };
+
+/** Result of {@link readSettingsBytes}: the settings, or why they cannot be used. */
+export type SettingsRead = { settings: ParsedSettings } | { problem: SettingsProblem };
+
+/**
+ * Decodes and parses the raw bytes of `/_pico/settings.json` the way the
+ * launcher will read them. A UTF-8 byte order mark is reported rather than
+ * skipped: ArduinoJson, which the launcher uses, rejects it, and the launcher
+ * then replaces the file with its defaults.
+ *
+ * @param bytes - Raw contents of the settings file.
+ * @returns The parsed settings, or the problem that keeps them from being used.
+ */
+export function readSettingsBytes(bytes: Uint8Array): SettingsRead {
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return { problem: { kind: 'bom' } };
+  }
+  try {
+    return { settings: parseSettings(new TextDecoder('utf-8').decode(bytes)) };
+  } catch (error) {
+    if (error instanceof SettingsShapeError) {
+      return { problem: { kind: 'notObject' } };
+    }
+    const detail = error instanceof Error ? error.message : String(error);
+    return { problem: { kind: 'invalid', detail } };
+  }
 }
 
 /**

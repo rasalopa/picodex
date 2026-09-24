@@ -1,7 +1,7 @@
 /**
  * Access helpers for the libretro-thumbnails GitHub organization
  * (https://github.com/libretro-thumbnails), the boxart source used to fill in
- * missing DSpico covers.
+ * missing Pico Launcher covers.
  *
  * Each console has its own repository (e.g. `Nintendo_-_Game_Boy`) whose
  * `Named_Boxarts/` directory holds one PNG per game, named after the No-Intro

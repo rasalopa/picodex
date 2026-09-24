@@ -30,6 +30,6 @@
     "vite": "^8.1.1",
     "vitest": "^4.1.10"
   },
-  "description": "Manage your DSpico SD card from the browser: covers, favorites, stats and more",
+  "description": "Manage your Pico Launcher SD card from the browser: covers, favorites, stats and more",
   "license": "MIT"
 }

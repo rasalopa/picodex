@@ -71,8 +71,23 @@ export const es: Dict = {
     title: 'Asociaciones de archivos',
     openCard: 'Abre una tarjeta SD para editar las asociaciones.',
     noSettings1: 'No se encontró ',
-    noSettings2: ' — arranca Pico Launcher una vez en tu DSpico para que cree ',
+    noSettings2: ' — arranca Pico Launcher una vez en tu flashcart para que cree ',
     noSettings3: ' y recarga.',
+    settingsInvalid1: 'PicoDex encontró ',
+    settingsInvalid2:
+      ' pero no puede leerlo: no es un archivo de ajustes válido. No arranques Pico Launcher hasta arreglarlo, porque el launcher sustituye un archivo que no puede leer por uno de fábrica y perderías tus asociaciones de archivos. Ábrelo en un editor de texto y busca una coma, comilla o llave que falte cerca del punto de abajo, o vuelve a poner una copia que tengas guardada. Después, pulsa Recargar.',
+    settingsBom1: 'PicoDex encontró ',
+    settingsBom2:
+      ', pero empieza con una marca de orden de bytes (BOM), una marca invisible que algunos editores añaden al guardar. El launcher no puede leer un archivo que empiece así y lo sustituiría por uno de fábrica, y perderías tus asociaciones de archivos. No arranques Pico Launcher todavía: abre el archivo en un editor de texto, guárdalo como UTF-8 sin BOM y pulsa Recargar.',
+    settingsNotObject1: 'PicoDex encontró ',
+    settingsNotObject2:
+      ', pero no contiene ajustes: su contenido no es un objeto JSON, así que no hay asociaciones de archivos que mostrar. Sustituye su contenido por {} o borra el archivo, y pulsa Recargar.',
+    settingsUnreadable1: 'PicoDex encontró ',
+    settingsUnreadable2:
+      ' pero no pudo abrirlo. Puede que otro programa lo esté usando o que la tarjeta tenga algún problema. No arranques Pico Launcher hasta que PicoDex pueda abrirlo: si el launcher tampoco puede leerlo, lo sustituye por uno de fábrica y perderías tus asociaciones de archivos. Cierra los programas que estén usando la tarjeta y pulsa Recargar.',
+    settingsDetail: 'Detalles: ',
+    notRead:
+      'PicoDex no pudo terminar de leer esta tarjeta, así que no sabe si settings.json está. Resuelve el problema que aparece arriba y pulsa Recargar.',
     intro1: 'Elige qué aplicación abre el launcher para cada extensión de archivo. Se guarda en ',
     intro2: '.',
     emptyList: 'Aún no hay asociaciones — añade una abajo.',

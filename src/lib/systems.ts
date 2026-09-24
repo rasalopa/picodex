@@ -1,5 +1,5 @@
 /**
- * Registry of the game systems supported by the DSpico launcher.
+ * Registry of the game systems supported by Pico Launcher.
  *
  * Data sourced from the launcher tooling (`tools/fetch_covers.py` SYSTEMS
  * dict) plus the two gamecode-keyed systems (NDS, GBA) handled natively by
@@ -14,7 +14,7 @@
  */
 export type CoverKeying = 'gamecode' | 'filename';
 
-/** Describes one console/handheld system supported by the DSpico launcher. */
+/** Describes one console/handheld system supported by Pico Launcher. */
 export interface System {
   /** Stable identifier (slug), unique across the registry. */
   readonly id: string;

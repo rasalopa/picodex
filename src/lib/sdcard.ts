@@ -1,9 +1,9 @@
 /**
- * File System Access layer + DSpico SD card layout model.
+ * File System Access layer + Pico Launcher SD card layout model.
  *
  * Thin promise-based helpers over the browser File System Access API
  * (directory picking, path traversal, byte/text file IO) plus the layout
- * knowledge of a DSpico SD card as documented in pico-enhanced's ESTUDIO.md:
+ * knowledge of a Pico Launcher SD card as documented in pico-enhanced's ESTUDIO.md:
  *
  * ```
  * /_pico/                  launcher data (settings.json, gamedata.json, covers/, ...)
@@ -306,7 +306,7 @@ export async function fileExists(dir: FileSystemDirectoryHandle, name: string): 
 }
 
 /**
- * Heuristic check that a picked directory is a DSpico SD card root: it must
+ * Heuristic check that a picked directory is a Pico Launcher SD card root: it must
  * contain the launcher's `_pico` directory.
  */
 export async function looksLikeDspicoSd(root: FileSystemDirectoryHandle): Promise<boolean> {

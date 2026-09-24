@@ -20,7 +20,7 @@ import {
 } from '../lib/gamedata';
 import { isEnhancedLauncher, parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
 import { parseApList, parsePatchList, parseSaveList, type LoaderLists } from '../lib/loaderlists';
-import { parseSettings, type ParsedSettings } from '../lib/settings';
+import { readSettingsBytes, type ParsedSettings, type SettingsProblem } from '../lib/settings';
 import {
   BANNERS,
   COVERS,
@@ -109,6 +109,17 @@ export interface SdState {
   gameData: GameData | null;
   /** Parsed /_pico/settings.json, or null when missing/unreadable. */
   settings: ParsedSettings | null;
+  /**
+   * Why /_pico/settings.json cannot be used when the file is there, or null.
+   * Tells an unusable file apart from a missing one: the advice for a missing
+   * file (run the launcher once) would make the launcher replace this one.
+   */
+  settingsProblem: SettingsProblem | null;
+  /**
+   * Whether gamedata.json and settings.json have been read for the open card.
+   * Until then, a null `settings` says nothing about whether the file is there.
+   */
+  launcherFilesRead: boolean;
   /** Launcher/loader component info detected on the card. */
   cardInfo: CardInfo;
   /**
@@ -209,6 +220,7 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
   const picoDir = await getDir(root, [PICO_DIR]);
   let gameData: GameData | null = null;
   let settings: ParsedSettings | null = null;
+  let settingsProblem: SettingsProblem | null = null;
   const loaderLists: LoaderLists = { ap: null, save: null, patch: null };
   if (picoDir) {
     const gameDataText = await readFileText(picoDir, GAMEDATA_FILE);
@@ -219,13 +231,23 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
         gameData = null;
       }
     }
-    const settingsText = await readFileText(picoDir, SETTINGS_FILE);
-    if (settingsText !== null) {
-      try {
-        settings = parseSettings(settingsText);
-      } catch {
-        settings = null;
+    // A settings.json that is there but cannot be used is reported, never taken
+    // for a missing one. An access error is caught like the loader lists below,
+    // so it does not throw away the gamedata.json already read.
+    try {
+      const settingsBytes = await readFileBytes(picoDir, SETTINGS_FILE);
+      if (settingsBytes !== null) {
+        const read = readSettingsBytes(settingsBytes);
+        if ('settings' in read) {
+          settings = read.settings;
+        } else {
+          settingsProblem = read.problem;
+        }
       }
+    } catch (error) {
+      if (!isAccessError(error)) throw error;
+      const detail = error instanceof Error ? error.message : String(error);
+      settingsProblem = { kind: 'unreadable', detail };
     }
     // Loader compatibility lists. An absent file leaves its list null. When a
     // file is present, the tolerant ap/save parsers always produce an array
@@ -257,7 +279,7 @@ async function readLauncherFiles(root: FileSystemDirectoryHandle) {
       if (!isAccessError(error)) throw error;
     }
   }
-  return { gameData, settings, loaderLists };
+  return { gameData, settings, settingsProblem, loaderLists };
 }
 
 export function SdProvider({ children }: { children: ReactNode }) {
@@ -283,6 +305,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
   });
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [settings, setSettings] = useState<ParsedSettings | null>(null);
+  const [settingsProblem, setSettingsProblem] = useState<SettingsProblem | null>(null);
+  const [launcherFilesRead, setLauncherFilesRead] = useState(false);
   const [cardInfo, setCardInfo] = useState<CardInfo>(EMPTY_CARD_INFO);
   const [loaderLists, setLoaderLists] = useState<LoaderLists | null>(null);
   /**
@@ -314,6 +338,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
     gameDataRef.current = launcher.gameData;
     setGameData(launcher.gameData);
     setSettings(launcher.settings);
+    setSettingsProblem(launcher.settingsProblem);
+    setLauncherFilesRead(true);
     setLoaderLists(launcher.loaderLists);
     setCardInfo(await readCardInfo(rootHandle));
     setProgress(null);
@@ -506,6 +532,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
       bannerIndex,
       gameData,
       settings,
+      settingsProblem,
+      launcherFilesRead,
       cardInfo,
       loaderLists,
       openSd,
@@ -528,6 +556,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
       bannerIndex,
       gameData,
       settings,
+      settingsProblem,
+      launcherFilesRead,
       cardInfo,
       loaderLists,
       openSd,
