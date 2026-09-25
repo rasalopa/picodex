@@ -16,7 +16,7 @@ export const es: Dict = {
       health: 'Salud',
     },
     sections: 'Secciones',
-    openSdFolder: 'Abrir la carpeta de la tarjeta SD',
+    openSdFolder: 'La tarjeta SD que tienes abierta',
     reload: 'Recargar',
     reloading: 'Recargando…',
     whatsNew: 'Novedades',
@@ -34,7 +34,7 @@ export const es: Dict = {
       'La tarjeta que tenías abierta la última vez. Tu navegador volverá a pedir acceso.',
     pickDifferent: 'Elegir otra tarjeta',
     unsupported:
-      'Tu navegador no soporta la File System Access API. Usa un navegador basado en Chromium (Chrome, Edge, Brave, Opera).',
+      'Tu navegador no puede abrir carpetas de tu equipo, y PicoDex lo necesita para leer tu tarjeta SD. Abre esta página con Chrome, Edge u Opera en un equipo de escritorio o portátil.',
     waitingForFolder: 'Esperando la carpeta…',
     whatsNewButton: 'Novedades de PicoDex',
     features: {
@@ -59,13 +59,16 @@ export const es: Dict = {
     readingCovers: 'Leyendo carátulas…',
     readingLauncherData: 'Leyendo datos del launcher…',
     waitingAccess: 'Esperando acceso a la tarjeta…',
-    needsAccess: (name: string) => `PicoDex necesita acceso a ${name} para abrirla.`,
-    noPicoAnymore: 'Esa carpeta ya no contiene /_pico — elige una tarjeta.',
+    needsAccess: (name: string) =>
+      `PicoDex necesita tu permiso para abrir ${name}. Pulsa de nuevo Abrir ${name} y permite el acceso cuando el navegador te lo pida.`,
+    noPicoAnymore:
+      'PicoDex no encuentra la carpeta /_pico en esa tarjeta. Si la tarjeta no está conectada, conéctala primero. Después pulsa Abrir tarjeta SD y elígela.',
     noPicoPickRoot:
-      'Esa carpeta no tiene /_pico — elige la raíz de una tarjeta SD de Pico Launcher.',
-    noPicoOnCard: 'No hay carpeta /_pico en la tarjeta SD.',
+      'PicoDex no encuentra una carpeta /_pico ahí. Elige la tarjeta SD en sí, no una carpeta de dentro. Si ya lo hiciste, Pico Launcher aún no está instalado en esta tarjeta.',
+    noPicoOnCard:
+      'PicoDex no pudo guardar el cambio porque ya no encuentra la carpeta /_pico en la tarjeta. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
     fsDenied:
-      'macOS denegó el acceso a una entrada de la tarjeta — puede ser una carpeta protegida del sistema (como .Trashes) o la tarjeta puede estar montada en solo lectura.',
+      'Tu equipo no dejó que PicoDex usara un archivo o carpeta de la tarjeta. Normalmente significa que la tarjeta está bloqueada o en solo lectura. Revisa el interruptor de bloqueo del lateral de la tarjeta SD o de su adaptador, vuelve a conectar la tarjeta y ábrela de nuevo.',
   },
   associations: {
     title: 'Asociaciones de archivos',
@@ -100,7 +103,8 @@ export const es: Dict = {
     add: 'Añadir',
     invalidExt: 'Escribe una extensión válida (los puntos se ignoran).',
     hint: 'Escribe la extensión sin el punto. Rutas de emuladores comunes: ',
-    picoMissing: 'La carpeta /_pico no está en la tarjeta SD.',
+    picoMissing:
+      'No se guardó nada: PicoDex ya no encuentra la carpeta /_pico en la tarjeta. Comprueba que la tarjeta sigue conectada, pulsa Recargar y vuelve a guardar.',
     restartWarning:
       'El launcher lee las asociaciones al arrancar — reinicia tu DS después de guardar para que los cambios surtan efecto.',
     emptyPaths:
@@ -135,7 +139,7 @@ export const es: Dict = {
     addedNoCover: 'Añadida, sin carátula que encaje',
     duplicate: 'Duplicada (omitida)',
     skipped: 'Omitida (ya está en la tarjeta)',
-    unknownType: 'Tipo desconocido',
+    unknownType: 'Omitida (no es un archivo de ROM compatible)',
     failed: 'Falló',
     failedWith: (message: string) => `Falló (${message})`,
     gamesDirError: 'No se pudo abrir la carpeta de juegos',
@@ -189,7 +193,8 @@ export const es: Dict = {
       error: 'Falló',
     },
     viaBannerTitle: 'emparejada por el título interno del ROM',
-    noBoxartFound: 'No se encontró carátula en el catálogo',
+    noBoxartFound:
+      'No se encontró carátula. Puedes elegir una a mano con el lápiz de la carátula del juego en Biblioteca.',
     unknownError: 'Error desconocido',
     catalogUnavailable: 'El catálogo de carátulas no está disponible',
     coversDirFailed: 'No se pudo abrir la carpeta de carátulas',
@@ -202,7 +207,8 @@ export const es: Dict = {
     selectNone: 'Deseleccionar todos',
     fetching: 'Bajando…',
     fetchCount: (count: number) => (count === 1 ? 'Bajar 1 carátula' : `Bajar ${count} carátulas`),
-    noGamecode: 'sin gamecode — se guarda como carátula de usuario',
+    noGamecode:
+      'sin código de juego, así que la carátula va por el nombre del archivo (si lo renombras, se pierde)',
   },
   coverPicker: {
     dialogLabel: (game: string) => `Cambiar la carátula de ${game}`,
@@ -212,7 +218,8 @@ export const es: Dict = {
     searchLabel: 'Buscar carátulas',
     ownImageHint:
       'Vale cualquier PNG o JPG. Se estira para llenar la carátula, igual que las carátulas descargadas.',
-    catalogFailed: (message: string) => `No se pudo cargar el catálogo de carátulas: ${message}`,
+    catalogFailed: (message: string) =>
+      `No se pudo bajar la lista de carátulas. Puedes pulsar Reintentar o usar una imagen de tu equipo en la pestaña siguiente. Detalle: ${message}`,
     retry: 'Reintentar',
     loadingCatalog: 'Cargando el catálogo de carátulas…',
     noMatches: (query: string) => `No hay carátulas que coincidan con «${query}».`,
@@ -233,7 +240,7 @@ export const es: Dict = {
     iconInvalidOnCard:
       'El fichero de icono de la tarjeta no está en el formato que lee el launcher, así que la consola muestra un icono en blanco. Al guardar uno nuevo se reemplaza.',
     iconBannerNote:
-      'Este juego tiene un banner personalizado en _pico/banners. El launcher muestra el icono del banner e ignora un icono BMP, así que aquí no hay nada que poner.',
+      'Este juego tiene su propio archivo de banner en _pico/banners, y el launcher toma el icono de ahí. Un icono guardado aquí no se vería. Para usar tu propio icono, saca antes ese archivo de banner de _pico/banners.',
     iconCurrentAlt: (game: string) => `Icono actual de ${game}`,
     iconNewAlt: (game: string) => `Vista previa del nuevo icono de ${game}`,
     iconsDirMissing: 'No se pudo abrir la carpeta de iconos',
@@ -266,7 +273,7 @@ export const es: Dict = {
     covers: (covered: number, count: number, approximate: boolean) =>
       `${String(covered)}/${String(count)} carátulas${approximate ? ' (aprox.)' : ''}`,
     approxTitle: (systemLabel: string) =>
-      `Aproximado: las carátulas de ${systemLabel} se identifican por el gamecode de la ROM, que no se puede cruzar con los archivos sin leer cada ROM. Es el número de archivos de carátula presentes, con tope en el número de juegos.`,
+      `Estimación. En ${systemLabel}, PicoDex cuenta los archivos de carátula de tu tarjeta en vez de comprobar cada juego, así que puede no ser exacto. La pestaña Carátulas muestra exactamente qué juegos no tienen carátula.`,
     viewGames: 'Ver juegos →',
     editBannerFor: (systemLabel: string) => `Editar el banner de la carpeta de ${systemLabel}`,
     editBannerTitle: (systemLabel: string) =>
@@ -290,9 +297,9 @@ export const es: Dict = {
     kicker: 'Compatibilidad del loader',
     close: 'Cerrar',
     noHeader:
-      'No se pudo leer la cabecera de esta ROM, así que no hay nada contra lo que comprobarla.',
+      'PicoDex no pudo leer este archivo de juego, así que no puede mostrar qué hace el loader con él. Puede que esté dañado o a medio copiar: prueba a copiarlo otra vez a la tarjeta.',
     noGameCode:
-      'Esta ROM no trae un código de juego usable, así que no se pueden consultar las listas del loader para ella.',
+      'Este archivo de juego no tiene un código de juego legible, algo habitual en el homebrew. PicoDex necesita ese código para comprobar el juego, así que aquí no hay nada que mostrar. Si el juego arranca, no hay nada que hacer.',
     noLists: 'No se encontraron listas del loader en esta tarjeta SD.',
     revisionUnreadable: 'revisión ilegible (se asume rev 0)',
     revision: (n: number) => `revisión ${String(n)}`,
@@ -312,16 +319,17 @@ export const es: Dict = {
       const revs = entryVersions.join(', ');
       const romPart =
         romVersion === null
-          ? 'la revisión de esta ROM es ilegible (se asume rev 0)'
-          : `esta ROM es la revisión ${String(romVersion)}`;
-      return `Existe ${thing} para ${noun} ${revs}, pero ${romPart} — el loader solo actúa cuando la coincidencia es exacta.`;
+          ? 'no se pudo leer la revisión de tu copia (el loader asume entonces la revisión 0)'
+          : `tu copia es la revisión ${String(romVersion)}`;
+      return `El loader tiene ${thing} para ${noun} ${revs} de este juego, pero ${romPart}, así que no se usa. Si el juego se congela o falla, puede ser por esto.`;
     },
     ap: {
-      notListed: 'No está en la lista, que no es lo mismo que “no necesita arreglo”.',
+      notListed: 'No está en aplist.bin. La mayoría de los juegos no necesitan este arreglo.',
       skipped: 'El loader se salta la antipiratería para este tipo de ROM.',
       applies: (dsProtectVersion: string | null) =>
         `Arreglo incluido (DS Protect ${dsProtectVersion ?? 'desconocida'}).`,
-      listUnavailable: 'aplist.bin falta o es ilegible — no hay contra qué comprobar.',
+      listUnavailable:
+        'aplist.bin falta en /_pico o no se puede leer, así que esto no se puede comprobar. El loader necesita este archivo: revisa la pestaña Salud.',
     },
     save: {
       homebrewNone: 'El loader no crea archivo de guardado para homebrew.',
@@ -334,18 +342,19 @@ export const es: Dict = {
       listed: (type: string, size: string) => `${type}, ${size}`,
     },
     patch: {
-      notListed: 'No está en la lista, que no es lo mismo que “nada que arreglar”.',
+      notListed: 'No está en patchlist.bin. La mayoría de los juegos no necesitan parche.',
       skipped: 'El loader se salta los parches de juego para este tipo de ROM.',
       applied: (count: number) =>
         count === 1
           ? '1 parche aplicado al arrancar.'
           : `${String(count)} parches aplicados al arrancar.`,
-      listUnavailable: 'patchlist.bin falta o es ilegible — no hay contra qué comprobar.',
+      listUnavailable:
+        'patchlist.bin falta en /_pico o no se puede leer, así que esto no se puede comprobar. Las versiones antiguas de pico-loader no traen este archivo, y al actualizar el loader se añade.',
     },
     hints: {
       ap: {
         retail:
-          'Algunos juegos se congelan a propósito cuando detectan una flashcart, y el loader deshace eso al arrancar. Esta fila solo puede leer un archivo de tu tarjeta, aplist.bin. El loader también lleva arreglos integrados para juegos que no están en ese archivo, y esos no se ven desde aquí.',
+          'Algunos juegos se congelan a propósito cuando detectan una flashcart. El loader lo evita al arrancar, con aplist.bin y con unos pocos arreglos que lleva integrados. PicoDex solo puede comprobar aplist.bin.',
         dsiware:
           'La protección antipiratería es cosa de cartuchos. Los títulos DSiWare nunca estuvieron en un cartucho, así que el loader no ejecuta ese paso para ellos.',
         homebrew:
@@ -353,7 +362,7 @@ export const es: Dict = {
       },
       save: {
         retail:
-          'Los cartuchos originales llevan un chip de guardado dentro; el loader lo recrea como un archivo en la tarjeta SD, con el tamaño de este juego.',
+          'Los cartuchos originales llevan dentro un chip de guardado. El loader lo sustituye por un archivo de guardado en tu tarjeta SD.',
         dsiware:
           'DSiWare guarda en archivos en vez de en un chip de cartucho. El loader los crea junto a la ROM con los tamaños que la propia ROM declara, así que no interviene ninguna lista.',
         homebrew:
@@ -361,9 +370,9 @@ export const es: Dict = {
       },
       patch: {
         retail:
-          'Unos pocos juegos necesitan pequeños arreglos puntuales para funcionar bien desde una flashcart. Esta fila solo puede leer un archivo de tu tarjeta, patchlist.bin, y el loader lleva otros arreglos integrados que no se ven desde aquí.',
+          'Unos pocos juegos necesitan un pequeño arreglo para funcionar bien desde una flashcart. El loader lo aplica al arrancar, desde patchlist.bin o desde arreglos que lleva integrados. PicoDex solo puede comprobar patchlist.bin.',
         dsiware:
-          'Unos pocos juegos necesitan pequeños arreglos puntuales para funcionar bien desde una flashcart. El loader también se los aplica a DSiWare — a diferencia de los pasos de guardado y antipiratería, este no se salta. Solo puede leer un archivo de tu tarjeta, patchlist.bin, y el loader lleva otros arreglos integrados que no se ven desde aquí.',
+          'Unos pocos juegos necesitan un pequeño arreglo para funcionar bien desde una flashcart, y los DSiWare también pueden recibirlo. El loader lo aplica al arrancar, desde patchlist.bin o desde arreglos que lleva integrados. PicoDex solo puede comprobar patchlist.bin.',
         homebrew:
           'Estos arreglos existen para que los juegos comerciales funcionen desde una flashcart. El loader no aplica ninguno al homebrew, que se ejecuta tal cual se compiló.',
       },
@@ -446,13 +455,13 @@ export const es: Dict = {
     scanningCount: (count: number) =>
       count === 1 ? 'Escaneando… 1 archivo' : `Escaneando… ${count} archivos`,
     libraryRereadFailed:
-      'No se pudo releer la biblioteca (mira el error de arriba), así que el escaneo se canceló — sus resultados no serían fiables.',
+      'PicoDex no pudo leer los juegos de tu tarjeta (mira el error de arriba), así que paró el escaneo. Comprueba que la tarjeta sigue conectada y pulsa Escanear tarjeta otra vez.',
     scannedFiles: (count: number) =>
       count === 1 ? 'Se escaneó 1 archivo.' : `Se escanearon ${count} archivos.`,
     skippedFolders: (count: number) =>
       count === 1
-        ? 'Se omitió 1 carpeta que macOS no dejó leer al navegador:'
-        : `Se omitieron ${count} carpetas que macOS no dejó leer al navegador:`,
+        ? 'Se omitió 1 carpeta que tu equipo no deja abrir a PicoDex (es normal en carpetas del sistema):'
+        : `Se omitieron ${count} carpetas que tu equipo no deja abrir a PicoDex (es normal en carpetas del sistema):`,
     deleting: 'Borrando…',
     yesDelete: 'Sí, borrar',
     no: 'No',
@@ -470,11 +479,12 @@ export const es: Dict = {
       count === 1 ? '¿Confirmas borrar 1 archivo?' : `¿Confirmas borrar ${count} archivos?`,
     junkDeleteFailed: (files: string) =>
       `No se pudieron borrar: ${files}. macOS protege algunos de sus archivos frente a otras apps — son inofensivos para el launcher.`,
-    macosKeeps1: 'macOS mantiene ',
+    macosKeeps1: 'macOS guarda ',
     macosKeeps2:
-      ' en la tarjeta. Los recrea cada vez que la conectas a un Mac, así que se dejan en paz — son inofensivos para el launcher.',
-    fsevents1: ' solo contiene un marcador ',
-    fsevents2: ' — una configuración intencional para impedir el registro de eventos.',
+      ' en la tarjeta y los vuelve a crear cada vez que la conectas a un Mac. No afectan al launcher, así que puedes dejarlos.',
+    fsevents1: ' solo contiene un archivo ',
+    fsevents2:
+      ', que evita que macOS guarde un registro de cambios en la tarjeta. Déjalo como está.',
     loaderTitle: 'Archivos del loader',
     loaderAllPresent: 'Están todos los archivos necesarios del loader.',
     loaderMissing1: 'Falta ',
@@ -489,14 +499,14 @@ export const es: Dict = {
     loaderBuild2: '.',
     loaderEnd: '.',
     ambiguityIdentical:
-      ' Esas dos traen archivos idénticos byte a byte, así que nada puede distinguirlas.',
+      ' Esas versiones tienen exactamente los mismos archivos, así que da igual cuál tengas.',
     ambiguityIncomplete:
-      ' No se pudo afinar más: los archivos que difieren entre esas versiones faltan o no se reconocen aquí.',
+      ' PicoDex no puede saber cuál, porque los archivos que las distinguen faltan o no los reconoce. Si tus juegos arrancan, no tienes que hacer nada.',
     releasesBehind1: (count: number, atLeast: boolean) =>
       `${atLeast ? 'Al menos ' : ''}${count} ${count === 1 ? 'versión' : 'versiones'} por detrás de `,
     releasesBehind2: '.',
     newestKnownCandidate: (tag: string) =>
-      `${tag} es la versión más nueva que PicoDex conoce, y es una de esas candidatas.`,
+      `Una de ellas es ${tag}, la versión más nueva que PicoDex conoce, así que puede que ya estés al día.`,
     newestKnownMaybe:
       'Esa es la versión más nueva que PicoDex conoce. Puede existir algo más nuevo.',
     newestRelease: 'Esa es la versión más nueva.',
@@ -511,7 +521,7 @@ export const es: Dict = {
     copyAgain1: 'Vuelve a copiarlos todos desde una sola ',
     copyAgainRelease: 'versión de pico-loader',
     copyAgainOverwrites:
-      ' — ojo, eso también sobrescribe los archivos no reconocidos listados abajo.',
+      '. Eso también sustituye los archivos que PicoDex no reconoce (aparecen abajo), así que si editaste alguno a mano, guarda antes una copia.',
     copyAgainEnd: '.',
     unrecognisedAll:
       'PicoDex no reconoce ninguno de estos archivos, así que no puede saber qué versión del loader tienes. Pasa cuando son de una versión más nueva que PicoDex o cuando se editaron a mano. Si tus juegos arrancan, no tienes que hacer nada.',
@@ -520,20 +530,21 @@ export const es: Dict = {
     unrecognisedListed2: '. Pasa cuando se editan a mano (es habitual con ',
     unrecognisedListed3:
       '), cuando son de una versión del loader más nueva que PicoDex o cuando son de una compilación propia. Si tus juegos arrancan, no tienes que hacer nada.',
-    githubNewer1: 'GitHub reporta ',
+    githubNewer1: 'La versión más nueva de pico-loader en GitHub es ',
     githubNewer2: (tag: string) =>
-      ` como la versión más nueva de pico-loader, que este build de PicoDex aún no conoce. Todo lo de arriba sigue valiendo: solo que no puede decirte si ${tag} es más nueva que lo que hay en tu tarjeta.`,
-    unreadable: 'No se pudieron leer, así que no se comprobaron: ',
+      `. PicoDex aún no conoce ${tag}, así que no puede saber si tu tarjeta ya la tiene. Si la quieres, descárgala de las versiones de pico-loader y copia todos sus archivos en /_pico.`,
+    unreadable:
+      'PicoDex no pudo abrir algunos archivos del loader, así que no los comprobó. Vuelve a escanear y, si sigue pasando, cópialos otra vez desde la versión de pico-loader. Archivos: ',
     optional1: 'Archivos opcionales que no están en la tarjeta: ',
     optional2: ' — no pasa nada por no tenerlos.',
     savesTitle: 'Guardados huérfanos',
     savesSkipped:
-      'Omitido: no se encontraron juegos en la tarjeta, así que todos los guardados parecerían huérfanos sin serlo.',
+      'Sin comprobar: PicoDex no encontró juegos en la tarjeta, así que no puede saber qué guardados pertenecen a un juego.',
     savesAllOk: 'Todos los guardados pertenecen a un juego de la tarjeta.',
     savesOrphans: (count: number) =>
       count === 1
-        ? '1 guardado no tiene una ROM que le corresponda en su propia carpeta — el launcher solo empareja un guardado con una ROM que esté a su lado. Los guardados pueden contener progreso de juego y borrarlos es permanente — selecciona solo los que tengas claros.'
-        : `${count} guardados no tienen una ROM que les corresponda en su propia carpeta — el launcher solo empareja un guardado con una ROM que esté a su lado. Los guardados pueden contener progreso de juego y borrarlos es permanente — selecciona solo los que tengas claros.`,
+        ? '1 guardado no tiene al lado ningún juego con su mismo nombre, así que el launcher no lo usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.'
+        : `${count} guardados no tienen al lado ningún juego con su mismo nombre, así que el launcher no los usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.`,
     savesDeleteLabel: (count: number) => `Borrar seleccionados (${count})`,
     savesConfirmLabel: (count: number) =>
       count === 1
@@ -541,13 +552,13 @@ export const es: Dict = {
         : `¿Confirmas borrar permanentemente ${count} guardados?`,
     coversTitle: 'Carátulas de usuario huérfanas',
     coversSkipped:
-      'Omitido: no se encontraron juegos en la tarjeta, así que todas las carátulas de usuario parecerían huérfanas sin serlo.',
+      'Sin comprobar: PicoDex no encontró juegos en la tarjeta, así que no puede saber qué carátulas pertenecen a un juego.',
     coversAllOk: 'Todas las carátulas de usuario pertenecen a un juego de la tarjeta.',
     coversOrphans1: (count: number) => (count === 1 ? '1 carátula en ' : `${count} carátulas en `),
     coversOrphans2: (count: number) =>
       count === 1
-        ? ' no corresponde a ninguna ROM. Las carátulas se pueden regenerar desde la pestaña Carátulas, así que vienen preseleccionadas.'
-        : ' no corresponden a ninguna ROM. Las carátulas se pueden regenerar desde la pestaña Carátulas, así que vienen preseleccionadas.',
+        ? ' no corresponde a ningún juego de la tarjeta, normalmente porque el juego se renombró o se borró. Viene marcada para borrarla: desmárcala si quieres conservarla. Puedes volver a descargar carátulas desde la pestaña Carátulas.'
+        : ' no corresponden a ningún juego de la tarjeta, normalmente porque los juegos se renombraron o se borraron. Vienen marcadas para borrarlas: desmarca las que quieras conservar. Puedes volver a descargar carátulas desde la pestaña Carátulas.',
     coversCleanLabel: (count: number) => `Limpiar seleccionadas (${count})`,
     coversConfirmLabel: (count: number) =>
       count === 1 ? '¿Confirmas borrar 1 carátula?' : `¿Confirmas borrar ${count} carátulas?`,

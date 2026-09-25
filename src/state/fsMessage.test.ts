@@ -14,8 +14,8 @@ describe('fsMessage', () => {
     // The point of the descriptor: this used to come back as one hardcoded English string, so a
     // Spanish reader was told about their card in English.
     const message = fsMessage(new DOMException('nope', 'NoModificationAllowedError'));
-    expect(resolveSdMessage(en, message)).toContain('macOS denied access');
-    expect(resolveSdMessage(es, message)).toContain('macOS');
+    expect(resolveSdMessage(en, message)).toContain('Your computer blocked PicoDex');
+    expect(resolveSdMessage(es, message)).toContain('Tu equipo no dejó');
     expect(resolveSdMessage(es, message)).not.toBe(resolveSdMessage(en, message));
   });
 
