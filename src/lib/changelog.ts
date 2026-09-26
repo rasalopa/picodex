@@ -35,6 +35,30 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.1',
+    date: '2026-09-26',
+    changes: [
+      {
+        text: {
+          en: "A settings file PicoDex can't read is no longer mistaken for a missing one. It says what is wrong with it and to fix it before starting Pico Launcher, which would replace it with a default one.",
+          es: 'Un archivo de ajustes que PicoDex no puede leer ya no se confunde con uno que no existe. Dice qué le pasa y que lo arregles antes de arrancar Pico Launcher, que lo sustituiría por uno de fábrica.',
+        },
+      },
+      {
+        text: {
+          en: "Errors now say what happened and what to do next, in your language: no connection, GitHub limiting the box art searches, a picture the browser can't read, a card pulled out mid-read.",
+          es: 'Los errores ahora dicen qué pasó y qué hacer, en tu idioma: sin conexión, GitHub limitando las búsquedas de carátulas, una imagen que el navegador no puede leer, una tarjeta desconectada a medias.',
+        },
+      },
+      {
+        text: {
+          en: 'Every text rewritten to speak plainly: what you are looking at and whether you need to do anything, instead of how PicoDex works inside.',
+          es: 'Todos los textos reescritos para hablar claro: qué estás viendo y si tienes que hacer algo, en vez de cómo funciona PicoDex por dentro.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.10.0',
     date: '2026-09-16',
     changes: [

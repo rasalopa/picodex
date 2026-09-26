@@ -5,6 +5,26 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.10.1 — 2026-09-26
+
+Words, mostly. Every text in PicoDex now talks to the person holding the card, not to whoever
+wrote the program.
+
+- **A settings file PicoDex can't read is no longer mistaken for a missing one.** It used to say
+  "run Pico Launcher once so it creates settings.json", and doing that makes the launcher replace
+  the file with a default one. Now it says what is wrong (not valid JSON, a byte order mark, not a
+  settings object, or a file that can't be opened) and to fix it before starting the launcher.
+- **Errors in your language, with something to do about them.** No connection, GitHub limiting the
+  box art searches, a picture the browser can't read, a card pulled out mid-read: each one says
+  what happened and what to do next, in English or Spanish, instead of the browser's own message.
+- **Every text rewritten to speak plainly.** The card health check, the cover dialog, the
+  compatibility sheet and the messages around the card were explaining how PicoDex works inside;
+  now they say what you are looking at and whether you need to do anything. PicoDex works with any
+  flashcart that runs Pico Launcher, and the page title and texts no longer suggest otherwise.
+- **What's new entries of past releases corrected.** Three promised more than PicoDex does.
+- **For translators:** `npm run i18n:outdated` lists the strings whose English changed after they
+  were translated, so a translation can catch up without re-reading everything.
+
 ## 0.10.0 — 2026-09-16
 
 The release that closes the list. Everything people asked for since v0.9.0 is in here.
