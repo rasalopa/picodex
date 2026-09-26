@@ -92,6 +92,9 @@ function baseName(name: string): string {
   return dot <= 0 ? name : name.slice(0, dot);
 }
 
+/** Name of the folder some launchers keep saves in, next to the ROMs. */
+const SAVES_FOLDER = 'saves';
+
 /**
  * Finds `.sav` files that no longer belong to any ROM: their base name
  * (name minus the final extension) matches no game in the same directory,
@@ -99,9 +102,12 @@ function baseName(name: string): string {
  *
  * The launcher creates a game's save next to its ROM, so ownership is a
  * same-directory relation — a ROM elsewhere on the card does not rescue a
- * save it was separated from. To stay conservative, a save also counts as
- * owned when its base name equals a game's full file name (`'Game.nds.sav'`
- * next to `'Game.nds'`), a naming scheme some loaders use.
+ * save it was separated from. A save inside a `saves` folder also belongs
+ * to a game in the folder above: TWiLight Menu++ keeps saves that way and
+ * hands the same path to the loader, so a card shared with it is full of
+ * them. To stay conservative, a save also counts as owned when its base
+ * name equals a game's full file name (`'Game.nds.sav'` next to
+ * `'Game.nds'`), a naming scheme some loaders use.
  *
  * @param games All ROMs found on the card.
  * @param saves Save files collected by the card walk.
@@ -127,12 +133,19 @@ export function findOrphanSaves(
     owned.add(baseName(game.fileName).toLowerCase());
     owned.add(game.fileName.toLowerCase());
   }
+  const ownedIn = (dir: readonly string[], base: string): boolean =>
+    ownedByDir.get(dir.join('/').toLowerCase())?.has(base) ?? false;
   return saves.filter((save) => {
     if (!save.name.toLowerCase().endsWith('.sav')) {
       return false;
     }
-    const owned = ownedByDir.get(save.path.join('/').toLowerCase());
-    return owned === undefined || !owned.has(baseName(save.name).toLowerCase());
+    const base = baseName(save.name).toLowerCase();
+    if (ownedIn(save.path, base)) {
+      return false;
+    }
+    const inSavesFolder =
+      save.path.length > 0 && save.path[save.path.length - 1].toLowerCase() === SAVES_FOLDER;
+    return !(inSavesFolder && ownedIn(save.path.slice(0, -1), base));
   });
 }
 

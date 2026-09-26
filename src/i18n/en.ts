@@ -589,8 +589,8 @@ export const en = {
     savesAllOk: 'Every save file belongs to a game on the card.',
     savesOrphans: (count: number) =>
       count === 1
-        ? "1 save file has no game with the same name next to it, so the launcher won't use it. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need."
-        : `${count} save files have no game with the same name next to them, so the launcher won't use them. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need.`,
+        ? "1 save file has no game with the same name next to it (or in the folder above, if it sits in a saves folder), so the launcher won't use it. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need."
+        : `${count} save files have no game with the same name next to them (or in the folder above, if they sit in a saves folder), so the launcher won't use them. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need.`,
     savesDeleteLabel: (count: number) => `Delete selected (${count})`,
     savesConfirmLabel: (count: number) =>
       `Confirm permanently delete ${count} save ${count === 1 ? 'file' : 'files'}?`,

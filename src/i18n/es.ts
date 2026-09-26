@@ -574,8 +574,8 @@ export const es: Dict = {
     savesAllOk: 'Todos los guardados pertenecen a un juego de la tarjeta.',
     savesOrphans: (count: number) =>
       count === 1
-        ? '1 guardado no tiene al lado ningún juego con su mismo nombre, así que el launcher no lo usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.'
-        : `${count} guardados no tienen al lado ningún juego con su mismo nombre, así que el launcher no los usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.`,
+        ? '1 guardado no tiene ningún juego con su mismo nombre al lado (ni en la carpeta de arriba, si está en una carpeta saves), así que el launcher no lo usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.'
+        : `${count} guardados no tienen ningún juego con su mismo nombre al lado (ni en la carpeta de arriba, si están en una carpeta saves), así que el launcher no los usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.`,
     savesDeleteLabel: (count: number) => `Borrar seleccionados (${count})`,
     savesConfirmLabel: (count: number) =>
       count === 1

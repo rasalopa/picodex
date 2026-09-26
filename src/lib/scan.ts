@@ -92,10 +92,10 @@ export async function scanCard(
   async function walk(dir: FileSystemDirectoryHandle, path: readonly string[]): Promise<void> {
     const inPico = pathEquals(path, [PICO_DIR]);
     const inUserCovers = pathEquals(path, COVERS.user);
-    // saves live next to their ROM, which can be anywhere outside /_pico —
-    // but the library walk never enters dot-directories, so a save in one
-    // must not be collected either (its ROM would be invisible and the save
-    // would wrongly classify as orphaned)
+    // saves live next to their ROM or in a saves folder beside it, anywhere
+    // outside /_pico — but the library walk never enters dot-directories, so
+    // a save in one must not be collected either (its ROM would be invisible
+    // and the save would wrongly classify as orphaned)
     const savesCollectible =
       path.every((segment) => !segment.startsWith('.')) &&
       (path.length === 0 || path[0].toLowerCase() !== PICO_DIR.toLowerCase());

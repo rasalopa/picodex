@@ -160,6 +160,29 @@ describe('findOrphanSaves', () => {
     expect(findOrphanSaves([], saves)).toEqual([]);
   });
 
+  it('keeps saves in a saves folder whose game sits in the folder above, as TWiLight lays them out', () => {
+    const games = [rom('nds', 'Mario Kart DS (USA).nds')];
+    const saves = [
+      { path: ['Games', 'nds', 'saves'], name: 'Mario Kart DS (USA).sav' },
+      { path: ['Games', 'nds', 'SAVES'], name: 'mario kart ds (usa).sav' },
+      { path: ['Games', 'nds', 'saves'], name: 'Deleted Game (USA).sav' },
+    ];
+    expect(findOrphanSaves(games, saves)).toEqual([
+      { path: ['Games', 'nds', 'saves'], name: 'Deleted Game (USA).sav' },
+    ]);
+  });
+
+  it('does not let the folder above rescue a save outside a saves folder', () => {
+    const games = [rom('nds', 'Mario Kart DS (USA).nds')];
+    const saves = [{ path: ['Games', 'nds', 'backup'], name: 'Mario Kart DS (USA).sav' }];
+    expect(findOrphanSaves(games, saves)).toEqual(saves);
+  });
+
+  it('does not look above a saves folder at the card root', () => {
+    const saves = [{ path: ['saves'], name: 'Lonely.sav' }];
+    expect(findOrphanSaves([], saves)).toEqual(saves);
+  });
+
   it('reports every save in a dir that has no games at all', () => {
     const saves = [{ path: ['Games', 'snes'], name: 'Old Game.sav' }];
     expect(findOrphanSaves([], saves)).toEqual(saves);
