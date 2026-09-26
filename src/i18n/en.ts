@@ -30,7 +30,7 @@ export const en = {
     reload: 'Reload',
     reloading: 'Reloading…',
     whatsNew: "What's new",
-    footerLicense: 'MIT licensed · no telemetry',
+    footerLicense: 'Open source (MIT) · no tracking',
     language: 'Language',
   },
   welcome: {
@@ -50,16 +50,18 @@ export const en = {
       boxArtTitle: 'Box art',
       boxArtBody: 'Finds games without covers and fetches launcher-ready art.',
       libraryTitle: 'Your library',
-      libraryBody: 'Every system on the card at a glance, with cover coverage.',
+      libraryBody: 'Every system on your card at a glance, and how many of its games have a cover.',
       statsTitle: 'Play stats',
-      statsBody: 'Favorites, most played and recents — with the Pico Launcher Enhanced fork.',
+      statsBody:
+        'Favorites, most played and recently played games, if you use Pico Launcher Enhanced.',
       healthTitle: 'Card health',
       healthBody:
         'Spots macOS junk, orphaned saves, and a loader whose files came from different releases.',
       bannersTitle: 'Folder banners',
       bannersBody: 'Give each system folder a proper icon and display name.',
       associationsTitle: 'File associations',
-      associationsBody: 'Point each ROM extension at its emulator, no JSON editing.',
+      associationsBody:
+        'Choose which emulator opens each type of ROM, without editing files by hand.',
     },
   },
   sd: {
@@ -85,7 +87,7 @@ export const en = {
     // Sentences that wrap a <code> element are split in parts; the JSX joins them.
     noSettings1: 'No ',
     noSettings2: ' found — run Pico Launcher once on your flashcart so it creates ',
-    noSettings3: ', then refresh.',
+    noSettings3: ', then press Reload.',
     settingsInvalid1: 'PicoDex found ',
     settingsInvalid2:
       " but can't read it: it is not a valid settings file. Don't start Pico Launcher until it is fixed, because the launcher replaces a file it can't read with a default one and your file associations would be lost. Open it in a text editor and look for a missing comma, quote or bracket near the place below, or put back a copy you saved. Then press Reload.",
@@ -111,12 +113,11 @@ export const en = {
     removeFor: (ext: string) => `Remove .${ext} association`,
     remove: 'Remove',
     add: 'Add',
-    invalidExt: 'Enter a valid file extension (dots are ignored).',
+    invalidExt: 'Type the letters of the extension, for example nes.',
     hint: 'Enter the extension without the dot. Common emulator paths: ',
     picoMissing:
       "Nothing was saved: PicoDex can't find the /_pico folder on the card any more. Check that the card is still connected, press Reload and save again.",
-    restartWarning:
-      'The launcher reads associations at boot — restart your DS after saving for the changes to take effect.',
+    restartWarning: 'Once saved, your changes apply the next time Pico Launcher starts on your DS.',
     emptyPaths: 'Application paths cannot be empty. Fill in or remove the blank rows.',
     discard: 'Discard changes',
     saveToSd: 'Save to SD',
@@ -146,13 +147,13 @@ export const en = {
     copying: 'Copying…',
     added: 'Added',
     addedCover: 'Added, cover fetched',
-    addedNoCover: 'Added, no cover match',
-    duplicate: 'Duplicate (skipped)',
+    addedNoCover: 'Added, no cover found',
+    duplicate: 'Skipped (already on card or dropped twice)',
     skipped: 'Skipped (already on card)',
     unknownType: 'Skipped (not a supported ROM file)',
     failed: 'Failed',
     failedWith: (message: string) => `Failed (${message})`,
-    gamesDirError: 'Could not open the games directory',
+    gamesDirError: 'Could not open the Games folder on the card',
     overlayBusy: 'Import in progress…',
     overlayDrop: 'Drop ROMs to add them to your card',
     resultsLabel: 'ROM import results',
@@ -189,13 +190,13 @@ export const en = {
     title: 'Covers',
     openCard: 'Open an SD card to manage covers.',
     intro:
-      'Finds games without cover art, fetches matching box art from libretro-thumbnails and writes launcher-ready BMP covers to your SD card.',
+      'Finds the games on your card without a cover and downloads box art for them from libretro-thumbnails. The covers are saved straight to your card, ready for the launcher.',
     scanFailed: (message: string) => `Scan failed: ${message}`,
     scanning: (done: number, total: number) => `Scanning ${done}/${total}…`,
     fetchResults: 'Fetch results',
     fetchingCounter: (done: number, total: number) => `Fetching covers — ${done}/${total} done`,
     batchFinished: (written: number, noMatch: number, failed: number) =>
-      `Batch finished: ${written} written · ${noMatch} without match · ${failed} failed`,
+      `Done: ${written} saved · ${noMatch} not found · ${failed} failed`,
     writtenCoverAlt: (fileName: string) => `Written cover for ${fileName}`,
     jobStatus: {
       pending: 'Queued',
@@ -204,12 +205,14 @@ export const en = {
       'no-match': 'No match',
       error: 'Failed',
     },
-    viaBannerTitle: 'matched on the title inside the ROM',
+    viaBannerTitle: 'found by the name stored in the game',
     noBoxartFound:
       "No box art found. You can pick one by hand with the pencil on the game's cover in Library.",
     unknownError: 'Unknown error',
-    catalogUnavailable: 'Boxart catalog unavailable',
-    coversDirFailed: 'Could not open the covers directory',
+    catalogUnavailable:
+      'Could not download the box art list. Check your internet connection and try again.',
+    coversDirFailed:
+      'Could not open the _pico/covers folder on your card. Check that the card is still connected and try again.',
     noGames: 'No games found on this SD card.',
     allCovered: (count: number) =>
       count === 1 ? 'Your game already has a cover.' : `All ${count} games already have covers.`,
@@ -239,14 +242,16 @@ export const en = {
     newCover: 'New',
     composingPreview: 'Composing preview…',
     newAlt: (game: string) => `New cover preview for ${game}`,
-    previewFailed: (message: string) => `Preview failed: ${message}`,
-    writeFailed: (message: string) => `Write failed: ${message}`,
+    previewFailed: (message: string) =>
+      `Could not prepare this picture. Try again or pick another one. Details: ${message}`,
+    writeFailed: (message: string) =>
+      `Could not save to the card. Check that the card is still connected and press Save again. Details: ${message}`,
     // Rendered before a <code> path; the JSX adds the space and the path.
-    writes: 'Writes',
+    writes: 'Saves to',
     writing: 'Writing…',
-    coversDirMissing: 'Could not open the covers directory',
+    coversDirMissing: 'Could not open the _pico/covers folder on your card.',
     iconHint:
-      'The small picture next to the name in the launcher list. GBA games and other systems have none of their own; a DS game shows the one inside the ROM, and this replaces it. The image is fitted into a 32×32 square and transparent areas stay transparent.',
+      "The small picture next to the game's name in the launcher list. DS games usually bring their own, and this one replaces it. Other systems have none, so this adds one. Your image is fitted into 32×32 without stretching, and transparent parts stay transparent.",
     iconNone: 'No custom icon',
     iconInvalidOnCard:
       'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
@@ -254,7 +259,7 @@ export const en = {
       'This game has its own banner file in _pico/banners, and the launcher takes the icon from there. An icon saved here would not show. To use your own icon, move that banner file out of _pico/banners first.',
     iconCurrentAlt: (game: string) => `Current icon of ${game}`,
     iconNewAlt: (game: string) => `New icon preview for ${game}`,
-    iconsDirMissing: 'Could not open the icons directory',
+    iconsDirMissing: 'Could not open the _pico/icons folder on your card.',
     tabBoxArt: 'Box art',
     tabCoverFile: 'Cover from your computer',
     tabIconFile: 'Icon from your computer',
@@ -278,10 +283,10 @@ export const en = {
       return `${String(hours)}h ${String(minutes)}m`;
     },
     // Sentence around three <code> elements (/_pico, Games/nds, roms/); the JSX joins the parts.
-    noGames1: 'No games found on the card. PicoDex scans every folder (except ',
-    noGames2: ') for known ROM extensions, so your games can live in ',
+    noGames1: 'No games found on the card. PicoDex looks in every folder except ',
+    noGames2: ', so your games can be in ',
     noGames3: ', a ',
-    noGames4: ' folder, or anywhere else.',
+    noGames4: ' folder or anywhere else. Copy your games to the card and press Reload.',
     gameCount: (count: number) => (count === 1 ? '1 game' : `${String(count)} games`),
     covers: (covered: number, count: number, approximate: boolean) =>
       `${String(covered)}/${String(count)} covers${approximate ? ' (approx.)' : ''}`,
@@ -298,7 +303,7 @@ export const en = {
     notFound: 'Not found',
     enhancedChip: 'Pico Enhanced',
     updatedOn: (date: string) => `· updated ${date}`,
-    apiVersion: (version: number) => `API v${String(version)}`,
+    apiVersion: (version: number) => `Installed (API v${String(version)})`,
     // Labels for the loader's API capabilities, shown next to the version.
     // Keyed to match loaderApiCapabilities()'s return values.
     capabilities: {
@@ -315,8 +320,9 @@ export const en = {
       'PicoDex could not read this game file, so it cannot show what the loader does with it. The file may be damaged or only partly copied: try copying it to the card again.',
     noGameCode:
       'This game file has no readable game code, which is common with homebrew. PicoDex needs that code to check this game, so there is nothing to show here. If the game starts, there is nothing to do.',
-    noLists: 'No loader lists were found on this SD card.',
-    revisionUnreadable: 'revision unreadable (assuming rev 0)',
+    noLists:
+      'The loader files this check needs (aplist.bin, savelist.bin, patchlist.bin) are not in /_pico. The Health tab shows which loader files are missing.',
+    revisionUnreadable: 'revision unknown (the loader treats it as revision 0)',
     revision: (n: number) => `revision ${String(n)}`,
     apLabel: 'Anti-piracy fix',
     saveLabel: 'Save',
@@ -344,25 +350,25 @@ export const en = {
     },
     ap: {
       notListed: "Not in aplist.bin. Most games don't need this fix.",
-      skipped: 'The loader skips anti-piracy for this kind of ROM.',
+      skipped: 'Not needed. The loader skips this step for homebrew and DSiWare.',
       applies: (dsProtectVersion: string | null) =>
-        `Fix included (DS Protect ${dsProtectVersion ?? 'unknown'}).`,
+        `Fixed at boot by the loader (DS Protect ${dsProtectVersion ?? 'unknown'}).`,
       listUnavailable:
         'aplist.bin is missing from /_pico or cannot be read, so this cannot be checked. The loader needs this file: check the Health tab.',
     },
     save: {
       homebrewNone: 'The loader creates no save file for homebrew.',
-      dsiWareNone: 'This DSiWare title declares no save data.',
+      dsiWareNone: 'This DSiWare game does not save.',
       dsiWare: (pubSize: string, prvSize: string | null) =>
-        `DSiWare: a ${pubSize} .pub${prvSize ? ` and a ${prvSize} .prv` : ''}, sized from the ROM header.`,
-      nandHeader: (size: string) => `NAND, ${size} (from the ROM header)`,
-      defaultSize: 'Not listed — the loader defaults to 512 KB.',
+        `Saves to a ${pubSize} .pub${prvSize ? ` and a ${prvSize} .prv` : ''} next to the game.`,
+      nandHeader: (size: string) => `NAND, ${size}`,
+      defaultSize: 'Not in savelist.bin, so the loader creates a 512 KB save file.',
       none: 'None — this game does not save.',
       listed: (type: string, size: string) => `${type}, ${size}`,
     },
     patch: {
       notListed: "Not in patchlist.bin. Most games don't need a patch.",
-      skipped: 'The loader skips game patches for this kind of ROM.',
+      skipped: 'Not needed. The loader does not patch homebrew.',
       applied: (count: number) =>
         count === 1 ? '1 patch applied at boot.' : `${String(count)} patches applied at boot.`,
       listUnavailable:
@@ -387,7 +393,7 @@ export const en = {
         retail:
           'Original cartridges have a save chip inside. The loader replaces it with a save file on your SD card.',
         dsiware:
-          'DSiWare saves to files rather than to a cartridge chip. The loader creates them next to the ROM at the sizes the ROM itself declares, so no list is involved.',
+          'DSiWare games save to files, not to a cartridge chip. The loader creates those files next to the game, at the sizes the game asks for.',
         homebrew:
           'Homebrew manages its own files on the SD card, so the loader does not create a save for it. Anything this ROM saves, it saves by itself.',
       },
@@ -397,7 +403,7 @@ export const en = {
         dsiware:
           'A few games need a small fix to run correctly from a flashcart, and DSiWare games can get one too. The loader applies it at boot, from patchlist.bin or from fixes built into the loader itself. PicoDex can only check patchlist.bin.',
         homebrew:
-          'These fixes exist to make retail games run from a flashcart. The loader applies none of them to homebrew, which runs as built.',
+          'These fixes are for retail games. The loader does not apply any of them to homebrew, which runs as it is.',
       },
     },
   },
@@ -419,7 +425,7 @@ export const en = {
     fromGame: 'From a game',
     imageFileLabel: 'Icon image file',
     imageHint:
-      'Scaled to fit 32×32 and quantized to 15 colors — the preview above is exactly what the DS will show.',
+      'Your image is resized to fit 32×32 and reduced to 15 colors. The preview above shows exactly how it will look on the DS.',
     imageFailed: (detail: string) => `Could not read the image: ${detail}`,
     gamePicker: 'Game to take the icon from',
     chooseGame: 'Choose a game…',
@@ -455,7 +461,7 @@ export const en = {
     launches: (count: number) => `${count}x`,
     coverAlt: (title: string) => `Cover of ${title}`,
     changeCover: (title: string) => `Change cover for ${title}`,
-    resolving: 'Resolving game…',
+    resolving: 'Reading the game…',
     pickBoxArt: 'Pick the correct box art',
     toggleFavorite: (title: string) => `Toggle favorite for ${title}`,
     removeFavorite: 'Remove from favorites',
@@ -493,15 +499,15 @@ export const en = {
     junkCount: (count: number, size: string) =>
       count === 1 ? `1 junk file (${size})` : `${count} junk files (${size})`,
     // Sentences that wrap <code>/<a>/<strong> elements are split in parts; the JSX joins them.
-    junkKinds1: '— ',
-    junkKinds2: ' AppleDouble files and ',
-    junkKinds3: '.',
+    junkKinds1: 'left behind by macOS: ',
+    junkKinds2: ' files and ',
+    junkKinds3: '. They are safe to delete.',
     showJunk: 'Show junk files',
     junkCleanLabel: (count: number) => `Clean up ${count} ${count === 1 ? 'file' : 'files'}`,
     junkConfirmLabel: (count: number) =>
       `Confirm delete ${count} ${count === 1 ? 'file' : 'files'}?`,
     junkDeleteFailed: (files: string) =>
-      `Could not delete: ${files}. macOS protects some of its own files from other apps — they are harmless to the launcher.`,
+      `Could not delete: ${files}. They don't affect the launcher, so you can leave them.`,
     macosKeeps1: 'macOS keeps ',
     macosKeeps2:
       " on the card and puts them back every time you plug it into a Mac. They don't affect the launcher, so you can leave them.",
@@ -527,13 +533,14 @@ export const en = {
       " PicoDex can't tell which, because the files that tell them apart are missing or not recognised. If your games start, there is nothing to do.",
     releasesBehind1: (count: number, atLeast: boolean) =>
       `${atLeast ? 'At least ' : ''}${count} ${count === 1 ? 'release' : 'releases'} behind `,
-    releasesBehind2: '.',
+    releasesBehind2:
+      '. To update, download it from the pico-loader releases and copy all its files into /_pico.',
     newestKnownCandidate: (tag: string) =>
       `One of them is ${tag}, the newest version PicoDex knows, so you may already be up to date.`,
     newestKnownMaybe: 'That is the newest release PicoDex knows of. Something newer may exist.',
     newestRelease: 'That is the newest release.',
     mixed1: (agreeing: number) =>
-      `The loader is only half updated: ${agreeing} of these files are from `,
+      `Your loader is only half updated: ${agreeing} of its files are from `,
     mixed2: ', but ',
     andJoiner: ' and ',
     mixed3: (count: number) =>
