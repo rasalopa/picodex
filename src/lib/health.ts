@@ -149,6 +149,54 @@ export function findOrphanSaves(
   });
 }
 
+/** A game with a save next to it and another in the saves folder beside it. */
+export interface DuplicateSave {
+  game: LibraryFile;
+  /** The save next to the ROM, the one Pico Launcher reads. */
+  beside: SaveFile;
+  /** The save in the saves folder, the one TWiLight Menu++ reads. */
+  inFolder: SaveFile;
+}
+
+/**
+ * Finds games that have two save files: one next to the ROM and one in the
+ * `saves` folder beside it. Pico Launcher reads the first and TWiLight
+ * Menu++ the second, so progress made in one launcher does not show in the
+ * other. Nothing here can tell which copy is newer (the card carries no
+ * usable timestamps), so this only reports the pair.
+ *
+ * @param games All ROMs found on the card.
+ * @param saves Save files collected by the card walk.
+ * @returns The pairs, in `games` order.
+ */
+export function findDuplicateSaves(
+  games: readonly LibraryFile[],
+  saves: readonly SaveFile[],
+): DuplicateSave[] {
+  /** lowercased `dir/name` → the save at that path. */
+  const savesAt = new Map<string, SaveFile>();
+  for (const save of saves) {
+    if (save.name.toLowerCase().endsWith('.sav')) {
+      savesAt.set([...save.path, save.name].join('/').toLowerCase(), save);
+    }
+  }
+  const found: DuplicateSave[] = [];
+  for (const game of games) {
+    const dir = game.path.join('/').toLowerCase();
+    const folder = dir === '' ? SAVES_FOLDER : `${dir}/${SAVES_FOLDER}`;
+    for (const base of [baseName(game.fileName), game.fileName]) {
+      const name = `${base.toLowerCase()}.sav`;
+      const beside = savesAt.get(dir === '' ? name : `${dir}/${name}`);
+      const inFolder = savesAt.get(`${folder}/${name}`);
+      if (beside !== undefined && inFolder !== undefined) {
+        found.push({ game, beside, inFolder });
+        break;
+      }
+    }
+  }
+  return found;
+}
+
 /**
  * Finds files in `_pico/covers/user/` that are no game's cover: user covers
  * are keyed by full ROM file name (`<file name>.bmp`), so any `.bmp` whose

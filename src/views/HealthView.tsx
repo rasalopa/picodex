@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSd, type SdMessage } from '../state/SdContext';
 import { fsMessage } from '../state/fsMessage';
 import { useT } from '../i18n';
-import { findOrphanSaves, findOrphanUserCovers, missingLoaderFiles } from '../lib/health';
+import {
+  findDuplicateSaves,
+  findOrphanSaves,
+  findOrphanUserCovers,
+  missingLoaderFiles,
+} from '../lib/health';
 import { fetchLatestLoaderTag, LOADER_MANIFEST, scanLoaderFiles } from '../lib/loaderScan';
 import {
   identifyLoader,
@@ -204,6 +209,10 @@ export function HealthView() {
   const libraryEmpty = games.length === 0;
   const orphanSaves = useMemo(
     () => (scan === null || libraryEmpty ? [] : findOrphanSaves(games, scan.saves)),
+    [scan, games, libraryEmpty],
+  );
+  const duplicateSaves = useMemo(
+    () => (scan === null || libraryEmpty ? [] : findDuplicateSaves(games, scan.saves)),
     [scan, games, libraryEmpty],
   );
   const orphanCovers = useMemo(
@@ -633,6 +642,27 @@ export function HealthView() {
                     onDelete={() => void handleSavesDelete()}
                   />
                 </div>
+              </>
+            )}
+            {duplicateSaves.length > 0 && (
+              <>
+                <p className="health-view__warn">
+                  {t.health.savesDuplicates(duplicateSaves.length)}
+                </p>
+                <ul className="health-view__list">
+                  {duplicateSaves.map(({ game, beside, inFolder }) => (
+                    <li key={[...game.path, game.fileName].join('/')}>
+                      <div>
+                        {t.health.savesDuplicateBeside}
+                        <code>{[...beside.path, beside.name].join('/')}</code>
+                      </div>
+                      <div>
+                        {t.health.savesDuplicateInFolder}
+                        <code>{[...inFolder.path, inFolder.name].join('/')}</code>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </>
             )}
             {savesError !== null && (

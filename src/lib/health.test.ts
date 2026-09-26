@@ -3,6 +3,7 @@ import {
   JUNK_DIR_NAMES,
   OPTIONAL_LOADER_FILES,
   REQUIRED_LOADER_FILES,
+  findDuplicateSaves,
   findOrphanSaves,
   findOrphanUserCovers,
   isJunkFileName,
@@ -186,6 +187,41 @@ describe('findOrphanSaves', () => {
   it('reports every save in a dir that has no games at all', () => {
     const saves = [{ path: ['Games', 'snes'], name: 'Old Game.sav' }];
     expect(findOrphanSaves([], saves)).toEqual(saves);
+  });
+});
+
+describe('findDuplicateSaves', () => {
+  it('pairs a save next to the ROM with the one in the saves folder, case-insensitively', () => {
+    const game = rom('nds', 'Mario Kart DS (USA).nds');
+    const beside = { path: ['Games', 'nds'], name: 'MARIO KART DS (USA).SAV' };
+    const inFolder = { path: ['Games', 'NDS', 'Saves'], name: 'Mario Kart DS (USA).sav' };
+    expect(findDuplicateSaves([game], [beside, inFolder])).toEqual([{ game, beside, inFolder }]);
+  });
+
+  it('reports nothing when a game has only one save, wherever it is', () => {
+    const games = [rom('nds', 'A.nds'), rom('nds', 'B.nds')];
+    const saves = [
+      { path: ['Games', 'nds'], name: 'A.sav' },
+      { path: ['Games', 'nds', 'saves'], name: 'B.sav' },
+    ];
+    expect(findDuplicateSaves(games, saves)).toEqual([]);
+  });
+
+  it('does not pair saves of different games or from another folder', () => {
+    const games = [rom('nds', 'A.nds')];
+    const saves = [
+      { path: ['Games', 'nds'], name: 'A.sav' },
+      { path: ['Games', 'gba', 'saves'], name: 'A.sav' },
+      { path: ['Games', 'nds', 'saves'], name: 'B.sav' },
+    ];
+    expect(findDuplicateSaves(games, saves)).toEqual([]);
+  });
+
+  it('understands the Game.nds.sav naming scheme too', () => {
+    const game = rom('nds', 'A.nds');
+    const beside = { path: ['Games', 'nds'], name: 'A.nds.sav' };
+    const inFolder = { path: ['Games', 'nds', 'saves'], name: 'A.nds.sav' };
+    expect(findDuplicateSaves([game], [beside, inFolder])).toEqual([{ game, beside, inFolder }]);
   });
 });
 

@@ -589,9 +589,15 @@ export const en = {
     savesAllOk: 'Every save file belongs to a game on the card.',
     savesOrphans: (count: number) =>
       count === 1
-        ? "1 save file has no game with the same name next to it (or in the folder above, if it sits in a saves folder), so the launcher won't use it. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need."
-        : `${count} save files have no game with the same name next to them (or in the folder above, if they sit in a saves folder), so the launcher won't use them. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need.`,
+        ? "1 save file belongs to no game: there is no game with the same name in its folder, nor in the folder above when the save sits in a saves folder. The launcher won't use it. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need."
+        : `${count} save files belong to no game: there is no game with the same name in their folder, nor in the folder above when the save sits in a saves folder. The launcher won't use them. If you moved or renamed a game, move or rename its save the same way to keep your progress. Deleting is permanent: tick only the saves you are sure you don't need.`,
     savesDeleteLabel: (count: number) => `Delete selected (${count})`,
+    savesDuplicates: (count: number) =>
+      count === 1
+        ? "1 game has its save file twice: one next to the game and one in the saves folder. Pico Launcher uses the one next to the game and TWiLight Menu++ the one in the saves folder, so progress made in one won't show in the other. PicoDex can't tell which copy has your latest progress, so it touches neither. If you only use one launcher, the other copy is not needed; if you use both, keep the copy with your progress and remove the other."
+        : `${count} games have their save file twice: one next to the game and one in the saves folder. Pico Launcher uses the one next to the game and TWiLight Menu++ the one in the saves folder, so progress made in one won't show in the other. PicoDex can't tell which copy has your latest progress, so it touches neither. If you only use one launcher, the other copy is not needed; if you use both, keep the copy with your progress and remove the other.`,
+    savesDuplicateBeside: 'next to the game: ',
+    savesDuplicateInFolder: 'in the saves folder: ',
     savesConfirmLabel: (count: number) =>
       `Confirm permanently delete ${count} save ${count === 1 ? 'file' : 'files'}?`,
     coversTitle: 'Orphaned user covers',

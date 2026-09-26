@@ -574,9 +574,15 @@ export const es: Dict = {
     savesAllOk: 'Todos los guardados pertenecen a un juego de la tarjeta.',
     savesOrphans: (count: number) =>
       count === 1
-        ? '1 guardado no tiene ningún juego con su mismo nombre al lado (ni en la carpeta de arriba, si está en una carpeta saves), así que el launcher no lo usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.'
-        : `${count} guardados no tienen ningún juego con su mismo nombre al lado (ni en la carpeta de arriba, si están en una carpeta saves), así que el launcher no los usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.`,
+        ? '1 guardado no pertenece a ningún juego: no hay ningún juego con su mismo nombre en su carpeta, ni en la carpeta de arriba cuando el guardado está en una carpeta saves. El launcher no lo usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.'
+        : `${count} guardados no pertenecen a ningún juego: no hay ningún juego con su mismo nombre en su carpeta, ni en la carpeta de arriba cuando el guardado está en una carpeta saves. El launcher no los usará. Si moviste o renombraste un juego, mueve o renombra su guardado igual para conservar tu progreso. Borrar es permanente: marca solo los guardados que tengas claro que no necesitas.`,
     savesDeleteLabel: (count: number) => `Borrar seleccionados (${count})`,
+    savesDuplicates: (count: number) =>
+      count === 1
+        ? '1 juego tiene su guardado dos veces: uno junto al juego y otro en la carpeta saves. Pico Launcher usa el que está junto al juego y TWiLight Menu++ el de la carpeta saves, así que lo que avances en uno no se verá en el otro. PicoDex no sabe cuál tiene tu progreso más reciente, así que no toca ninguno. Si solo usas un launcher, el otro guardado te sobra; si usas los dos, quédate con el que tenga tu progreso y quita el otro.'
+        : `${count} juegos tienen su guardado dos veces: uno junto al juego y otro en la carpeta saves. Pico Launcher usa el que está junto al juego y TWiLight Menu++ el de la carpeta saves, así que lo que avances en uno no se verá en el otro. PicoDex no sabe cuál tiene tu progreso más reciente, así que no toca ninguno. Si solo usas un launcher, el otro guardado te sobra; si usas los dos, quédate con el que tenga tu progreso y quita el otro.`,
+    savesDuplicateBeside: 'junto al juego: ',
+    savesDuplicateInFolder: 'en la carpeta saves: ',
     savesConfirmLabel: (count: number) =>
       count === 1
         ? '¿Confirmas borrar permanentemente 1 guardado?'
