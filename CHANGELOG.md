@@ -77,13 +77,13 @@ The release that closes the list. Everything people asked for since v0.9.0 is in
 
 ## 0.6.0 — 2026-08-10
 
-- **PicoDex remembers the card you had open last time** and offers to reopen it, so coming back is
-  one click instead of the folder picker and a full rescan.
+- **PicoDex remembers the card you had open last time** and offers to reopen it with one click,
+  without going through the folder picker again.
 - **Cover galleries open from memory.** The covers a system showed once are kept decoded, so
   reopening it, even after a reload, no longer reads and redraws every image off the card.
-- **Box art catalogs are kept for a week** instead of downloaded every visit, and when GitHub is out
-  of requests a stored catalog still finds art for nearly every game. The rate-limit message says
-  the budget is spent and when it comes back.
+- **The Covers tab keeps the list of available box art for a week** instead of downloading it on
+  every visit, so it still finds covers when GitHub limits how often it can be asked. When that
+  happens, the message tells you when to try again.
 - **Scanning a large library for missing covers is quicker:** ROM headers are read a few at a time
   instead of one after another.
 

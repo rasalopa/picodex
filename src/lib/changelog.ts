@@ -40,16 +40,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'Use any image on your computer as a game\u2019s cover or icon. PicoDex converts it to what the launcher expects and refuses what the launcher would refuse. Icons work on GBA too, where games carry none of their own.',
-          es: 'Usa cualquier imagen de tu ordenador como car\u00e1tula o icono de un juego. PicoDex la convierte a lo que espera el launcher y rechaza lo que el launcher rechazar\u00eda. Los iconos tambi\u00e9n funcionan en GBA, donde los juegos no traen ninguno.',
+          en: "Use any picture on your computer as a game's cover or icon. PicoDex converts it to the format the launcher reads. It also tells you when an icon file already on your card is one the launcher can't show. Icons work for GBA games too, which don't come with one.",
+          es: 'Usa cualquier imagen de tu equipo como carátula o icono de un juego. PicoDex la convierte al formato que lee el launcher. También te avisa cuando un icono que ya está en tu tarjeta es uno que el launcher no puede mostrar. Los iconos también funcionan en los juegos de GBA, que no traen uno propio.',
           ru: 'Используйте любое изображение на компьютере в качестве обложки или иконки игры. PicoDex преобразует его в формат, который ожидает лаунчер. Иконки работают и на GBA, хотя сами игры не содержат никаких иконок.',
         },
         issue: 5,
       },
       {
         text: {
-          en: 'The cover dialog is laid out like the console: the cover and title on the top screen, the browser row among its real neighbours on the bottom one. Cover and icon save together.',
-          es: 'El di\u00e1logo de car\u00e1tula se ve como la consola: la car\u00e1tula y el t\u00edtulo en la pantalla de arriba, y la fila del navegador entre sus vecinos reales en la de abajo. La car\u00e1tula y el icono se guardan juntos.',
+          en: "The cover dialog now looks like the console: the cover and title on the top screen, and on the bottom screen the game's row in the list, between the games that sit next to it. The cover and the icon are saved together.",
+          es: 'El diálogo de carátula ahora se ve como la consola: la carátula y el título en la pantalla de arriba, y en la de abajo la fila del juego en la lista, entre los juegos que tiene al lado. La carátula y el icono se guardan juntos.',
           ru: 'Структура обложки как на самой консоли: обложка и название находятся на верхнем экране, а строка браузера — среди своих настоящих соседей снизу. Обложка и значок сохраняются вместе.',
         },
       },
@@ -62,23 +62,22 @@ export const CHANGELOG: ChangelogEntry[] = [
       },
       {
         text: {
-          en: 'Games with Chinese, Japanese, Korean or Cyrillic file names get their covers: PicoDex reads the title the ROM carries inside itself. And when there is nothing to match on, it leaves the cover empty rather than fetching the wrong one.',
-          es: 'Los juegos con el nombre de fichero en chino, japon\u00e9s, coreano o cir\u00edlico ya encuentran su car\u00e1tula: PicoDex lee el t\u00edtulo que el ROM lleva dentro. Y cuando no hay nada con lo que emparejar, deja la car\u00e1tula vac\u00eda en vez de traer la equivocada.',
-          ru: 'Игры с китайскими, японскими, корейскими или кириллическими именами файлов получают свои обложки: PicoDex читает название, которое ROM хранит внутри себя. А если сопоставить не с чем, оставляет обложку пустой, вместо того чтобы загружать неправильную.',
+          en: "DS games whose file names are in Chinese, Japanese, Korean or Cyrillic now find their covers: PicoDex reads the title stored inside the game. If it still can't tell which game it is, it leaves the cover empty instead of picking the wrong one.",
+          es: 'Los juegos de DS con el nombre de archivo en chino, japonés, coreano o cirílico ya encuentran su carátula: PicoDex lee el título que el juego lleva guardado. Si aun así no sabe qué juego es, deja la carátula vacía en vez de poner una equivocada.',
         },
         issue: 6,
       },
       {
         text: {
-          en: 'Covers no longer land on a kiosk demo or a beta build when the release itself is in the catalog.',
-          es: 'Las car\u00e1tulas ya no acaban en una demo de quiosco o una beta cuando la versi\u00f3n de verdad est\u00e1 en el cat\u00e1logo.',
+          en: 'Automatic covers no longer pick a demo or beta version of a game when box art for the full game exists.',
+          es: 'Las carátulas automáticas ya no eligen la demo o la beta de un juego cuando existe la carátula del juego completo.',
           ru: 'Обложки больше не привязываются к демоверсии или бета-сборке, если полная версия игры уже есть в каталоге.',
         },
       },
       {
         text: {
-          en: 'The cover batch no longer races itself on a card that has no covers folder yet, which used to fail most of the batch.',
-          es: 'El lote de car\u00e1tulas ya no compite consigo mismo en una tarjeta que a\u00fan no tiene carpeta de car\u00e1tulas, que hac\u00eda fallar casi todo el lote.',
+          en: "Fetching many covers at once no longer fails on a card that doesn't have a covers folder yet.",
+          es: 'Traer muchas carátulas a la vez ya no falla en una tarjeta que todavía no tiene carpeta de carátulas.',
           ru: 'Обработка обложек больше не запускается, если на карте памяти ещё нет папки с обложками, из-за чего раньше случалось зависание.',
         },
       },
@@ -90,8 +89,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'PicoDex speaks Russian, translated by BrooksPMA. If you would like your language next, CONTRIBUTING.md has the steps and there is an issue to claim one.',
-          es: 'PicoDex habla ruso, traducido por BrooksPMA. Si quieres que el siguiente sea tu idioma, CONTRIBUTING.md tiene los pasos y hay un issue para reclamarlo.',
+          en: "PicoDex is now in Russian, translated by BrooksPMA. If you'd like to translate it into your language, CONTRIBUTING.md on GitHub explains how.",
+          es: 'PicoDex ya está en ruso, traducido por BrooksPMA. Si quieres traducirlo a tu idioma, CONTRIBUTING.md en GitHub explica cómo.',
           ru: 'PicoDex говорит по-русски благодаря переводу BrooksPMA. Если вы хотите добавить свой язык следующим, в CONTRIBUTING.md описаны необходимые шаги, а также есть issue, который можно взять в работу.',
         },
       },
@@ -103,8 +102,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'PicoDex can be translated into any language now, and a translation does not have to be finished to ship - whatever a language has not covered yet reads in English. If you would like to see PicoDex in your language, CONTRIBUTING.md has the steps.',
-          es: 'PicoDex ya se puede traducir a cualquier idioma, y una traducción no tiene que estar terminada para publicarse: lo que un idioma todavía no cubra se lee en inglés. Si quieres ver PicoDex en tu idioma, CONTRIBUTING.md tiene los pasos.',
+          en: "PicoDex can now be translated into any language. A translation can be published before it is finished: anything not translated yet appears in English. If you'd like PicoDex in your language, CONTRIBUTING.md has the steps.",
+          es: 'PicoDex ya se puede traducir a cualquier idioma. Una traducción se puede publicar antes de estar terminada: lo que aún no esté traducido aparece en inglés. Si quieres PicoDex en tu idioma, CONTRIBUTING.md tiene los pasos.',
           ru: 'PicoDex теперь можно перевести на любой язык, и перевод не обязательно должен быть завершён до конца — всё, что ещё не переведено, будет отображаться на английском. Если вы хотите видеть PicoDex на своём языке, то CONTRIBUTING.md содержит все инструкции.',
         },
       },
@@ -116,8 +115,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'PicoDex speaks Spanish. The switch is in the footer and it remembers your choice, and on a first visit it follows your browser. Every view, every dialog and every message, including the ones about what is wrong with your card.',
-          es: 'PicoDex habla español. El conmutador está en el pie y recuerda tu elección; la primera vez sigue al idioma del navegador. Todas las vistas, todos los diálogos y todos los mensajes, incluidos los que explican qué le pasa a tu tarjeta.',
+          en: "PicoDex is now in Spanish. Change the language at the bottom of the page. PicoDex remembers your choice, and on your first visit it uses your browser's language. Views, dialogs and the messages about problems on your card are translated.",
+          es: 'PicoDex ya está en español. Cambia el idioma al pie de la página. PicoDex recuerda tu elección y, la primera vez, usa el idioma de tu navegador. Las vistas, los diálogos y los mensajes sobre problemas de tu tarjeta están traducidos.',
           ru: 'PicoDex говорит по-испански. Переключатель находится в нижней части страницы и запоминает ваш выбор, а при первом посещении использует язык браузера. Переведены все страницы, диалоги и сообщения, включая те, которые рассказывают о проблемах с вашей картой.',
         },
       },
@@ -150,15 +149,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       },
       {
         text: {
-          en: 'The health check now recognises the loader files of every flashcart build and says which one your card carries, like "Loader v1.7.1, the R4 build". A card that used to show unrecognised files just because it was not a DSpico now identifies cleanly.',
-          es: 'La revisión de salud ahora reconoce los archivos del loader de cada build de flashcart y dice cuál lleva tu tarjeta, por ejemplo "Loader v1.7.1, el build R4". Una tarjeta que antes mostraba archivos sin reconocer solo por no ser un DSpico ahora se identifica sin ruido.',
+          en: 'The health check now recognises Pico Loader on other flashcarts too, not only the DSpico, and tells you which one your card has, like "Loader v1.7.1, the R4 build". Cards that aren\'t a DSpico no longer show their loader files as unrecognised.',
+          es: 'La revisión de salud ahora reconoce Pico Loader también en otros flashcarts, no solo en el DSpico, y te dice cuál lleva tu tarjeta, por ejemplo "Loader v1.7.1, build R4". Las tarjetas que no son un DSpico ya no muestran sus archivos del loader como no reconocidos.',
           ru: 'Проверка состояния карты памяти теперь распознаёт файлы загрузчика для каждой сборки flash-карт и сообщает, какая именно установлена на вашей карте, например «Loader v1.7.1, сборка R4». Карта, которая раньше показывала неизвестные файлы только потому, что это была не DSpico, теперь корректно определяется.',
         },
       },
       {
         text: {
-          en: 'The play-stats tab and the Pico Enhanced badge only appear when the card actually runs the Enhanced launcher, detected from the launcher itself.',
-          es: 'La pestaña de estadísticas y la insignia de Pico Enhanced solo aparecen cuando la tarjeta corre de verdad el launcher Enhanced, detectado desde el propio launcher.',
+          en: 'The play stats tab and the Pico Enhanced badge now appear only when your card runs Pico Enhanced.',
+          es: 'La pestaña de estadísticas y la insignia de Pico Enhanced ahora solo aparecen cuando tu tarjeta usa Pico Enhanced.',
           ru: 'Вкладка игровой статистики и значок Pico Enhanced отображаются только тогда, когда карта действительно запускает Enhanced launcher, что определяется непосредственно по самому загрузчику.',
         },
       },
@@ -170,29 +169,27 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'PicoDex remembers the card you had open last time and offers to reopen it, so coming back is one click instead of the folder picker and a full rescan.',
-          es: 'PicoDex recuerda la tarjeta que tenías abierta la última vez y ofrece reabrirla: volver es un clic en lugar del selector de carpetas y un escaneo completo.',
-          ru: 'PicoDex запоминает карту, которую вы открывали в прошлый раз, и предлагает открыть её снова, поэтому вернуться к работе можно одним кликом вместо выбора папки и повторного сканирования.',
+          en: 'PicoDex remembers the card you had open last time and offers to reopen it with one click, without going through the folder picker again.',
+          es: 'PicoDex recuerda la tarjeta que tenías abierta la última vez y te ofrece reabrirla con un clic, sin pasar otra vez por el selector de carpetas.',
         },
       },
       {
         text: {
-          en: 'Cover galleries open from memory. The covers a system showed once are kept decoded, so reopening it, even after a reload, no longer reads and redraws every image off the card.',
-          es: 'Las galerías de carátulas abren desde memoria. Las carátulas que un sistema ya mostró se conservan decodificadas, así que reabrirlo, incluso tras recargar la página, ya no lee ni redibuja cada imagen desde la tarjeta.',
+          en: 'Cover galleries open faster: covers you have already seen show up straight away, even after reloading the page.',
+          es: 'Las galerías de carátulas abren más rápido: las carátulas que ya viste aparecen al instante, incluso después de recargar la página.',
           ru: 'Галереи обложек открываются из памяти. Обложки, которые система уже показывала, хранятся в декодированном виде, поэтому при повторном открытии, даже после перезагрузки страницы, больше не требуется заново считывать и отрисовывать каждое изображение с карты.',
         },
       },
       {
         text: {
-          en: 'Box art catalogs are kept for a week instead of downloaded every visit, and when GitHub is out of requests a stored catalog still finds art for nearly every game. The rate-limit message now says the budget is spent and when it comes back.',
-          es: 'Los catálogos de carátulas se guardan una semana en lugar de bajarse en cada visita, y cuando GitHub se queda sin peticiones un catálogo guardado sigue encontrando arte para casi todos los juegos. El mensaje del límite ahora dice que el presupuesto se agotó y cuándo vuelve.',
-          ru: 'Каталоги обложек теперь хранятся неделю вместо повторной загрузки при каждом посещении, а когда у GitHub заканчиваются доступные запросы, сохранённый каталог всё равно находит обложку почти для каждой игры. Сообщение об ограничении запросов теперь сообщает, что лимит исчерпан, и когда он восстановится.',
+          en: 'The Covers tab keeps the list of available box art for a week instead of downloading it on every visit, so it still finds covers when GitHub limits how often it can be asked. When that happens, the message tells you when to try again.',
+          es: 'La pestaña Carátulas guarda la lista de carátulas disponibles durante una semana en lugar de bajarla en cada visita, así que sigue encontrando carátulas cuando GitHub limita las consultas. Cuando eso pasa, el mensaje te dice cuándo volver a intentarlo.',
         },
       },
       {
         text: {
-          en: 'Scanning a large library for missing covers is quicker: the ROM headers are read a few at a time instead of one after another.',
-          es: 'Buscar carátulas faltantes en una biblioteca grande es más rápido: las cabeceras de las ROMs se leen de varias en varias en lugar de una por una.',
+          en: 'Looking for missing covers in a large library is faster.',
+          es: 'Buscar carátulas que faltan en una biblioteca grande es más rápido.',
           ru: 'Сканирование большой библиотеки на предмет отсутствующих обложек стало быстрее: заголовки ROM читаются по несколько штук за раз, а не по одной.',
         },
       },
@@ -204,8 +201,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'The health check now works out which Pico Loader release your card is running, and warns when its files came from different releases — a half-finished update the launcher gives no sign of.',
-          es: 'La revisión de salud ahora deduce qué versión de Pico Loader corre tu tarjeta, y avisa cuando sus archivos vienen de versiones distintas: una actualización a medias de la que el launcher no da ninguna señal.',
+          en: 'The health check now tells you which Pico Loader version is on your card. It also warns you when the loader files come from different versions, which usually means an update was only half copied. The launcher gives no sign of this.',
+          es: 'La revisión de salud ahora te dice qué versión de Pico Loader hay en tu tarjeta. También te avisa cuando los archivos del loader vienen de versiones distintas, lo que suele significar que una actualización se copió a medias. El launcher no da ninguna señal de esto.',
           ru: 'Проверка состояния теперь определяет, какую версию Pico Loader использует ваша карта, и предупреждает, если её файлы взяты из разных версий — то есть обновление завершилось не полностью, хотя загрузчик никак об этом не сообщает.',
         },
       },
@@ -272,8 +269,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'Homebrew ROMs sharing the "####" placeholder game code no longer bleed favorites, completed marks and stats into each other.',
-          es: 'Los homebrew que comparten el código de juego "####" ya no se mezclan entre sí los favoritos, las marcas de completado ni las estadísticas.',
+          en: 'Homebrew games no longer mix up their favorites, completed marks and play stats with each other.',
+          es: 'Los juegos homebrew ya no mezclan entre sí sus favoritos, marcas de completado y estadísticas.',
           ru: 'Homebrew ROM с кодом игры-заполнителем «####» больше не смешивают между собой избранные игры, отметки о прохождении и статистику.',
         },
       },
@@ -292,15 +289,15 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         text: {
-          en: 'Completed-game marks. A green check on each cover toggles the completed flag, byte-compatible with the launcher.',
-          es: 'Marcas de juego completado: un check verde en cada carátula la activa y desactiva, compatible byte a byte con el launcher.',
+          en: 'Mark games as completed: click the green check on a cover. The mark is saved on the card in the same format the launcher uses.',
+          es: 'Marca juegos como completados: haz clic en el check verde de una carátula. La marca se guarda en la tarjeta en el mismo formato que usa el launcher.',
           ru: 'Отметки о прохождении игр. Зелёная галочка на каждой обложке переключает отметку о прохождении и остаётся побайтно совместимой с загрузчиком.',
         },
       },
       {
         text: {
-          en: 'The SD health check now works on macOS-protected cards instead of aborting on a .Trashes folder.',
-          es: 'La revisión de salud ahora funciona en tarjetas tocadas por macOS en lugar de abortar al ver una carpeta .Trashes.',
+          en: 'The health check no longer stops halfway on cards used on a Mac. It used to trip over the hidden .Trashes folder.',
+          es: 'La revisión de salud ya no se detiene a medias en tarjetas usadas en un Mac. Antes tropezaba con la carpeta oculta .Trashes.',
           ru: 'Проверка состояния SD-карты теперь работает с картами, изменёнными macOS, вместо того чтобы прерываться при обнаружении папки .Trashes.',
         },
       },
