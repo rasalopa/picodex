@@ -555,6 +555,7 @@ export function HealthView() {
                   {t.health.unrecognisedListed2}
                   <code>aplist.bin</code>
                   {t.health.unrecognisedListed3}
+                  {loaderVersion.status === 'identified' && ` ${t.health.unrecognisedFine}`}
                 </p>
               )}
 

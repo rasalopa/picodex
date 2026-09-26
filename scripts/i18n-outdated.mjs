@@ -10,7 +10,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
-import { compareTranslation, keyTimes, parseBlame } from '../src/i18n/outdated.ts';
+import { compareTranslation, keyTimes, parseBlame, translationTag } from '../src/i18n/outdated.ts';
 
 const DIR = 'src/i18n';
 
@@ -26,9 +26,16 @@ const day = (seconds) => new Date(seconds * 1000).toISOString().slice(0, 10);
 
 const wanted = process.argv.slice(2);
 const languages = readdirSync(DIR)
-  .filter((name) => /^[a-z]{2}\.ts$/.test(name) && name !== 'en.ts')
-  .map((name) => name.slice(0, 2))
-  .filter((code) => wanted.length === 0 || wanted.includes(code));
+  .map(translationTag)
+  .filter((tag) => tag !== null)
+  .filter((tag) => wanted.length === 0 || wanted.includes(tag));
+if (languages.length === 0) {
+  console.log(
+    wanted.length === 0
+      ? 'No translation files in src/i18n.'
+      : `No translation file for ${wanted.join(', ')} in src/i18n.`,
+  );
+}
 
 const english = blame(`${DIR}/en.ts`);
 for (const code of languages) {

@@ -69,7 +69,7 @@ export const es: Dict = {
     noPicoOnCard:
       'PicoDex no pudo guardar el cambio porque ya no encuentra la carpeta /_pico en la tarjeta. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
     fsDenied:
-      'Tu equipo no dejó que PicoDex usara un archivo o carpeta de la tarjeta. Normalmente significa que la tarjeta está bloqueada o en solo lectura. Revisa el interruptor de bloqueo del lateral de la tarjeta SD o de su adaptador, vuelve a conectar la tarjeta y ábrela de nuevo.',
+      'Tu equipo no dejó que PicoDex usara un archivo o carpeta de la tarjeta. Normalmente significa que la tarjeta está bloqueada o en solo lectura. Revisa el interruptor de bloqueo del lateral de la tarjeta SD o de su adaptador, desbloquéala si hace falta, vuelve a conectar la tarjeta y pulsa Recargar.',
     fsNotFound:
       'PicoDex ya no encuentra la tarjeta o un archivo de ella. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
   },
@@ -84,9 +84,9 @@ export const es: Dict = {
       'La respuesta de GitHub no traía la lista de carátulas. Vuelve a intentarlo en unos minutos.',
     imageDownloadFailed: (status: number): string =>
       status === 404
-        ? 'Esta carátula ya no está disponible. Elige otra.'
+        ? 'Esta carátula ya no está disponible.'
         : `No se pudo descargar la carátula (error ${status}). Vuelve a intentarlo en unos minutos.`,
-    imageUnreadable: 'PicoDex no puede leer esta imagen. Prueba con una imagen PNG o JPG.',
+    imageUnreadable: 'PicoDex no puede leer esta imagen.',
     canvasFailed:
       'Tu navegador no pudo dibujar la imagen. Recarga la página y vuelve a intentarlo.',
     offline:
@@ -100,7 +100,7 @@ export const es: Dict = {
     noSettings3: ' y pulsa Recargar.',
     settingsInvalid1: 'PicoDex encontró ',
     settingsInvalid2:
-      ' pero no puede leerlo: no es un archivo de ajustes válido. No arranques Pico Launcher hasta arreglarlo, porque el launcher sustituye un archivo que no puede leer por uno de fábrica y perderías tus asociaciones de archivos. Ábrelo en un editor de texto y busca una coma, comilla o llave que falte cerca del punto de abajo, o vuelve a poner una copia que tengas guardada. Después, pulsa Recargar.',
+      ' pero no puede leerlo: no es un archivo de ajustes válido. No arranques Pico Launcher hasta arreglarlo: si el launcher tampoco puede leerlo, lo sustituye por uno de fábrica y perderías tus asociaciones de archivos. Ábrelo en un editor de texto y busca una coma, comilla o llave que falte cerca del punto de abajo, o vuelve a poner una copia que tengas guardada. Después, pulsa Recargar.',
     settingsBom1: 'PicoDex encontró ',
     settingsBom2:
       ', pero empieza con una marca de orden de bytes (BOM), una marca invisible que algunos editores añaden al guardar. El launcher no puede leer un archivo que empiece así y lo sustituiría por uno de fábrica, y perderías tus asociaciones de archivos. No arranques Pico Launcher todavía: abre el archivo en un editor de texto, guárdalo como UTF-8 sin BOM y pulsa Recargar.',
@@ -254,8 +254,7 @@ export const es: Dict = {
     newAlt: (game: string) => `Vista previa de la nueva carátula de ${game}`,
     previewFailed: (message: string) =>
       `No se pudo preparar esta imagen. Vuelve a intentarlo o elige otra. Detalle: ${message}`,
-    writeFailed: (message: string) =>
-      `No se pudo guardar en la tarjeta. Comprueba que la tarjeta sigue conectada y pulsa Guardar otra vez. Detalle: ${message}`,
+    writeFailed: (message: string) => `No se pudo guardar en la tarjeta. ${message}`,
     // Va antes de una ruta en <code>; el JSX añade el espacio y la ruta.
     writes: 'Se guarda en',
     writing: 'Escribiendo…',
@@ -540,7 +539,9 @@ export const es: Dict = {
       'Esa es la versión más nueva que PicoDex conoce. Puede existir algo más nuevo.',
     newestRelease: 'Esa es la versión más nueva.',
     mixed1: (agreeing: number) =>
-      `Tu loader está actualizado solo a medias: ${agreeing} de sus archivos son de `,
+      agreeing === 1
+        ? 'Tu loader está actualizado solo a medias: 1 de sus archivos es de '
+        : `Tu loader está actualizado solo a medias: ${agreeing} de sus archivos son de `,
     mixed2: ', pero ',
     andJoiner: ' y ',
     mixed3: (count: number) =>
@@ -558,7 +559,8 @@ export const es: Dict = {
       'PicoDex no reconoce estos archivos, así que no los tuvo en cuenta para calcular la versión: ',
     unrecognisedListed2: '. Pasa cuando se editan a mano (es habitual con ',
     unrecognisedListed3:
-      '), cuando son de una versión del loader más nueva que PicoDex o cuando son de una compilación propia. Si tus juegos arrancan, no tienes que hacer nada.',
+      '), cuando son de una versión del loader más nueva que PicoDex o cuando son de una compilación propia.',
+    unrecognisedFine: 'Si tus juegos arrancan, no tienes que hacer nada.',
     githubNewer1: 'La versión más nueva de pico-loader en GitHub es ',
     githubNewer2: (tag: string) =>
       `. PicoDex aún no conoce ${tag}, así que no puede saber si tu tarjeta ya la tiene. Si la quieres, descárgala de las versiones de pico-loader y copia todos sus archivos en /_pico.`,

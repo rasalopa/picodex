@@ -79,7 +79,7 @@ export const en = {
     noPicoOnCard:
       "PicoDex couldn't save your change because it can't find the /_pico folder on the card any more. Check that the card is still connected, then press Reload.",
     fsDenied:
-      'Your computer blocked PicoDex from a file or folder on the card. Usually this means the card is locked or read-only. Check the lock switch on the side of the SD card or its adapter, then reconnect the card and open it again.',
+      'Your computer blocked PicoDex from a file or folder on the card. Usually this means the card is locked or read-only. Check the lock switch on the side of the SD card or its adapter, unlock it if needed, then reconnect the card and press Reload.',
     fsNotFound:
       "PicoDex can't find the card, or a file on it, any more. Check that the card is still connected, then press Reload.",
   },
@@ -93,9 +93,9 @@ export const en = {
       "GitHub's answer didn't contain the list of box art. Try again in a few minutes.",
     imageDownloadFailed: (status: number): string =>
       status === 404
-        ? "This box art isn't available any more. Choose another one."
+        ? "This box art isn't available any more."
         : `The box art couldn't be downloaded (error ${status}). Try again in a few minutes.`,
-    imageUnreadable: "PicoDex can't read this picture. Try a PNG or JPG image.",
+    imageUnreadable: "PicoDex can't read this picture.",
     canvasFailed: "Your browser couldn't draw the picture. Reload the page and try again.",
     offline: "PicoDex couldn't reach GitHub. Check your internet connection and try again.",
   },
@@ -108,7 +108,7 @@ export const en = {
     noSettings3: ', then press Reload.',
     settingsInvalid1: 'PicoDex found ',
     settingsInvalid2:
-      " but can't read it: it is not a valid settings file. Don't start Pico Launcher until it is fixed, because the launcher replaces a file it can't read with a default one and your file associations would be lost. Open it in a text editor and look for a missing comma, quote or bracket near the place below, or put back a copy you saved. Then press Reload.",
+      " but can't read it: it is not a valid settings file. Don't start Pico Launcher until it is fixed: if the launcher can't read it either, it replaces it with a default one and your file associations would be lost. Open it in a text editor and look for a missing comma, quote or bracket near the place below, or put back a copy you saved. Then press Reload.",
     settingsBom1: 'PicoDex found ',
     settingsBom2:
       ", but it starts with a byte order mark (BOM), an invisible mark some editors add when saving. The launcher can't read a file that starts with it and would replace it with a default one, and your file associations would be lost. Don't start Pico Launcher yet: open the file in a text editor, save it as UTF-8 without BOM, then press Reload.",
@@ -262,8 +262,7 @@ export const en = {
     newAlt: (game: string) => `New cover preview for ${game}`,
     previewFailed: (message: string) =>
       `Could not prepare this picture. Try again or pick another one. Details: ${message}`,
-    writeFailed: (message: string) =>
-      `Could not save to the card. Check that the card is still connected and press Save again. Details: ${message}`,
+    writeFailed: (message: string) => `Could not save to the card. ${message}`,
     // Rendered before a <code> path; the JSX adds the space and the path.
     writes: 'Saves to',
     writing: 'Writing…',
@@ -558,7 +557,9 @@ export const en = {
     newestKnownMaybe: 'That is the newest release PicoDex knows of. Something newer may exist.',
     newestRelease: 'That is the newest release.',
     mixed1: (agreeing: number) =>
-      `Your loader is only half updated: ${agreeing} of its files are from `,
+      agreeing === 1
+        ? 'Your loader is only half updated: 1 of its files is from '
+        : `Your loader is only half updated: ${agreeing} of its files are from `,
     mixed2: ', but ',
     andJoiner: ' and ',
     mixed3: (count: number) =>
@@ -573,8 +574,8 @@ export const en = {
     unrecognisedListed1:
       "PicoDex doesn't recognise these files, so it left them out when working out the version: ",
     unrecognisedListed2: '. That happens when they have been edited by hand (common with ',
-    unrecognisedListed3:
-      '), come from a loader release newer than PicoDex or from your own build. If your games start, there is nothing to do.',
+    unrecognisedListed3: '), come from a loader release newer than PicoDex or from your own build.',
+    unrecognisedFine: 'If your games start, there is nothing to do.',
     githubNewer1: 'The newest pico-loader on GitHub is ',
     githubNewer2: (tag: string) =>
       `. PicoDex doesn't know ${tag} yet, so it can't tell if your card already has it. If you want it, download it from the pico-loader releases and copy all its files into /_pico.`,

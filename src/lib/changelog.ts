@@ -78,7 +78,6 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: "Fetching many covers at once no longer fails on a card that doesn't have a covers folder yet.",
           es: 'Traer muchas carátulas a la vez ya no falla en una tarjeta que todavía no tiene carpeta de carátulas.',
-          ru: 'Обработка обложек больше не запускается, если на карте памяти ещё нет папки с обложками, из-за чего раньше случалось зависание.',
         },
       },
     ],
@@ -158,7 +157,6 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'The play stats tab and the Pico Enhanced badge now appear only when your card runs Pico Enhanced.',
           es: 'La pestaña de estadísticas y la insignia de Pico Enhanced ahora solo aparecen cuando tu tarjeta usa Pico Enhanced.',
-          ru: 'Вкладка игровой статистики и значок Pico Enhanced отображаются только тогда, когда карта действительно запускает Enhanced launcher, что определяется непосредственно по самому загрузчику.',
         },
       },
     ],
@@ -291,7 +289,6 @@ export const CHANGELOG: ChangelogEntry[] = [
         text: {
           en: 'Mark games as completed: click the green check on a cover. The mark is saved on the card in the same format the launcher uses.',
           es: 'Marca juegos como completados: haz clic en el check verde de una carátula. La marca se guarda en la tarjeta en el mismo formato que usa el launcher.',
-          ru: 'Отметки о прохождении игр. Зелёная галочка на каждой обложке переключает отметку о прохождении и остаётся побайтно совместимой с загрузчиком.',
         },
       },
       {

@@ -20,6 +20,15 @@ export interface OutdatedKey {
   translated: number;
 }
 
+/**
+ * The language tag of a translation file name: `es.ts` gives `es`, `pt-BR.ts`
+ * gives `pt-BR`. Null for any other file, including the English source.
+ */
+export function translationTag(fileName: string): string | null {
+  const match = /^([a-z]{2,3}(?:-[A-Za-z]{2,4})?)\.ts$/.exec(fileName);
+  return match === null || match[1] === 'en' ? null : match[1];
+}
+
 /** Reads the output of `git blame --porcelain` into lines with their times. */
 export function parseBlame(porcelain: string): BlamedLine[] {
   const commitTimes = new Map<string, number>();
@@ -43,8 +52,8 @@ export function parseBlame(porcelain: string): BlamedLine[] {
 /**
  * Maps every string key of a dictionary file (`app.tabs.library`, ...) to the
  * newest time any of its lines changed. Expects the layout Prettier gives the
- * dictionaries: one key per line, nested objects opened by `key: {`, and a
- * value that goes on over more deeply indented lines.
+ * dictionaries: one key per line (quoted or not), nested objects opened by
+ * `key: {`, and a value that goes on over more deeply indented lines.
  */
 export function keyTimes(lines: BlamedLine[]): Map<string, number> {
   const times = new Map<string, number>();
@@ -74,11 +83,12 @@ export function keyTimes(lines: BlamedLine[]): Map<string, number> {
     while (sections.length > 0 && sections[sections.length - 1].indent >= indent) {
       sections.pop();
     }
-    const match = /^([A-Za-z_$][\w$]*)\s*:(.*)$/.exec(trimmed);
+    const match = /^(?:([A-Za-z_$][\w$]*)|'([^']+)'|"([^"]+)")\s*:(.*)$/.exec(trimmed);
     if (!match) {
       continue;
     }
-    const [, name, rest] = match;
+    const name = match[1] ?? match[2] ?? match[3];
+    const rest = match[4];
     if (rest.trim() === '{') {
       sections.push({ name, indent });
       continue;

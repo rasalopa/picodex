@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { compareTranslation, keyTimes, parseBlame, type BlamedLine } from './outdated';
+import {
+  compareTranslation,
+  keyTimes,
+  parseBlame,
+  translationTag,
+  type BlamedLine,
+} from './outdated';
 
 /** Lines of a dictionary, each changed at the time given before the `|`. */
 function blamed(source: string): BlamedLine[] {
@@ -64,6 +70,16 @@ describe('keyTimes', () => {
     });
   });
 
+  it('reads a quoted key like any other', () => {
+    const times = keyTimes(
+      blamed(`1|  jobStatus: {
+2|    pending: 'Pending',
+3|    'no-match': 'No match',
+1|  },`),
+    );
+    expect(times.get('jobStatus.no-match')).toBe(3);
+  });
+
   it('keeps the arguments of a function split over lines with its key', () => {
     const times = keyTimes(
       blamed(`1|  health: {
@@ -76,6 +92,17 @@ describe('keyTimes', () => {
     );
     expect(times.get('health.mixed')).toBe(8);
     expect(times.get('health.next')).toBe(3);
+  });
+});
+
+describe('translationTag', () => {
+  it('reads two-letter, three-letter and regional tags, and skips everything else', () => {
+    expect(translationTag('es.ts')).toBe('es');
+    expect(translationTag('fil.ts')).toBe('fil');
+    expect(translationTag('pt-BR.ts')).toBe('pt-BR');
+    expect(translationTag('en.ts')).toBeNull();
+    expect(translationTag('languages.ts')).toBeNull();
+    expect(translationTag('outdated.test.ts')).toBeNull();
   });
 });
 
