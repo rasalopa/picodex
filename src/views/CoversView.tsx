@@ -18,6 +18,7 @@ import { readCachedCatalog, writeCachedCatalog } from '../lib/catalogCache';
 import type { CoverSlot } from '../lib/coverCache';
 import { useSd, type CoverIndex } from '../state/SdContext';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import './CoversView.css';
 
 /** A library game with no cover on the SD card yet. */
@@ -69,10 +70,6 @@ function gamecodeCoverKey(system: System): 'nds' | 'gba' {
 function titleOf(fileName: string): string {
   const dot = fileName.lastIndexOf('.');
   return dot > 0 ? fileName.slice(0, dot) : fileName;
-}
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }
 
 /**
@@ -179,7 +176,8 @@ export function CoversView() {
   const { root, games, coverIndex, refresh } = useSd();
   const t = useT();
   const [scanProgress, setScanProgress] = useState<{ done: number; total: number } | null>(null);
-  const [scanError, setScanError] = useState<string | null>(null);
+  /** Why the scan failed, translated when shown. */
+  const [scanError, setScanError] = useState<unknown>(null);
   const [missing, setMissing] = useState<MissingGame[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [fetching, setFetching] = useState(false);
@@ -234,7 +232,7 @@ export function CoversView() {
     }
     scan().catch((e: unknown) => {
       if (!cancelled) {
-        setScanError(errorMessage(e));
+        setScanError(e);
         setScanProgress(null);
       }
     });
@@ -366,7 +364,7 @@ export function CoversView() {
       previewUrlsRef.current.push(previewUrl);
       updateJob(m.id, { phase: 'written', match, previewUrl });
     } catch (e) {
-      updateJob(m.id, { phase: 'error', message: errorMessage(e) });
+      updateJob(m.id, { phase: 'error', message: errorText(t, e) });
     }
   }
 
@@ -412,7 +410,7 @@ export function CoversView() {
               catalogsRef.current.set(repo, cached.names);
               return;
             }
-            repoErrors.set(repo, errorMessage(e));
+            repoErrors.set(repo, errorText(t, e));
           }
         }),
       );
@@ -443,7 +441,7 @@ export function CoversView() {
           if (dir === null) throw new Error(t.covers.coversDirFailed);
           dirs.set(slot, dir);
         } catch (e) {
-          dirError = errorMessage(e);
+          dirError = errorText(t, e);
           break;
         }
       }
@@ -488,7 +486,9 @@ export function CoversView() {
         <p className="covers-view__hint">{t.covers.intro}</p>
       </header>
 
-      {scanError && <p className="covers-view__error">{t.covers.scanFailed(scanError)}</p>}
+      {scanError !== null && (
+        <p className="covers-view__error">{t.covers.scanFailed(errorText(t, scanError))}</p>
+      )}
 
       {scanProgress && (
         <div className="covers-view__progress" role="status">
@@ -536,7 +536,7 @@ export function CoversView() {
         </section>
       )}
 
-      {!scanProgress && !scanError && missing.length === 0 && (
+      {!scanProgress && scanError === null && missing.length === 0 && (
         <p className="covers-view__all-covered" role="status">
           {games.length === 0 ? t.covers.noGames : t.covers.allCovered(games.length)}
         </p>

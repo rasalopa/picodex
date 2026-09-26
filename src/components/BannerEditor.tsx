@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import {
   buildFolderBanner,
   decodeBannerIcon,
@@ -19,10 +20,6 @@ const BANNER_FILE = 'banner.bnr';
 
 /** Where the editor can take the banner icon from. */
 type IconSource = 'current' | 'image' | 'game';
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
 
 /** `true` for NDS-family files whose header/banner can be read directly. */
 function isNdsFile(fileName: string): boolean {
@@ -90,7 +87,8 @@ export function BannerEditor({
   const t = useT();
 
   const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  /** Why the current banner could not be read, translated when shown. */
+  const [loadError, setLoadError] = useState<unknown>(null);
   /** Whether a banner.bnr currently exists in the folder. */
   const [hasExisting, setHasExisting] = useState(false);
   /** Icon of the existing banner ('Keep current' source). */
@@ -150,7 +148,7 @@ export function BannerEditor({
     }
     load(root)
       .catch((e: unknown) => {
-        if (!cancelled) setLoadError(errorMessage(e));
+        if (!cancelled) setLoadError(e);
       })
       .finally(() => {
         if (!cancelled) setLoaded(true);
@@ -226,7 +224,7 @@ export function BannerEditor({
         if (token === imageRequestRef.current) setImageIcon(encodeBannerIcon(rgba));
       })
       .catch((e: unknown) => {
-        if (token === imageRequestRef.current) setImageError(errorMessage(e));
+        if (token === imageRequestRef.current) setImageError(errorText(t, e));
       });
   }
 
@@ -256,7 +254,7 @@ export function BannerEditor({
       (e: unknown) => {
         if (gameRequestRef.current !== token) return;
         setGameLoading(false);
-        setGameError(errorMessage(e));
+        setGameError(errorText(t, e));
       },
     );
   }
@@ -285,7 +283,7 @@ export function BannerEditor({
         onClose();
       },
       (e: unknown) => {
-        setSaveError(t.banner.writeFailed(errorMessage(e)));
+        setSaveError(t.banner.writeFailed(errorText(t, e)));
         setBusy(null);
         busyRef.current = false;
       },
@@ -310,7 +308,7 @@ export function BannerEditor({
         onClose();
       },
       (e: unknown) => {
-        setSaveError(t.banner.removeFailed(errorMessage(e)));
+        setSaveError(t.banner.removeFailed(errorText(t, e)));
         setBusy(null);
         busyRef.current = false;
       },
@@ -358,7 +356,7 @@ export function BannerEditor({
 
         {loadError !== null && (
           <p className="banner-editor__error" role="alert">
-            {t.banner.loadFailed(loadError)}
+            {t.banner.loadFailed(errorText(t, loadError))}
           </p>
         )}
 

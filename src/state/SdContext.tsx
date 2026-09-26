@@ -90,6 +90,7 @@ export type SdMessage =
   | { key: 'noPicoPickRoot' }
   | { key: 'noPicoOnCard' }
   | { key: 'fsDenied' }
+  | { key: 'fsNotFound' }
   | { key: 'raw'; text: string };
 
 export interface SdState {

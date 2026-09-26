@@ -80,6 +80,21 @@ export const en = {
       "PicoDex couldn't save your change because it can't find the /_pico folder on the card any more. Check that the card is still connected, then press Reload.",
     fsDenied:
       'Your computer blocked PicoDex from a file or folder on the card. Usually this means the card is locked or read-only. Check the lock switch on the side of the SD card or its adapter, then reconnect the card and open it again.',
+    fsNotFound:
+      "PicoDex can't find the card, or a file on it, any more. Check that the card is still connected, then press Reload.",
+  },
+  errors: {
+    rateLimited: 'GitHub is limiting box art searches for now. Try again in an hour.',
+    rateLimitedUntil: (time: string) =>
+      `GitHub is limiting box art searches until ${time}. Try again after that.`,
+    catalogFailed: (status: number) =>
+      `GitHub couldn't send the list of box art (error ${status}). Try again in a few minutes.`,
+    catalogUnreadable:
+      "GitHub's answer didn't contain the list of box art. Try again in a few minutes.",
+    imageDownloadFailed: (status: number) =>
+      `The box art couldn't be downloaded (error ${status}). Try again in a few minutes.`,
+    canvasFailed: "Your browser couldn't draw the picture. Reload the page and try again.",
+    offline: "PicoDex couldn't reach GitHub. Check your internet connection and try again.",
   },
   associations: {
     title: 'File associations',

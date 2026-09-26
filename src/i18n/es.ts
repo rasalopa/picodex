@@ -70,6 +70,24 @@ export const es: Dict = {
       'PicoDex no pudo guardar el cambio porque ya no encuentra la carpeta /_pico en la tarjeta. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
     fsDenied:
       'Tu equipo no dejó que PicoDex usara un archivo o carpeta de la tarjeta. Normalmente significa que la tarjeta está bloqueada o en solo lectura. Revisa el interruptor de bloqueo del lateral de la tarjeta SD o de su adaptador, vuelve a conectar la tarjeta y ábrela de nuevo.',
+    fsNotFound:
+      'PicoDex ya no encuentra la tarjeta o un archivo de ella. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
+  },
+  errors: {
+    rateLimited:
+      'GitHub está limitando las búsquedas de carátulas por ahora. Vuelve a intentarlo dentro de una hora.',
+    rateLimitedUntil: (time: string) =>
+      `GitHub está limitando las búsquedas de carátulas hasta las ${time}. Vuelve a intentarlo después.`,
+    catalogFailed: (status: number) =>
+      `GitHub no pudo enviar la lista de carátulas (error ${status}). Vuelve a intentarlo en unos minutos.`,
+    catalogUnreadable:
+      'La respuesta de GitHub no traía la lista de carátulas. Vuelve a intentarlo en unos minutos.',
+    imageDownloadFailed: (status: number) =>
+      `No se pudo descargar la carátula (error ${status}). Vuelve a intentarlo en unos minutos.`,
+    canvasFailed:
+      'Tu navegador no pudo dibujar la imagen. Recarga la página y vuelve a intentarlo.',
+    offline:
+      'PicoDex no pudo conectar con GitHub. Revisa tu conexión a internet y vuelve a intentarlo.',
   },
   associations: {
     title: 'Asociaciones de archivos',

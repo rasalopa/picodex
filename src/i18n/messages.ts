@@ -31,6 +31,8 @@ export function resolveSdMessage(t: Dict, message: SdMessage): string {
       return t.sd.noPicoOnCard;
     case 'fsDenied':
       return t.sd.fsDenied;
+    case 'fsNotFound':
+      return t.sd.fsNotFound;
     case 'raw':
       return message.text;
   }

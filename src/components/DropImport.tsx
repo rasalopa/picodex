@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import { encodeCoverBmp } from '../lib/bmp';
 import { composeCoverRgba, downloadPngAsBitmap } from '../lib/coverart';
 import { planImport } from '../lib/importer';
@@ -76,10 +77,6 @@ function gamecodeCoverKey(system: System): 'nds' | 'gba' {
 function titleOf(fileName: string): string {
   const dot = fileName.lastIndexOf('.');
   return dot > 0 ? fileName.slice(0, dot) : fileName;
-}
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }
 
 /** `true` when the drag carries files (as opposed to text/links). */
@@ -264,7 +261,7 @@ export function DropImport() {
                     : 'added',
             });
           } catch (e) {
-            updateRow(i, { phase: 'failed', message: errorMessage(e) });
+            updateRow(i, { phase: 'failed', message: errorText(t, e) });
           }
         }
         if (wroteAnything) {

@@ -22,6 +22,23 @@ import {
   decodeBmp,
   validateLauncherIconBmp,
 } from './bmp';
+import { fetchOrNetworkError } from './thumbnails';
+
+/** Thrown when a box art image cannot be downloaded. `status` is the HTTP status. */
+export class ImageDownloadError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ImageDownloadError';
+    this.status = status;
+  }
+}
+
+/** Thrown when the browser cannot create or export the canvas the art is drawn on. */
+export class CanvasError extends Error {
+  override name = 'CanvasError';
+}
 
 /** Creates a detached canvas of the given size with its 2D context. */
 function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -30,7 +47,7 @@ function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRe
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    throw new Error('2D canvas is not available in this browser');
+    throw new CanvasError('2D canvas is not available in this browser');
   }
   return [canvas, ctx];
 }
@@ -39,12 +56,17 @@ function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRe
  * Downloads an image (boxart PNG) and decodes it into an {@link ImageBitmap}.
  *
  * @param url Image URL, e.g. from `boxartUrl()` in `thumbnails.ts`.
- * @throws {Error} On a non-2xx HTTP response or undecodable image data.
+ * @throws {ImageDownloadError} On a non-2xx HTTP response.
+ * @throws {NetworkError} When GitHub cannot be reached.
+ * @throws {Error} On undecodable image data.
  */
 export async function downloadPngAsBitmap(url: string): Promise<ImageBitmap> {
-  const response = await fetch(url);
+  const response = await fetchOrNetworkError(() => fetch(url));
   if (!response.ok) {
-    throw new Error(`Image download failed: HTTP ${response.status} (${url})`);
+    throw new ImageDownloadError(
+      `Image download failed: HTTP ${response.status} (${url})`,
+      response.status,
+    );
   }
   return createImageBitmap(await response.blob());
 }
@@ -106,7 +128,7 @@ function bmpImageData(rgba: Uint8ClampedArray, width: number, height: number): I
 async function canvasPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error('Canvas preview export failed'))),
+      (b) => (b ? resolve(b) : reject(new CanvasError('Canvas preview export failed'))),
       'image/png',
     );
   });

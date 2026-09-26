@@ -19,10 +19,14 @@ describe('fsMessage', () => {
     expect(resolveSdMessage(es, message)).not.toBe(resolveSdMessage(en, message));
   });
 
+  it('turns a card pulled out mid-read into a descriptor too', () => {
+    expect(fsMessage(new DOMException('gone', 'NotFoundError'))).toEqual({ key: 'fsNotFound' });
+  });
+
   it('passes anything it does not own through as its own text', () => {
-    expect(fsMessage(new DOMException('gone', 'NotFoundError'))).toEqual({
+    expect(fsMessage(new DOMException('busy', 'InvalidStateError'))).toEqual({
       key: 'raw',
-      text: 'gone',
+      text: 'busy',
     });
     expect(fsMessage(new Error('boom'))).toEqual({ key: 'raw', text: 'boom' });
     expect(fsMessage('plain string')).toEqual({ key: 'raw', text: 'plain string' });

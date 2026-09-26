@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   boxartUrl,
+  CatalogError,
   catalogUrl,
   fetchCatalog,
+  NetworkError,
   parseCatalog,
   RateLimitedError,
   type CatalogFetch,
@@ -217,6 +219,26 @@ describe('fetchCatalog', () => {
       'GitHub trees request for "Nintendo_-_Game_Boy" failed: HTTP 403 Forbidden ' +
         '(https://api.github.com/repos/libretro-thumbnails/Nintendo_-_Game_Boy/git/trees/master?recursive=1)',
     );
+    // The status travels with the error, so the UI can say it in the reader's language.
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', fetchFn)).rejects.toMatchObject({
+      name: 'CatalogError',
+      status: 403,
+    });
+  });
+
+  it('reports an answer that is not the list as a catalog error with no status', async () => {
+    const fetchFn: CatalogFetch = () => Promise.resolve(stubResponse({ nope: true }));
+    const failure = fetchCatalog('Nintendo_-_Game_Boy', fetchFn);
+    await expect(failure).rejects.toBeInstanceOf(CatalogError);
+    await expect(failure).rejects.toMatchObject({ status: null });
+  });
+
+  it('reports no connection as a network error, and passes anything else through', async () => {
+    const offline: CatalogFetch = () => Promise.reject(new TypeError('Failed to fetch'));
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', offline)).rejects.toBeInstanceOf(NetworkError);
+
+    const other: CatalogFetch = () => Promise.reject(new RangeError('odd'));
+    await expect(fetchCatalog('Nintendo_-_Game_Boy', other)).rejects.toBeInstanceOf(RangeError);
   });
 
   it('does not mistake a request budget with room left for an exhausted one', async () => {

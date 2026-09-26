@@ -48,11 +48,46 @@ export class RateLimitedError extends Error {
   constructor(resetAt: Date | null) {
     super(
       resetAt === null
-        ? 'GitHub is out of box art requests for now. It allows 60 an hour without an account, and they come back on the hour.'
+        ? 'GitHub is out of box art requests for now. It allows 60 an hour without an account.'
         : `GitHub is out of box art requests until ${resetAt.toLocaleTimeString()}. It allows 60 an hour without an account.`,
     );
     this.name = 'RateLimitedError';
     this.resetAt = resetAt;
+  }
+}
+
+/**
+ * Thrown when GitHub answers the box art list with an error, or with something
+ * that is not the list. `status` is the HTTP status, or null for a bad body.
+ */
+export class CatalogError extends Error {
+  readonly status: number | null;
+
+  constructor(message: string, status: number | null) {
+    super(message);
+    this.name = 'CatalogError';
+    this.status = status;
+  }
+}
+
+/** Thrown when GitHub cannot be reached at all, for example with no connection. */
+export class NetworkError extends Error {
+  constructor(cause: unknown) {
+    super(`Could not reach GitHub: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = 'NetworkError';
+  }
+}
+
+/**
+ * Runs a fetch and turns the browser's network failure (a TypeError: no
+ * connection, DNS, a blocked request) into a {@link NetworkError}.
+ */
+export async function fetchOrNetworkError<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    if (error instanceof TypeError) throw new NetworkError(error);
+    throw error;
   }
 }
 
@@ -116,16 +151,16 @@ export function catalogUrl(repo: string): string {
  * (`Named_Snaps/`, `Named_Titles/`, ...) and non-PNG files are ignored.
  *
  * @param treesJson Parsed JSON body of the trees API response.
- * @throws {Error} If the payload does not have the expected
+ * @throws {CatalogError} If the payload does not have the expected
  *   `{ tree: [...] }` shape.
  */
 export function parseCatalog(treesJson: unknown): string[] {
   if (typeof treesJson !== 'object' || treesJson === null) {
-    throw new Error('Unexpected GitHub trees payload: not a JSON object');
+    throw new CatalogError('Unexpected GitHub trees payload: not a JSON object', null);
   }
   const tree = (treesJson as Record<string, unknown>)['tree'];
   if (!Array.isArray(tree)) {
-    throw new Error('Unexpected GitHub trees payload: missing "tree" array');
+    throw new CatalogError('Unexpected GitHub trees payload: missing "tree" array', null);
   }
   const names: string[] = [];
   for (const entry of tree as unknown[]) {
@@ -167,11 +202,12 @@ export function boxartUrl(repo: string, name: string): string {
  *   Injectable so tests run without network access.
  * @returns Boxart file names (prefix stripped), in repository tree order.
  * @throws {RateLimitedError} When GitHub has no requests left for this caller.
- * @throws {Error} On any other non-2xx response or an unexpected payload shape.
+ * @throws {CatalogError} On any other non-2xx response or an unexpected payload shape.
+ * @throws {NetworkError} When GitHub cannot be reached.
  */
 export async function fetchCatalog(repo: string, fetchFn: CatalogFetch = fetch): Promise<string[]> {
   const url = catalogUrl(repo);
-  const response = await fetchFn(url);
+  const response = await fetchOrNetworkError(() => fetchFn(url));
   if (!response.ok) {
     const rateLimited = await rateLimitedFrom(response);
     if (rateLimited !== null) throw rateLimited;
@@ -179,7 +215,10 @@ export async function fetchCatalog(repo: string, fetchFn: CatalogFetch = fetch):
       response.statusText === ''
         ? `${response.status}`
         : `${response.status} ${response.statusText}`;
-    throw new Error(`GitHub trees request for "${repo}" failed: HTTP ${status} (${url})`);
+    throw new CatalogError(
+      `GitHub trees request for "${repo}" failed: HTTP ${status} (${url})`,
+      response.status,
+    );
   }
   return parseCatalog(await response.json());
 }

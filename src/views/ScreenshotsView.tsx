@@ -9,6 +9,7 @@ import { useSd } from '../state/SdContext';
 import { fsMessage } from '../state/fsMessage';
 import { resolveSdMessage } from '../i18n/messages';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import './ScreenshotsView.css';
 
 /** Captures decoded at once; each one is two 147KB files off the card. */
@@ -36,11 +37,8 @@ interface CardShots {
   /** `null` until the folder has been listed. */
   shots: Shot[] | null;
   rendered: ReadonlyMap<string, Rendered>;
-  error: string | null;
-}
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+  /** What went wrong, translated when it is shown; null when nothing did. */
+  error: unknown;
 }
 
 /**
@@ -155,7 +153,7 @@ export function ScreenshotsView() {
     }
 
     load().catch((e: unknown) => {
-      if (!cancelled) update(() => ({ error: errorMessage(e) }));
+      if (!cancelled) update(() => ({ error: e }));
     });
     return () => {
       cancelled = true;
@@ -272,7 +270,7 @@ export function ScreenshotsView() {
       </header>
 
       {error !== null && (
-        <p className="screenshots-view__error">{t.screenshots.loadError(error)}</p>
+        <p className="screenshots-view__error">{t.screenshots.loadError(errorText(t, error))}</p>
       )}
 
       {loading && total > 0 && (

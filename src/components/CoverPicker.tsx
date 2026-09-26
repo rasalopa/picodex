@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import { findArt, resolveArtTarget, type ArtIndex, type ArtTarget } from '../lib/artPaths';
 import { decodeBannerIcon } from '../lib/banner';
 import { encodeCoverBmp, encodeIconBmp, validateLauncherIconBmp } from '../lib/bmp';
@@ -50,10 +51,6 @@ function displayName(entry: string): string {
   return entry.toLowerCase().endsWith('.png') ? entry.slice(0, -4) : entry;
 }
 
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
-
 /**
  * Where the new cover's art comes from: a libretro catalog entry, or an image
  * the user picked from their computer (issue #5: romhacks and homebrew have
@@ -87,11 +84,13 @@ function useComposedArt<T>(
   input: T | null,
   build: (input: T) => Promise<ComposedArt>,
 ): { composed: ComposedArt | null; composing: boolean; error: string | null } {
+  const t = useT();
   /** Outcome of the last finished build, tagged with the input it was built for. */
   const [outcome, setOutcome] = useState<{
     input: T;
     art: ComposedArt | null;
-    error: string | null;
+    /** Why the build failed, translated when reported. */
+    error: unknown;
   } | null>(null);
 
   useEffect(() => {
@@ -110,7 +109,7 @@ function useComposedArt<T>(
         setOutcome({ input, art, error: null });
       },
       (e: unknown) => {
-        if (!cancelled) setOutcome({ input, art: null, error: errorMessage(e) });
+        if (!cancelled) setOutcome({ input, art: null, error: e });
       },
     );
     return () => {
@@ -122,7 +121,7 @@ function useComposedArt<T>(
   const current = outcome !== null && outcome.input === input ? outcome : null;
   return {
     composed: current?.art ?? null,
-    error: current?.error ?? null,
+    error: current === null || current.error === null ? null : errorText(t, current.error),
     composing: input !== null && current === null,
   };
 }
@@ -192,7 +191,8 @@ export function CoverPicker({
 
   const [tab, setTab] = useState<Tab>('boxart');
   const [catalog, setCatalog] = useState<string[] | null>(() => catalogCache.get(repo) ?? null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
+  /** Why the box art list could not be loaded, translated when shown. */
+  const [catalogError, setCatalogError] = useState<unknown>(null);
   /** Bumped by the retry button to re-run the catalog fetch effect. */
   const [retryToken, setRetryToken] = useState(0);
   const [query, setQuery] = useState(title);
@@ -268,7 +268,7 @@ export function CoverPicker({
         if (!cancelled) setCatalog(names);
       },
       (e: unknown) => {
-        if (!cancelled) setCatalogError(errorMessage(e));
+        if (!cancelled) setCatalogError(e);
       },
     );
     return () => {
@@ -440,7 +440,7 @@ export function CoverPicker({
           wrote = true;
           setSaved((s) => ({ ...s, [w.kind]: true }));
         } catch (e) {
-          errors[w.kind] = errorMessage(e);
+          errors[w.kind] = errorText(t, e);
         }
       }
       if (wrote) onSaved();
@@ -675,7 +675,7 @@ export function CoverPicker({
             />
             {catalogError !== null ? (
               <div className="cover-picker__error" role="alert">
-                <span>{t.coverPicker.catalogFailed(catalogError)}</span>
+                <span>{t.coverPicker.catalogFailed(errorText(t, catalogError))}</span>
                 <button
                   type="button"
                   onClick={() => {
