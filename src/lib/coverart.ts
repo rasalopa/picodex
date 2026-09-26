@@ -40,6 +40,24 @@ export class CanvasError extends Error {
   override name = 'CanvasError';
 }
 
+/** Thrown when a picture cannot be decoded, for example a format the browser does not read. */
+export class ImageDecodeError extends Error {
+  override name = 'ImageDecodeError';
+}
+
+/**
+ * Decodes a picked file or a downloaded image into an {@link ImageBitmap}.
+ *
+ * @throws {ImageDecodeError} When the browser cannot read it (HEIC, TIFF, a broken file).
+ */
+export async function decodeImage(source: Blob): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(source);
+  } catch (error) {
+    throw new ImageDecodeError(error instanceof Error ? error.message : String(error));
+  }
+}
+
 /** Creates a detached canvas of the given size with its 2D context. */
 function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = document.createElement('canvas');
@@ -58,7 +76,7 @@ function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRe
  * @param url Image URL, e.g. from `boxartUrl()` in `thumbnails.ts`.
  * @throws {ImageDownloadError} On a non-2xx HTTP response.
  * @throws {NetworkError} When GitHub cannot be reached.
- * @throws {Error} On undecodable image data.
+ * @throws {ImageDecodeError} On undecodable image data.
  */
 export async function downloadPngAsBitmap(url: string): Promise<ImageBitmap> {
   const response = await fetchOrNetworkError(() => fetch(url));
@@ -68,7 +86,7 @@ export async function downloadPngAsBitmap(url: string): Promise<ImageBitmap> {
       response.status,
     );
   }
-  return createImageBitmap(await response.blob());
+  return decodeImage(await fetchOrNetworkError(() => response.blob()));
 }
 
 /**

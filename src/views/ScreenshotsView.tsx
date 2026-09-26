@@ -110,7 +110,7 @@ export function ScreenshotsView() {
         entries.filter((entry) => entry.kind === 'file').map((entry) => entry.name),
       );
       if (cancelled) return;
-      update(() => ({ shots: found }));
+      update(() => ({ shots: found, error: null }));
       if (dir === null || found.length === 0) return;
       const shotsDir = dir;
 

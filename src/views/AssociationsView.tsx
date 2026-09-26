@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSd } from '../state/SdContext';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import {
   removeAssociation,
   serializeSettings,
@@ -188,7 +189,7 @@ export function AssociationsView() {
       setDraft(null);
       await refresh();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : String(e));
+      setSaveError(errorText(t, e));
     } finally {
       setSaving(false);
     }

@@ -220,5 +220,15 @@ export async function fetchCatalog(repo: string, fetchFn: CatalogFetch = fetch):
       response.status,
     );
   }
-  return parseCatalog(await response.json());
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch (error) {
+    // The body can still fail after the headers arrived: the connection drops
+    // mid-download (a TypeError), or what came back is not JSON at all.
+    if (error instanceof TypeError) throw new NetworkError(error);
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new CatalogError(`Unreadable GitHub trees payload: ${reason}`, null);
+  }
+  return parseCatalog(body);
 }

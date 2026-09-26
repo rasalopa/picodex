@@ -9,7 +9,7 @@ import {
   parseBnrIcon,
   type BannerIcon,
 } from '../lib/banner';
-import { bannerIconRgbaPreviewUrl, composeIconRgba } from '../lib/coverart';
+import { bannerIconRgbaPreviewUrl, composeIconRgba, decodeImage } from '../lib/coverart';
 import { GAMES_DIR, getDir, readFileBytes, writeFileBytes, type LibraryFile } from '../lib/sdcard';
 import { systemsSharingGamesDir } from '../lib/systems';
 import { useSd } from '../state/SdContext';
@@ -212,7 +212,7 @@ export function BannerEditor({
     const token = ++imageRequestRef.current;
     setImageIcon(null);
     setImageError(null);
-    createImageBitmap(file)
+    decodeImage(file)
       .then((bitmap) => {
         let rgba: Uint8ClampedArray;
         try {

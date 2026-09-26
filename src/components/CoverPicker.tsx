@@ -9,6 +9,7 @@ import {
   composeCoverRgba,
   composeIconRgba,
   coverBmpCroppedPreviewUrl,
+  decodeImage,
   downloadPngAsBitmap,
   iconBmpPreviewUrl,
 } from '../lib/coverart';
@@ -62,7 +63,7 @@ type CoverSource = { kind: 'catalog'; name: string } | { kind: 'file'; file: Fil
 function loadSourceBitmap(source: CoverSource, repo: string): Promise<ImageBitmap> {
   return source.kind === 'catalog'
     ? downloadPngAsBitmap(boxartUrl(repo, source.name))
-    : createImageBitmap(source.file);
+    : decodeImage(source.file);
 }
 
 /** A fully composed candidate (cover or icon): encoded BMP bytes plus preview. */
@@ -360,7 +361,7 @@ export function CoverPicker({
   // Same for the icon: fit the image into the 32x32 square, encode the 4bpp
   // BMP and preview it with its transparency.
   const buildIcon = useCallback(async (file: File): Promise<ComposedArt> => {
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await decodeImage(file);
     let rgba: Uint8ClampedArray;
     try {
       rgba = composeIconRgba(bitmap);

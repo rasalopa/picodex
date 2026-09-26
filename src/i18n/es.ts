@@ -82,8 +82,11 @@ export const es: Dict = {
       `GitHub no pudo enviar la lista de carátulas (error ${status}). Vuelve a intentarlo en unos minutos.`,
     catalogUnreadable:
       'La respuesta de GitHub no traía la lista de carátulas. Vuelve a intentarlo en unos minutos.',
-    imageDownloadFailed: (status: number) =>
-      `No se pudo descargar la carátula (error ${status}). Vuelve a intentarlo en unos minutos.`,
+    imageDownloadFailed: (status: number): string =>
+      status === 404
+        ? 'Esta carátula ya no está disponible. Elige otra.'
+        : `No se pudo descargar la carátula (error ${status}). Vuelve a intentarlo en unos minutos.`,
+    imageUnreadable: 'PicoDex no puede leer esta imagen. Prueba con una imagen PNG o JPG.',
     canvasFailed:
       'Tu navegador no pudo dibujar la imagen. Recarga la página y vuelve a intentarlo.',
     offline:

@@ -91,8 +91,11 @@ export const en = {
       `GitHub couldn't send the list of box art (error ${status}). Try again in a few minutes.`,
     catalogUnreadable:
       "GitHub's answer didn't contain the list of box art. Try again in a few minutes.",
-    imageDownloadFailed: (status: number) =>
-      `The box art couldn't be downloaded (error ${status}). Try again in a few minutes.`,
+    imageDownloadFailed: (status: number): string =>
+      status === 404
+        ? "This box art isn't available any more. Choose another one."
+        : `The box art couldn't be downloaded (error ${status}). Try again in a few minutes.`,
+    imageUnreadable: "PicoDex can't read this picture. Try a PNG or JPG image.",
     canvasFailed: "Your browser couldn't draw the picture. Reload the page and try again.",
     offline: "PicoDex couldn't reach GitHub. Check your internet connection and try again.",
   },

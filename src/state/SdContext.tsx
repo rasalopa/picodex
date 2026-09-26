@@ -450,6 +450,8 @@ export function SdProvider({ children }: { children: ReactNode }) {
     const rootHandle = root;
     async function run(): Promise<boolean> {
       setLoading(true);
+      // a fresh read replaces whatever the last one reported
+      setError(null);
       try {
         await loadFrom(rootHandle);
         return true;

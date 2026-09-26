@@ -233,6 +233,19 @@ describe('fetchCatalog', () => {
     await expect(failure).rejects.toMatchObject({ status: null });
   });
 
+  it('reports a body that breaks off or is not JSON by what went wrong', async () => {
+    const failingBody =
+      (error: Error): CatalogFetch =>
+      () =>
+        Promise.resolve({ ...stubResponse({}), json: () => Promise.reject(error) });
+    await expect(
+      fetchCatalog('Nintendo_-_Game_Boy', failingBody(new TypeError('network error'))),
+    ).rejects.toBeInstanceOf(NetworkError);
+    await expect(
+      fetchCatalog('Nintendo_-_Game_Boy', failingBody(new SyntaxError('Unexpected token <'))),
+    ).rejects.toMatchObject({ name: 'CatalogError', status: null });
+  });
+
   it('reports no connection as a network error, and passes anything else through', async () => {
     const offline: CatalogFetch = () => Promise.reject(new TypeError('Failed to fetch'));
     await expect(fetchCatalog('Nintendo_-_Game_Boy', offline)).rejects.toBeInstanceOf(NetworkError);

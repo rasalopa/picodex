@@ -23,6 +23,7 @@ import { COVERS, getDir, readFile, type LibraryFile } from '../lib/sdcard';
 import type { System } from '../lib/systems';
 import { useSd } from '../state/SdContext';
 import { useT } from '../i18n';
+import { errorText } from '../i18n/errors';
 import type { Dict } from '../i18n/en';
 import './SystemGallery.css';
 
@@ -136,7 +137,8 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
   } = useSd();
   const t = useT();
   const [resolved, setResolved] = useState<ReadonlyMap<string, ResolvedCover>>(new Map());
-  const [error, setError] = useState<string | null>(null);
+  /** Why the gallery could not load, translated when shown. */
+  const [error, setError] = useState<unknown>(null);
   /** True while a favorite toggle's SD write is in flight (hearts disable). */
   const [togglePending, setTogglePending] = useState(false);
   /**
@@ -325,7 +327,7 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
     }
 
     loadAll().catch((e: unknown) => {
-      if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      if (!cancelled) setError(e);
     });
 
     return () => {
@@ -471,7 +473,9 @@ export function SystemGallery({ system, onBack }: { system: System; onBack: () =
         </div>
       )}
 
-      {error !== null && <p className="system-gallery__error">{t.gallery.loadError(error)}</p>}
+      {error !== null && (
+        <p className="system-gallery__error">{t.gallery.loadError(errorText(t, error))}</p>
+      )}
 
       {loading && (
         <div className="system-gallery__progress" role="status">
