@@ -35,6 +35,24 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.2',
+    date: '2026-09-27',
+    changes: [
+      {
+        text: {
+          en: 'Saves kept in a saves folder next to the games, the way TWiLight Menu++ and Pico Launcher Enhanced do it, are no longer reported as orphaned. The health check looks for the game in the folder above too.',
+          es: 'Los guardados que viven en una carpeta saves junto a los juegos, como hacen TWiLight Menu++ y Pico Launcher Enhanced, ya no salen como huérfanos. La revisión de salud busca el juego también en la carpeta de arriba.',
+        },
+      },
+      {
+        text: {
+          en: "A game with a save next to it and another in the saves folder is pointed out, with which launcher reads which. PicoDex can't tell which one is newer, so it leaves both.",
+          es: 'Un juego con un guardado al lado y otro en la carpeta saves se señala, diciendo qué launcher lee cada uno. PicoDex no puede saber cuál es más reciente, así que deja los dos.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.10.1',
     date: '2026-09-26',
     changes: [

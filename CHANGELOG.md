@@ -5,6 +5,18 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.10.2 — 2026-09-27
+
+Saves in a `saves` folder are no longer strangers.
+
+- **The health check understands saves folders.** TWiLight Menu++ keeps each game's save in a
+  `saves` folder next to the games, and Pico Launcher Enhanced can do the same. Those saves used to
+  show up as orphaned, with a button offering to delete them all. Now the check looks for the game in
+  the folder above too.
+- **A game with two saves is pointed out.** When a game has a save next to it and another in the
+  saves folder, the check lists both, says which launcher reads which, and leaves them alone: the card
+  carries no dates, so it can't tell which one has your latest progress.
+
 ## 0.10.1 — 2026-09-26
 
 Words, mostly. Every text in PicoDex now talks to the person holding the card, not to whoever
