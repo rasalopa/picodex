@@ -343,9 +343,7 @@ export function BannerEditor({
 
         {/* Same reason as the icon note in the cover dialog: the v1.3.0 release
             ignores banner files, and the card does not say which stock build it has. */}
-        {!cardInfo.isEnhancedFork && (
-          <p className="banner-editor__note">{t.banner.needsNewer}</p>
-        )}
+        {!cardInfo.isEnhancedFork && <p className="banner-editor__note">{t.banner.needsNewer}</p>}
 
         {sharingLabels.length > 1 && (
           // Saying "the launcher shows one banner for it" describes the launcher,

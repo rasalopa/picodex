@@ -587,7 +587,9 @@ describe('validateLauncherCoverBmp', () => {
   it('rejects what every launcher rejects (noise or nothing on the console)', () => {
     expect(validateLauncherCoverBmp(patched((v) => v.setUint16(28, 4, true)))).toMatch(/bits/);
     expect(validateLauncherCoverBmp(patched((v) => v.setInt32(18, 256, true)))).toMatch(/256x96/);
-    expect(validateLauncherCoverBmp(patched((v) => v.setUint32(30, 1, true)))).toMatch(/compressed/);
+    expect(validateLauncherCoverBmp(patched((v) => v.setUint32(30, 1, true)))).toMatch(
+      /compressed/,
+    );
     expect(validateLauncherCoverBmp(patched((_v, b) => b.set([0x42, 0x41], 0)))).toMatch(/magic/);
   });
 
