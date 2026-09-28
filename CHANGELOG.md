@@ -5,6 +5,21 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) �
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.10.3 — 2026-09-28
+
+Ready for the launcher you actually have.
+
+- **Covers the launcher can't show are listed.** The Health tab now checks every cover on the card
+  against what Pico Launcher reads and lists the ones it would draw as noise or skip, with the
+  reason. They usually come from saving a picture with an image editor; saving the cover again from
+  the Covers tab fixes it.
+- **Custom icons and folder banners say what they need.** The v1.3.0 release of Pico Launcher
+  ignores both files. PicoDex now says so where you make them, so a card that never shows them is
+  not a mystery. Newer builds and Pico Launcher Enhanced show them.
+- **Emulator examples match the setup guide.** The file association examples use the emulator names
+  from the community guide, and only emulators that take the game from the launcher. Mega Drive
+  games with the `.smd` extension are now listed.
+
 ## 0.10.2 — 2026-09-27
 
 Saves in a `saves` folder are no longer strangers.

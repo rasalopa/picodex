@@ -35,6 +35,30 @@ export const REPO_URL = 'https://github.com/rasalopa/picodex';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.3',
+    date: '2026-09-28',
+    changes: [
+      {
+        text: {
+          en: "The Health tab lists the covers on the card that Pico Launcher can't show, with the reason. They usually come from saving a picture with an image editor; saving the cover again from the Covers tab fixes it.",
+          es: 'La pestaña Salud lista las carátulas de la tarjeta que Pico Launcher no puede mostrar, con el motivo. Suelen venir de guardar la imagen con un editor; guardar la carátula otra vez desde la pestaña Carátulas lo arregla.',
+        },
+      },
+      {
+        text: {
+          en: 'Custom icons and folder banners now say that they need a Pico Launcher newer than v1.3.0, which ignores both files. Newer builds and Pico Launcher Enhanced show them.',
+          es: 'Los iconos propios y los banners de carpeta ahora avisan de que necesitan un Pico Launcher más nuevo que la v1.3.0, que ignora ambos archivos. Las builds más nuevas y Pico Launcher Enhanced los muestran.',
+        },
+      },
+      {
+        text: {
+          en: 'The file association examples use the emulator names from the community setup guide, and only emulators that take the game from the launcher. Mega Drive games with the .smd extension are now listed.',
+          es: 'Los ejemplos de asociaciones usan los nombres de emuladores de la guía de la comunidad, y solo emuladores que reciben el juego desde el launcher. Los juegos de Mega Drive con extensión .smd ya aparecen en la lista.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.10.2',
     date: '2026-09-27',
     changes: [
