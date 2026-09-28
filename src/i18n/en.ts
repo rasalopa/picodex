@@ -76,7 +76,7 @@ export const en = {
     noPicoAnymore:
       "PicoDex can't find the /_pico folder on that card. If the card isn't connected, connect it first. Then press Open SD card and choose it.",
     noPicoPickRoot:
-      "PicoDex can't find a /_pico folder there. Choose the SD card itself, not a folder inside it. If you already did, Pico Launcher isn't set up on this card yet.",
+      "PicoDex can't find a /_pico folder there. Choose the root of the SD card, not a folder inside it. If you already did, Pico Launcher isn't set up on this card yet.",
     noPicoOnCard:
       "PicoDex couldn't save your change because it can't find the /_pico folder on the card any more. Check that the card is still connected, then press Reload.",
     fsDenied:

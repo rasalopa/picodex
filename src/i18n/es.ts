@@ -66,7 +66,7 @@ export const es: Dict = {
     noPicoAnymore:
       'PicoDex no encuentra la carpeta /_pico en esa tarjeta. Si la tarjeta no está conectada, conéctala primero. Después pulsa Abrir tarjeta SD y elígela.',
     noPicoPickRoot:
-      'PicoDex no encuentra una carpeta /_pico ahí. Elige la tarjeta SD en sí, no una carpeta de dentro. Si ya lo hiciste, Pico Launcher aún no está instalado en esta tarjeta.',
+      'PicoDex no encuentra una carpeta /_pico ahí. Elige la raíz de la tarjeta SD. Si ya lo hiciste, Pico Launcher aún no está instalado en esta tarjeta.',
     noPicoOnCard:
       'PicoDex no pudo guardar el cambio porque ya no encuentra la carpeta /_pico en la tarjeta. Comprueba que la tarjeta sigue conectada y pulsa Recargar.',
     fsDenied:
