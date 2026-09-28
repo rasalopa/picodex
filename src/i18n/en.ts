@@ -615,6 +615,12 @@ export const en = {
         ? " doesn't match any game on the card, usually because the game was renamed or deleted. It is ticked for deletion: untick it if you want to keep it. You can get covers again from the Covers tab."
         : " don't match any game on the card, usually because the games were renamed or deleted. They are ticked for deletion: untick any you want to keep. You can get covers again from the Covers tab.",
     coversCleanLabel: (count: number) => `Clean up selected (${count})`,
+    badCoversTitle: "Covers the launcher can't show",
+    badCoversAllOk: 'Every cover on the card is in the format the launcher reads.',
+    badCovers: (count: number) =>
+      count === 1
+        ? '1 cover is not in the format the launcher reads, so on the console it shows as noise or not at all. It usually comes from saving the picture with an image editor. Open the game in the Covers tab and save the cover again: PicoDex writes it in the right format.'
+        : `${count} covers are not in the format the launcher reads, so on the console they show as noise or not at all. They usually come from saving the picture with an image editor. Open each game in the Covers tab and save the cover again: PicoDex writes it in the right format.`,
     coversConfirmLabel: (count: number) =>
       `Confirm delete ${count} ${count === 1 ? 'cover' : 'covers'}?`,
   },

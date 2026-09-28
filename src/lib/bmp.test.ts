@@ -9,6 +9,7 @@ import {
   decodeBmp,
   encodeCoverBmp,
   encodeIconBmp,
+  validateLauncherCoverBmp,
   validateLauncherIconBmp,
 } from './bmp';
 
@@ -554,6 +555,48 @@ describe('validateLauncherIconBmp', () => {
     const bmp = encodeIconBmp(makeGoldenIconRgba());
     expect(validateLauncherIconBmp(bmp.subarray(0, 100))).toMatch(/small/);
     expect(validateLauncherIconBmp(bmp.subarray(0, 600))).toMatch(/truncated/);
+  });
+});
+
+describe('validateLauncherCoverBmp', () => {
+  /** Copies an encoded cover and patches one header field. */
+  function patched(edit: (view: DataView, bytes: Uint8Array) => void): Uint8Array {
+    const bytes = encodeCoverBmp(makeGradient()).slice();
+    edit(new DataView(bytes.buffer), bytes);
+    return bytes;
+  }
+
+  it('accepts what encodeCoverBmp writes, bottom-up or top-down, any palette count', () => {
+    expect(validateLauncherCoverBmp(encodeCoverBmp(makeGradient()))).toBeNull();
+    expect(validateLauncherCoverBmp(patched((v) => v.setInt32(22, -96, true)))).toBeNull();
+    expect(validateLauncherCoverBmp(patched((v) => v.setUint32(46, 0, true)))).toBeNull();
+    // a 255-color palette: v1.3.0 ignores the count and Enhanced accepts it
+    expect(validateLauncherCoverBmp(patched((v) => v.setUint32(46, 255, true)))).toBeNull();
+  });
+
+  it('applies the DIB header rule to the stock launcher only', () => {
+    // BITMAPV4 header, as some image editors export: v1.3.0 reads the palette
+    // from the wrong place and later stock builds reject it; Enhanced parses it
+    const v4 = patched((v) => v.setUint32(14, 108, true));
+    expect(validateLauncherCoverBmp(v4)).toMatch(/DIB/);
+    expect(validateLauncherCoverBmp(v4, v4.length, 'enhanced')).toBeNull();
+    const v99 = patched((v) => v.setUint32(14, 200, true));
+    expect(validateLauncherCoverBmp(v99, v99.length, 'enhanced')).toMatch(/DIB/);
+  });
+
+  it('rejects what every launcher rejects (noise or nothing on the console)', () => {
+    expect(validateLauncherCoverBmp(patched((v) => v.setUint16(28, 4, true)))).toMatch(/bits/);
+    expect(validateLauncherCoverBmp(patched((v) => v.setInt32(18, 256, true)))).toMatch(/256x96/);
+    expect(validateLauncherCoverBmp(patched((v) => v.setUint32(30, 1, true)))).toMatch(/compressed/);
+    expect(validateLauncherCoverBmp(patched((_v, b) => b.set([0x42, 0x41], 0)))).toMatch(/magic/);
+  });
+
+  it('checks the length against the file size when only the header was read', () => {
+    const bmp = encodeCoverBmp(makeGradient());
+    expect(validateLauncherCoverBmp(bmp.subarray(0, 64), bmp.length)).toBeNull();
+    expect(validateLauncherCoverBmp(bmp.subarray(0, 64), 1000)).toMatch(/small/);
+    expect(validateLauncherCoverBmp(bmp.subarray(0, 64), 5000)).toMatch(/truncated/);
+    expect(validateLauncherCoverBmp(bmp.subarray(0, 40))).toMatch(/small/);
   });
 });
 

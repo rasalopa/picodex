@@ -602,6 +602,12 @@ export const es: Dict = {
         ? ' no corresponde a ningún juego de la tarjeta, normalmente porque el juego se renombró o se borró. Viene marcada para borrarla: desmárcala si quieres conservarla. Puedes volver a descargar carátulas desde la pestaña Carátulas.'
         : ' no corresponden a ningún juego de la tarjeta, normalmente porque los juegos se renombraron o se borraron. Vienen marcadas para borrarlas: desmarca las que quieras conservar. Puedes volver a descargar carátulas desde la pestaña Carátulas.',
     coversCleanLabel: (count: number) => `Limpiar seleccionadas (${count})`,
+    badCoversTitle: 'Carátulas que el launcher no puede mostrar',
+    badCoversAllOk: 'Todas las carátulas de la tarjeta están en el formato que lee el launcher.',
+    badCovers: (count: number) =>
+      count === 1
+        ? '1 carátula no está en el formato que lee el launcher, así que en la consola se ve como ruido o no se ve. Suele pasar al guardar la imagen con un editor. Abre el juego en la pestaña Carátulas y guarda la carátula otra vez: PicoDex la escribe en el formato correcto.'
+        : `${count} carátulas no están en el formato que lee el launcher, así que en la consola se ven como ruido o no se ven. Suele pasar al guardar la imagen con un editor. Abre cada juego en la pestaña Carátulas y guarda la carátula otra vez: PicoDex la escribe en el formato correcto.`,
     coversConfirmLabel: (count: number) =>
       count === 1 ? '¿Confirmas borrar 1 carátula?' : `¿Confirmas borrar ${count} carátulas?`,
   },

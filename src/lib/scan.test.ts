@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { encodeCoverBmp } from './bmp.ts';
 import { MAX_SCAN_DEPTH, scanCard } from './scan.ts';
 
 // ---------------------------------------------------------------------------
@@ -20,18 +21,24 @@ class FakeFileHandle {
   readonly name: string;
   private readonly size: number;
   private readonly readable: boolean;
+  private readonly bytes: Uint8Array;
 
-  constructor(name: string, size = 0, readable = true) {
+  constructor(name: string, size = 0, readable = true, bytes: Uint8Array = new Uint8Array(0)) {
     this.name = name;
     this.size = size;
     this.readable = readable;
+    this.bytes = bytes;
   }
 
-  async getFile(): Promise<{ size: number }> {
+  async getFile(): Promise<{ size: number; slice: (start: number, end: number) => Blob }> {
     if (!this.readable) {
       throw ACCESS_DENIED();
     }
-    return { size: this.size };
+    const bytes = this.bytes;
+    return {
+      size: this.size,
+      slice: (start: number, end: number) => new Blob([bytes.slice(start, end)]),
+    };
   }
 }
 
@@ -52,8 +59,8 @@ class FakeDirectoryHandle {
     return child;
   }
 
-  file(name: string, size = 0, readable = true): this {
-    this.children.push(new FakeFileHandle(name, size, readable));
+  file(name: string, size = 0, readable = true, bytes?: Uint8Array): this {
+    this.children.push(new FakeFileHandle(name, size, readable, bytes));
     return this;
   }
 
@@ -94,6 +101,31 @@ describe('scanCard', () => {
     expect(result.junkDirs).toEqual([]);
     expect(result.skippedDirs).toEqual([]);
     expect(result.filesSeen).toBe(7);
+  });
+
+  it('reports covers the launcher cannot display, from their header alone', async () => {
+    const root = new FakeDirectoryHandle();
+    const covers = root.dir('_pico').dir('covers');
+    const good = encodeCoverBmp(new Uint8ClampedArray(128 * 96 * 4));
+    const bad = good.slice();
+    new DataView(bad.buffer).setUint32(14, 108, true); // BITMAPV4 header
+    covers
+      .dir('nds')
+      .file('AAAA.bmp', good.length, true, good)
+      .file('BBBB.bmp', bad.length, true, bad)
+      .file('notes.txt', 10);
+    covers.dir('user').file('Short.bmp', 200);
+
+    const result = await scanCard(asRoot(root), noProgress);
+
+    expect(result.coverProblems).toEqual([
+      { folder: 'nds', name: 'BBBB.bmp', reason: 'DIB header is 108 bytes, launcher needs 40' },
+      { folder: 'user', name: 'Short.bmp', reason: 'file too small (200 bytes)' },
+    ]);
+
+    // the fork parses that header, so on an Enhanced card only the short file remains
+    const enhanced = await scanCard(asRoot(root), noProgress, { launcher: 'enhanced' });
+    expect(enhanced.coverProblems.map((problem) => problem.name)).toEqual(['Short.bmp']);
   });
 
   it('survives an unreadable .Trashes at the root and still reports it as junk', async () => {

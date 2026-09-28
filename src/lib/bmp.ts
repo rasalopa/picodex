@@ -32,6 +32,8 @@ export const ICON_TRANSPARENT_INDEX = 0;
 
 const FILE_HEADER_SIZE = 14;
 const DIB_HEADER_SIZE = 40;
+/** The largest DIB header Pico Launcher Enhanced's cover reader accepts (BITMAPV5). */
+const ENHANCED_MAX_DIB_HEADER_SIZE = 124;
 const PALETTE_ENTRIES = 256;
 /** Alpha at or above which an icon pixel is opaque (below: transparent index 0). */
 const ICON_OPAQUE_ALPHA = 128;
@@ -430,6 +432,68 @@ export function validateLauncherIconBmp(bytes: Uint8Array): string | null {
   }
   if (dataOffset < headerSize) return `pixel data at offset ${dataOffset}, launcher needs >= 118`;
   if (dataOffset + (ICON_SIZE / 2) * ICON_SIZE > bytes.length) return 'truncated pixel data';
+  return null;
+}
+
+/** Which cover reader a check is for: see {@link validateLauncherCoverBmp}. */
+export type CoverLauncher = 'stock' | 'enhanced';
+
+/**
+ * Checks a BMP against what Pico Launcher's cover reader accepts, so a cover
+ * that would come out as noise, or not at all, on the console can be pointed
+ * out before anyone wonders. Only rules every release of the given launcher
+ * applies are used, so a listed cover is really broken there:
+ *
+ * - Both readers need 'BM', 128x96 (either row order), 8bpp, no compression,
+ *   at least 1078 bytes (header plus palette) and 128x96 bytes of pixel data
+ *   at the data offset (`BmpFileCover` reads exactly that).
+ * - `stock` (Pico Launcher by LNH) also needs a 40-byte DIB header: v1.3.0
+ *   reads the palette at a fixed offset, so a longer header shifts every
+ *   colour, and later builds reject it outright (`BmpHeader::Validate`).
+ * - `enhanced` (Pico Launcher Enhanced) parses any DIB header up to 124 bytes.
+ *
+ * The palette colour count is not checked: v1.3.0 ignores it and Enhanced
+ * accepts any count up to 256, so a file some builds reject for it still
+ * shows on the launchers people actually run.
+ *
+ * Only the header needs to be in `bytes`: a caller that reads the first 64
+ * bytes of a file passes its full size as `fileSize` for the length checks.
+ *
+ * @param bytes - The BMP file bytes, or at least its first 54.
+ * @param fileSize - The complete file size when `bytes` is only its start.
+ * @param launcher - Which launcher's rules to apply.
+ * @returns `null` when the launcher would display the file, else the reason.
+ */
+export function validateLauncherCoverBmp(
+  bytes: Uint8Array,
+  fileSize: number = bytes.length,
+  launcher: CoverLauncher = 'stock',
+): string | null {
+  const headerSize = FILE_HEADER_SIZE + DIB_HEADER_SIZE + PALETTE_ENTRIES * 4; // 1078
+  if (fileSize < headerSize) return `file too small (${fileSize} bytes)`;
+  if (bytes.length < FILE_HEADER_SIZE + DIB_HEADER_SIZE) {
+    return `file too small (${bytes.length} bytes)`;
+  }
+  if (bytes[0] !== 0x42 || bytes[1] !== 0x4d) return "missing 'BM' magic";
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const dataOffset = view.getUint32(10, true);
+  const dibSize = view.getUint32(14, true);
+  const width = view.getInt32(18, true);
+  const height = Math.abs(view.getInt32(22, true));
+  const bitsPerPixel = view.getUint16(28, true);
+  const compression = view.getUint32(30, true);
+  if (launcher === 'stock' && dibSize !== DIB_HEADER_SIZE) {
+    return `DIB header is ${dibSize} bytes, launcher needs 40`;
+  }
+  if (dibSize < DIB_HEADER_SIZE || dibSize > ENHANCED_MAX_DIB_HEADER_SIZE) {
+    return `DIB header is ${dibSize} bytes, launcher needs 40 to ${ENHANCED_MAX_DIB_HEADER_SIZE}`;
+  }
+  if (width !== COVER_WIDTH || height !== COVER_HEIGHT) {
+    return `${width}x${height}, launcher needs ${COVER_WIDTH}x${COVER_HEIGHT}`;
+  }
+  if (bitsPerPixel !== 8) return `${bitsPerPixel} bits per pixel, launcher needs 8`;
+  if (compression !== 0) return 'compressed, launcher needs uncompressed';
+  if (dataOffset + COVER_WIDTH * COVER_HEIGHT > fileSize) return 'truncated pixel data';
   return null;
 }
 

@@ -98,7 +98,7 @@ function ConfirmDelete({
  * (saves) requires explicit per-item opt-in.
  */
 export function HealthView() {
-  const { root, games, refresh, loading } = useSd();
+  const { root, games, refresh, loading, cardInfo } = useSd();
   const t = useT();
   const [scanning, setScanning] = useState(false);
   const [filesSeen, setFilesSeen] = useState(0);
@@ -149,7 +149,9 @@ export function HealthView() {
         setScanError({ key: 'raw', text: t.health.libraryRereadFailed });
         return;
       }
-      const result = await scanCard(root, setFilesSeen);
+      const result = await scanCard(root, setFilesSeen, {
+        launcher: cardInfo.isEnhancedFork ? 'enhanced' : 'stock',
+      });
       setScan(result);
       // Hashing the loader files is part of inspecting the card, so it shares this
       // scan's spinner and re-runs on rescan. Its own try/catch: a loader file
@@ -719,6 +721,25 @@ export function HealthView() {
               <p className="health-view__error" role="alert">
                 {resolveSdMessage(t, coversError)}
               </p>
+            )}
+          </section>
+
+          <section className={sectionClass(scan.coverProblems.length === 0)}>
+            <h3 className="section-title">{t.health.badCoversTitle}</h3>
+            {scan.coverProblems.length === 0 ? (
+              <p className="health-view__ok">{t.health.badCoversAllOk}</p>
+            ) : (
+              <>
+                <p className="health-view__warn">{t.health.badCovers(scan.coverProblems.length)}</p>
+                <ul className="health-view__list">
+                  {scan.coverProblems.map(({ folder, name, reason }) => (
+                    <li key={`${folder}/${name}`}>
+                      <code>{`/${COVERS[folder].join('/')}/${name}`}</code>
+                      <span className="health-view__dim"> {reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
         </>
