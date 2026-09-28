@@ -73,7 +73,7 @@ export const SYSTEMS: readonly System[] = [
     id: 'gen',
     label: 'Mega Drive / Genesis',
     gamesDir: 'gen',
-    extensions: ['.md', '.gen'],
+    extensions: ['.md', '.gen', '.smd'],
     libretroRepo: 'Sega_-_Mega_Drive_-_Genesis',
     coverKeying: 'filename',
   },

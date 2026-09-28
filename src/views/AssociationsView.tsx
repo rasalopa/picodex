@@ -11,13 +11,19 @@ import {
 import { PICO_DIR, SETTINGS_FILE, getDir, writeFileText } from '../lib/sdcard';
 import './AssociationsView.css';
 
-/** Common emulator paths surfaced as hints and input placeholders. */
+/**
+ * Emulator paths surfaced as hints and input placeholders. The names and the
+ * folder follow the community setup guide (sanrax.github.io/flashcart-guides),
+ * so what a user copies from there matches what they see here. Only emulators
+ * that take the ROM path from the launcher belong in this list: SNEmulDS and
+ * jEnesisDS do not, so an association would launch them without a game.
+ */
 const EXAMPLE_PATHS = [
   '/_pico/emulators/nesDS.nds',
-  '/_pico/emulators/gbarunner2.nds',
-  '/_pico/emulators/lameboy.nds',
-  '/_pico/emulators/SNEmulDS.nds',
-  '/_pico/emulators/jEnesisDS.nds',
+  '/_pico/emulators/GBARunner3.nds',
+  '/_pico/emulators/gameyob.nds',
+  '/_pico/emulators/PicoDriveTWL.nds',
+  '/_pico/emulators/S8DS.nds',
 ] as const;
 
 /** Shallow equality of two extension → appPath maps (order-insensitive). */
