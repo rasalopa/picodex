@@ -58,7 +58,8 @@ export const en = {
       healthBody:
         'Spots macOS junk, orphaned saves, and a loader whose files came from different releases.',
       bannersTitle: 'Folder banners',
-      bannersBody: 'Give each system folder a proper icon and display name.',
+      bannersBody:
+        'Give each system folder a proper icon and display name. Needs a Pico Launcher newer than v1.3.0.',
       associationsTitle: 'File associations',
       associationsBody:
         'Choose which emulator opens each type of ROM, without editing files by hand.',
@@ -270,6 +271,8 @@ export const en = {
     iconHint:
       "The small picture next to the game's name in the launcher list. DS games usually bring their own, and this one replaces it. Other systems have none, so this adds one. Your image is fitted into 32×32 without stretching, and transparent parts stay transparent.",
     iconNone: 'No custom icon',
+    iconNeedsNewer:
+      "Custom icons need a Pico Launcher newer than v1.3.0. With the v1.3.0 release the icon is saved to the card, but the console keeps showing the game's own.",
     iconInvalidOnCard:
       'The icon file on the card is not in the format the launcher reads, so the console shows a blank icon. Saving a new one replaces it.',
     iconBannerNote:
@@ -441,6 +444,8 @@ export const en = {
     fromImage: 'From image',
     fromGame: 'From a game',
     imageFileLabel: 'Icon image file',
+    needsNewer:
+      "Folder banners need a Pico Launcher newer than v1.3.0. With the v1.3.0 release the console keeps the folder's plain name and icon.",
     imageHint:
       'Your image is resized to fit 32×32 and reduced to 15 colors. The preview above shows exactly how it will look on the DS.',
     imageFailed: (detail: string) => `Could not read the image: ${detail}`,

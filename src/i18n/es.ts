@@ -49,7 +49,8 @@ export const es: Dict = {
       healthBody:
         'Detecta la basura de macOS, guardados huérfanos y un loader con archivos de versiones distintas.',
       bannersTitle: 'Banners de carpeta',
-      bannersBody: 'Dale a cada carpeta de sistema su icono y nombre visible.',
+      bannersBody:
+        'Dale a cada carpeta de sistema su icono y nombre visible. Necesita un Pico Launcher más nuevo que la v1.3.0.',
       associationsTitle: 'Asociaciones de archivos',
       associationsBody: 'Elige qué emulador abre cada tipo de ROM, sin editar archivos a mano.',
     },
@@ -262,6 +263,8 @@ export const es: Dict = {
     iconHint:
       'La imagen pequeña junto al nombre del juego en la lista del launcher. Los juegos de DS suelen traer la suya, y esta la sustituye. Los demás sistemas no traen ninguna, así que esta la añade. Tu imagen se ajusta a 32×32 sin deformarse, y las partes transparentes siguen transparentes.',
     iconNone: 'Sin icono personalizado',
+    iconNeedsNewer:
+      'Los iconos propios necesitan un Pico Launcher más nuevo que la v1.3.0. Con la versión v1.3.0 el icono se guarda en la tarjeta, pero la consola sigue mostrando el del juego.',
     iconInvalidOnCard:
       'El fichero de icono de la tarjeta no está en el formato que lee el launcher, así que la consola muestra un icono en blanco. Al guardar uno nuevo se reemplaza.',
     iconBannerNote:
@@ -422,6 +425,8 @@ export const es: Dict = {
     fromImage: 'Desde una imagen',
     fromGame: 'Desde un juego',
     imageFileLabel: 'Archivo de imagen del icono',
+    needsNewer:
+      'Los banners de carpeta necesitan un Pico Launcher más nuevo que la v1.3.0. Con la versión v1.3.0 la consola sigue mostrando el nombre y el icono normales de la carpeta.',
     imageHint:
       'Tu imagen se ajusta a 32×32 y se reduce a 15 colores. La vista previa de arriba muestra exactamente cómo se verá en la DS.',
     imageFailed: (detail: string) => `No se pudo leer la imagen: ${detail}`,

@@ -185,7 +185,7 @@ export function CoverPicker({
   onClose,
   onSaved,
 }: CoverPickerProps) {
-  const { root, coverIndex, iconIndex, bannerIndex } = useSd();
+  const { root, coverIndex, iconIndex, bannerIndex, cardInfo } = useSd();
   const t = useT();
   const repo = game.system.libretroRepo;
   const title = titleOf(game.fileName);
@@ -761,6 +761,12 @@ export function CoverPicker({
               <p className="cover-picker__note">{t.coverPicker.iconBannerNote}</p>
             ) : (
               <p className="cover-picker__hint">{t.coverPicker.iconHint}</p>
+            )}
+            {/* Stock Pico Launcher only reads custom icons from a build newer than
+                its v1.3.0 release, and PicoDex cannot tell those apart from the
+                card, so the note goes to every launcher that is not the fork. */}
+            {!cardInfo.isEnhancedFork && (
+              <p className="cover-picker__note">{t.coverPicker.iconNeedsNewer}</p>
             )}
           </div>
         )}
