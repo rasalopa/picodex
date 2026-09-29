@@ -1,6 +1,6 @@
 # Contributing to PicoDex
 
-Thanks for your interest! PicoDex is a small, focused project — contributions of all sizes are welcome.
+Thanks for your interest! PicoDex is a small, focused project, and contributions of all sizes are welcome.
 
 ## Getting started
 
@@ -15,15 +15,15 @@ You will need a Chromium-based browser and, ideally, a DSpico SD card (a folder 
 
 ## Ground rules
 
-- **Pure logic goes in `src/lib/`** — dependency-free TypeScript with unit tests, no DOM/React imports. UI goes in `src/` components. If a feature mixes both, split it.
+- **Pure logic goes in `src/lib/`**: dependency-free TypeScript with unit tests, no DOM/React imports. UI goes in `src/` components. If a feature mixes both, split it.
 - **Tests**: anything in `src/lib/` needs vitest coverage. Run `npm test` before opening a PR.
 - **Formatting**: `npm run format` (prettier) and `npm run lint` must pass. CI enforces both.
-- **No new runtime dependencies** without discussing it in an issue first — the whole point of PicoDex is being small and auditable.
+- **No new runtime dependencies** without discussing it in an issue first: the whole point of PicoDex is being small and auditable.
 - **Binary formats** (BMP covers, `banner.bnr`, ROM headers) follow what Pico Launcher actually reads. When in doubt, the launcher source is the spec.
 
 ## Translations
 
-PicoDex ships in English and Spanish, and more languages are welcome — **including a partial one.**
+PicoDex ships in English and Spanish, and more languages are welcome, **including a partial one.**
 Every key is optional and anything you leave out reads in English, so thirty strings translated is a
 real contribution, not a draft.
 
@@ -35,7 +35,7 @@ enough: the language switch works on the landing page.
 1. Fork, clone, and `npm install`. `npm run dev` gives you the app on <http://localhost:5173>.
 
 2. Create `src/i18n/<code>.ts`, named for your language's [BCP-47](https://en.wikipedia.org/wiki/IETF_language_tag)
-   tag — `pt` for Portuguese, `pt-BR` if you specifically mean Brazilian. The tag is also what
+   tag: `pt` for Portuguese, `pt-BR` if you specifically mean Brazilian. The tag is also what
    formats dates and what the page reports as its language, so pick the one you mean.
 
    ```ts
@@ -52,7 +52,7 @@ enough: the language switch works on the landing page.
    `Translation<Dict>` is what makes every key optional. TypeScript still checks the keys you do
    write, so a typo is an error rather than a blank label.
 
-3. Add two lines to [`src/i18n/languages.ts`](src/i18n/languages.ts) — an import, and an entry in
+3. Add two lines to [`src/i18n/languages.ts`](src/i18n/languages.ts): an import, and an entry in
    the registry. The label is what the footer button shows.
 
    ```ts
@@ -68,7 +68,7 @@ enough: the language switch works on the landing page.
    That is the whole wiring. Nothing else in the app names a language.
 
 4. Your language now appears in the footer. Click it. Everything you have translated is in your
-   language and everything else is in English — that is working correctly, not a bug.
+   language and everything else is in English. That is working correctly, not a bug.
 
 5. Copy keys over from [`src/i18n/en.ts`](src/i18n/en.ts) as you go: 370 entries in 15 groups, about
    515 lines, and it is the list of everything there is to say.
@@ -82,12 +82,12 @@ enough: the language switch works on the landing page.
 - **Plain strings stay plain. Anything with a value in the middle is a function**, so you can put
   the value where your language wants it: `(count) => \`${count} games\`` can become
   `(count) => \`juegos: ${count}\``.
-- **Some sentences are split in two** — `releasesBehind1` and `releasesBehind2` — because a version
+- **Some sentences are split in two** (`releasesBehind1` and `releasesBehind2`) because a version
   number sits between the halves. The spaces have to live inside your strings, and word order can
   differ, which is the whole reason the split exists. `src/i18n/spacing.test.ts` fails if something
   ends up glued to the value, and it checks your language automatically.
 - **Some text is not ours to translate.** A loader filename, a game code, an error the browser or
-  the SD card handed us — leave those alone.
+  the SD card handed us: leave those alone.
 - **The English keeps changing, and that is fine.** `npm run i18n:outdated -- xx` lists the strings
   of your language whose English changed after you translated them, and the ones still missing.
   Before each release you get that list; nothing else needs re-reading.
@@ -99,7 +99,7 @@ enough: the language switch works on the landing page.
 - **The best moment to translate is right after a release.** Between them the interface moves:
   strings get reworded, added, or dropped when a screen is redesigned, and anything you translated
   for a screen that changed is work thrown away. When a version ships I post the exact list of new
-  or changed keys in the translations issue, so waiting for that costs you nothing — whatever a
+  or changed keys in the translations issue, so waiting for that costs you nothing. Whatever a
   language has not covered yet reads in English until you get to it.
 
 ## Commit style

@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/rasalopa/picodex?color=e04b62)](https://github.com/rasalopa/picodex/releases)
 [![License](https://img.shields.io/github/license/rasalopa/picodex)](LICENSE)
 
-> Manage your [Pico Launcher](https://github.com/LNH-team/pico-launcher) SD card from the browser — on the [DSpico](https://github.com/LNH-team/dspico) or any flashcart that runs it. Covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
+> Manage your [Pico Launcher](https://github.com/LNH-team/pico-launcher) SD card from the browser, on the [DSpico](https://github.com/LNH-team/dspico) or any flashcart that runs it. Covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
 
 ![Library overview with per-system cover coverage](docs/screenshots/library.png)
 
@@ -31,25 +31,25 @@
 
 ## What it does
 
-- 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage, and — if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) — your favorites, completed games and play stats (which you can also edit by hand for corrections).
+- 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage and, if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced), your favorites, completed games and play stats (which you can also edit by hand for corrections).
 - 🖼 **Cover manager**: finds games without box art, matches them against the [libretro-thumbnails](https://github.com/libretro-thumbnails) catalogs (No-Intro naming, region-aware), previews the result and writes launcher-ready BMPs to `/_pico/covers/`.
-- 🎮 **Library organizer**: drop ROM files onto the page — PicoDex detects the system, places them under `Games/`, and fetches their covers.
+- 🎮 **Library organizer**: drop ROM files onto the page and PicoDex detects the system, places them under `Games/`, and fetches their covers.
 - 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.
 - 🔗 **File association editor**: point each ROM extension at its emulator without hand-editing `settings.json`.
-- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers — nothing is deleted without confirmation. It also identifies which [Pico Loader](https://github.com/LNH-team/pico-loader) release your card is running, and spots a card whose loader files came from different releases.
+- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers. Nothing is deleted without confirmation. It also identifies which [Pico Loader](https://github.com/LNH-team/pico-loader) release your card is running, and spots a card whose loader files came from different releases.
 - 📸 **Screenshot gallery**: every capture [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) saves when you hold START, both DS screens stacked into one picture. View one full size, save it as a PNG, or delete it from the card.
-- 🎮 **Per-game loader compatibility**: for any NDS game, what the loader will do for it at boot — anti-piracy fix, save type and size, game-specific patches — matched against your ROM's exact revision.
+- 🎮 **Per-game loader compatibility**: for any NDS game, what the loader will do for it at boot (anti-piracy fix, save type and size, game-specific patches), matched against your ROM's exact revision.
 
 Everything runs client-side. PicoDex has no server, no accounts and no telemetry.
 
 ## Requirements
 
 - A Chromium-based browser (Chrome, Edge, Brave, Opera). Firefox and Safari do not yet ship the directory-write File System Access API.
-- A Pico Launcher SD card: any flashcart with a `/_pico` folder — the DSpico, or an R4, DSTT, Acekard, etc. running Pico Launcher.
+- A Pico Launcher SD card: any flashcart with a `/_pico` folder: the DSpico, or an R4, DSTT, Acekard, etc. running Pico Launcher.
 
 ## Using it
 
-**Use it now: https://rasalopa.github.io/picodex/** — no install needed.
+**Use it now: https://rasalopa.github.io/picodex/**. No install needed.
 
 Or run it locally:
 
@@ -79,7 +79,7 @@ release brought.
 
 ## Acknowledgements
 
-- The [LNH team](https://github.com/LNH-team) for DSpico and Pico Launcher — the open flashcart that makes this fun.
+- The [LNH team](https://github.com/LNH-team) for the DSpico, the open flashcart that makes this fun, and for Pico Launcher.
 - [libretro-thumbnails](https://github.com/libretro-thumbnails) for the box art collections.
 
 ## License
