@@ -716,3 +716,81 @@ describe('setGameStats', () => {
     expect(data).toEqual(snapshot);
   });
 });
+
+describe('saveSlot', () => {
+  /** A launcher-written entry that picked save slot 2 (written after "path"). */
+  const slotSample = crlf(
+    '{',
+    '  "games": {',
+    '    "Pokemon Platinum.nds": {',
+    '      "gameCode": "CPUE",',
+    '      "launchCount": 5,',
+    '      "path": "/roms/Pokemon Platinum.nds",',
+    '      "saveSlot": 2',
+    '    }',
+    '  }',
+    '}',
+  );
+
+  it('round-trips a launcher-written slot byte for byte', () => {
+    const data = parseGameData(slotSample);
+    expect(data.entries[0]?.saveSlot).toBe(2);
+    expect(serializeGameData(data)).toBe(slotSample);
+  });
+
+  it('survives a favorite toggle, so PicoDex never resets a game to its regular save', () => {
+    const next = toggleFavorite(parseGameData(slotSample), 'Pokemon Platinum.nds', 'CPUE');
+    const parsed = JSON.parse(serializeGameData(next)) as {
+      games: Record<string, { saveSlot?: number }>;
+    };
+    expect(parsed.games['Pokemon Platinum.nds'].saveSlot).toBe(2);
+  });
+
+  it('keeps an entry that holds nothing but a slot from being pruned', () => {
+    const data = parseGameData(JSON.stringify({ games: { 'a.nds': { saveSlot: 4 } } }));
+    expect(serializeGameData(data)).toBe(
+      crlf('{', '  "games": {', '    "a.nds": {', '      "saveSlot": 4', '    }', '  }', '}'),
+    );
+  });
+
+  it('reads slots the launcher cannot name a save for as slot 0, like the launcher', () => {
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'zero.nds': { launchCount: 1, saveSlot: 0 },
+          'ten.nds': { launchCount: 1, saveSlot: 10 },
+          'half.nds': { launchCount: 1, saveSlot: 1.5 },
+          'text.nds': { launchCount: 1, saveSlot: '3' },
+        },
+      }),
+    );
+    for (const entry of data.entries) expect(entry.saveSlot).toBeUndefined();
+  });
+
+  it('stays with its own file, not with a hack sharing its game code', () => {
+    const data = parseGameData(
+      JSON.stringify({
+        games: {
+          'Platinum.nds': { gameCode: 'CPUE', launchCount: 3, saveSlot: 3 },
+          'Platinum Hack.nds': { gameCode: 'CPUE', launchCount: 1 },
+        },
+      }),
+    );
+    const toggled = toggleFavorite(data, 'Platinum Hack.nds', 'CPUE');
+    expect(findEntry(toggled, 'Platinum.nds')?.saveSlot).toBe(3);
+    expect(findEntry(toggled, 'Platinum Hack.nds')?.saveSlot).toBeUndefined();
+  });
+
+  it('survives clearing the play stats, which leaves an entry holding only the slot', () => {
+    const data = parseGameData(slotSample);
+    const edited = setGameStats(data, 'Pokemon Platinum.nds', 'CPUE', {
+      launchCount: 0,
+      playMinutes: 0,
+    });
+    expect(findEntry(edited, 'Pokemon Platinum.nds')?.saveSlot).toBe(2);
+    const parsed = JSON.parse(serializeGameData(edited)) as {
+      games: Record<string, { saveSlot?: number }>;
+    };
+    expect(parsed.games['Pokemon Platinum.nds'].saveSlot).toBe(2);
+  });
+});
