@@ -7,51 +7,51 @@
 [![Release](https://img.shields.io/github/v/release/rasalopa/picodex?color=e04b62)](https://github.com/rasalopa/picodex/releases)
 [![License](https://img.shields.io/github/license/rasalopa/picodex)](LICENSE)
 
-> Manage your [Pico Launcher](https://github.com/LNH-team/pico-launcher) SD card from the browser, on the [DSpico](https://github.com/LNH-team/dspico) or any flashcart that runs it. Covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
+> Verwalte die SD-Karte deines [Pico Launcher](https://github.com/LNH-team/pico-launcher) direkt im Browser, auf dem [DSpico](https://github.com/LNH-team/dspico) oder jedem anderen Flashcart, auf dem er läuft. Cover, Bibliotheksorganisation, Favoriten und Spielstatistiken. Keine Installation, kein Backend, deine Dateien verlassen nie deinen Rechner.
 
-![Library overview with per-system cover coverage](docs/screenshots/library.png)
+![Bibliotheksübersicht mit Cover-Abdeckung pro System](docs/screenshots/library.png)
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/gallery.jpg" alt="Cover gallery with favorites and play badges" /></td>
-    <td width="50%"><img src="docs/screenshots/cover-picker.jpg" alt="Manual cover picker with catalog search" /></td>
+    <td width="50%"><img src="docs/screenshots/gallery.jpg" alt="Cover-Galerie mit Favoriten- und Spiel-Badges" /></td>
+    <td width="50%"><img src="docs/screenshots/cover-picker.jpg" alt="Manuelle Cover-Auswahl mit Katalogsuche" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/stats.png" alt="Play statistics from Pico Launcher Enhanced" /></td>
-    <td width="50%"><img src="docs/screenshots/health.png" alt="Card health check reporting which Pico Loader release the card is running" /></td>
+    <td width="50%"><img src="docs/screenshots/stats.png" alt="Spielstatistiken aus Pico Launcher Enhanced" /></td>
+    <td width="50%"><img src="docs/screenshots/health.png" alt="Kartencheck, der anzeigt, welche Pico-Loader-Version auf der Karte läuft" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/compat.jpg" alt="Per-game loader compatibility: anti-piracy fix, save type and size, game patches" /></td>
-    <td width="50%"><img src="docs/screenshots/landing.png" alt="PicoDex landing page with its feature cards" /></td>
+    <td width="50%"><img src="docs/screenshots/compat.jpg" alt="Loader-Kompatibilität pro Spiel: Kopierschutz-Fix, Speichertyp und -größe, Spiel-Patches" /></td>
+    <td width="50%"><img src="docs/screenshots/landing.png" alt="PicoDex-Startseite mit den Funktionskarten" /></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/screenshots/screenshots.jpg" alt="Screenshot gallery: every capture on the card, both DS screens stacked into one picture" /></td>
+    <td colspan="2"><img src="docs/screenshots/screenshots.jpg" alt="Screenshot-Galerie: jede Aufnahme auf der Karte, beide DS-Bildschirme in einem Bild untereinander" /></td>
   </tr>
 </table>
 
-## What it does
+## Was es kann
 
-- 📂 **Open your SD card** directly in the browser (File System Access API) and see your whole library at a glance: games per system, cover coverage and, if you use [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced), your favorites, completed games and play stats (which you can also edit by hand for corrections).
-- 🖼 **Cover manager**: finds games without box art, matches them against the [libretro-thumbnails](https://github.com/libretro-thumbnails) catalogs (No-Intro naming, region-aware), previews the result and writes launcher-ready BMPs to `/_pico/covers/`.
-- 🎮 **Library organizer**: drop ROM files onto the page and PicoDex detects the system, places them under `Games/`, and fetches their covers.
-- 📁 **Folder banners**: give each system folder a proper icon and display name (`banner.bnr`), generated in the browser.
-- 🔗 **File association editor**: point each ROM extension at its emulator without hand-editing `settings.json`.
-- 🩺 **Card health check**: finds macOS junk files, missing loader files and orphaned saves or covers. Nothing is deleted without confirmation. It also identifies which [Pico Loader](https://github.com/LNH-team/pico-loader) release your card is running, and spots a card whose loader files came from different releases.
-- 📸 **Screenshot gallery**: every capture [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) saves when you hold START, both DS screens stacked into one picture. View one full size, save it as a PNG, or delete it from the card.
-- 🎮 **Per-game loader compatibility**: for any NDS game, what the loader will do for it at boot (anti-piracy fix, save type and size, game-specific patches), matched against your ROM's exact revision.
+- 📂 **SD-Karte öffnen**: direkt im Browser (File System Access API) und die gesamte Bibliothek auf einen Blick sehen: Spiele pro System, Cover-Abdeckung und, falls du [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) benutzt, deine Favoriten, durchgespielten Spiele und Spielstatistiken (die du zur Korrektur auch von Hand bearbeiten kannst).
+- 🖼 **Cover-Manager**: findet Spiele ohne Cover, gleicht sie mit den [libretro-thumbnails](https://github.com/libretro-thumbnails)-Katalogen ab (No-Intro-Benennung, regionsabhängig), zeigt eine Vorschau und schreibt launcher-fertige BMPs nach `/_pico/covers/`.
+- 🎮 **Bibliotheksorganisation**: ROM-Dateien auf die Seite ziehen, PicoDex erkennt das System, legt sie unter `Games/` ab und holt die passenden Cover.
+- 📁 **Ordner-Banner**: gib jedem Systemordner ein eigenes Icon und einen Anzeigenamen (`banner.bnr`), direkt im Browser erzeugt.
+- 🔗 **Dateizuordnungs-Editor**: weise jeder ROM-Endung ihren Emulator zu, ohne `settings.json` von Hand zu bearbeiten.
+- 🩺 **Kartencheck**: findet macOS-Müll­dateien, fehlende Loader-Dateien sowie verwaiste Spielstände oder Cover. Ohne Bestätigung wird nichts gelöscht. Außerdem erkennt er, welche [Pico-Loader](https://github.com/LNH-team/pico-loader)-Version auf deiner Karte läuft, und bemerkt, wenn Loader-Dateien auf einer Karte aus verschiedenen Versionen stammen.
+- 📸 **Screenshot-Galerie**: jede Aufnahme, die [Pico Launcher Enhanced](https://github.com/rasalopa/pico-launcher-enhanced) speichert, wenn du START gedrückt hältst, mit beiden DS-Bildschirmen untereinander in einem Bild. Du kannst sie in voller Größe ansehen, als PNG speichern oder von der Karte löschen.
+- 🎮 **Loader-Kompatibilität pro Spiel**: für jedes NDS-Spiel, was der Loader beim Start damit tut (Kopierschutz-Fix, Speichertyp und -größe, spielspezifische Patches), abgeglichen mit der exakten Revision deiner ROM.
 
-Everything runs client-side. PicoDex has no server, no accounts and no telemetry.
+Alles läuft clientseitig. PicoDex hat keinen Server, keine Accounts und keine Telemetrie.
 
-## Requirements
+## Voraussetzungen
 
-- A Chromium-based browser (Chrome, Edge, Brave, Opera). Firefox and Safari do not yet ship the directory-write File System Access API.
-- A Pico Launcher SD card: any flashcart with a `/_pico` folder: the DSpico, or an R4, DSTT, Acekard, etc. running Pico Launcher.
+- Ein Chromium-basierter Browser (Chrome, Edge, Brave, Opera). Firefox und Safari unterstützen die File System Access API mit Schreibzugriff auf Verzeichnisse noch nicht.
+- Eine Pico-Launcher-SD-Karte: jedes Flashcart mit einem `/_pico`-Ordner: der DSpico oder ein R4, DSTT, Acekard usw., auf dem Pico Launcher läuft.
 
-## Using it
+## Benutzung
 
-**Use it now: https://rasalopa.github.io/picodex/**. No install needed.
+**Direkt nutzen: https://rasalopa.github.io/picodex/**. Keine Installation nötig.
 
-Or run it locally:
+Oder lokal ausführen:
 
 ```bash
 git clone https://github.com/rasalopa/picodex.git
@@ -60,12 +60,12 @@ npm install
 npm run dev
 ```
 
-Open the printed URL, click **Open SD card**, and pick your mounted SD.
+Öffne die angezeigte URL, klicke auf **Open SD card** und wähle deine eingebundene SD-Karte aus.
 
-PicoDex opens in its dark theme. The button next to the language in the footer switches it to
-light, or lets it follow your system.
+PicoDex startet im dunklen Design. Die Schaltfläche neben der Sprachauswahl in der Fußzeile wechselt
+zum hellen Design oder lässt es deinem System folgen.
 
-## Development
+## Entwicklung
 
 ```bash
 npm run dev          # dev server
@@ -75,16 +75,16 @@ npm run format:check # prettier
 npm run build        # production build
 ```
 
-The interesting logic lives in [`src/lib/`](src/lib/) as pure, dependency-free TypeScript: NDS/GBA header parsing, launcher-format BMP encoding, `banner.bnr` building, box-art title matching, and the Pico Launcher `gamedata.json`/`settings.json` formats. The React app is a thin shell over it.
+Die interessante Logik liegt in [`src/lib/`](src/lib/) als reines, abhängigkeitsfreies TypeScript: Parsing von NDS-/GBA-Headern, Kodierung von BMPs im Launcher-Format, Erzeugung von `banner.bnr`, Titelabgleich für Box-Art sowie die Formate `gamedata.json`/`settings.json` des Pico Launcher. Die React-App ist nur eine dünne Hülle darüber.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) if you want to help, and [CHANGELOG.md](CHANGELOG.md) for what each
-release brought.
+Wenn du mithelfen möchtest, lies [CONTRIBUTING.md](CONTRIBUTING.md); was jede Version gebracht hat, steht in [CHANGELOG.md](CHANGELOG.md).
 
-## Acknowledgements
+## Danksagungen
 
-- The [LNH team](https://github.com/LNH-team) for the DSpico, the open flashcart that makes this fun, and for Pico Launcher.
-- [libretro-thumbnails](https://github.com/libretro-thumbnails) for the box art collections.
+- Dem [LNH-Team](https://github.com/LNH-team) für den DSpico, das offene Flashcart, das das alles erst Spaß macht, und für den Pico Launcher.
+- [libretro-thumbnails](https://github.com/libretro-thumbnails) für die Box-Art-Sammlungen.
+- claude.ai, das mir die readme übersetzt hat (und nur die readme!)
 
-## License
+## Lizenz
 
 [MIT](LICENSE)

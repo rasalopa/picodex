@@ -17,6 +17,7 @@
  * switch and the browser detection are all derived from the registry.
  */
 import { en, type Dict } from './en';
+import { de } from './de';
 import { es } from './es';
 import { ru } from './ru';
 
@@ -49,6 +50,7 @@ interface Entry {
  */
 const REGISTRY = {
   en: { label: 'EN' },
+  de: { label: 'DE', translation: de },
   es: { label: 'ES', translation: es },
   ru: { label: 'RU', translation: ru },
 } satisfies Record<string, Entry>;
