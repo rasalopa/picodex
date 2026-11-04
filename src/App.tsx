@@ -94,11 +94,21 @@ function Cartridge() {
   );
 }
 
+/** The name in one element: as loose text "Pico" becomes its own flex item
+ *  next to "Dex", and the parent's gap splits it into "Pico Dex". */
+function BrandName() {
+  return (
+    <span>
+      Pico<span className="app__brand-accent">Dex</span>
+    </span>
+  );
+}
+
 function Wordmark() {
   return (
     <span className="app__logo">
       <Cartridge />
-      Pico<span className="app__brand-accent">Dex</span>
+      <BrandName />
     </span>
   );
 }
@@ -119,7 +129,7 @@ function Welcome({ onWhatsNew }: { onWhatsNew: () => void }) {
     <div className="app__welcome">
       <h1 className="app__welcome-title">
         <Cartridge />
-        Pico<span className="app__brand-accent">Dex</span>
+        <BrandName />
       </h1>
       <p className="app__tagline">{t.welcome.tagline}</p>
       {supported && lastCard != null && (
