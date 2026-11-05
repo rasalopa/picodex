@@ -7,6 +7,8 @@
 [![Release](https://img.shields.io/github/v/release/rasalopa/picodex?color=e04b62)](https://github.com/rasalopa/picodex/releases)
 [![License](https://img.shields.io/github/license/rasalopa/picodex)](LICENSE)
 
+English | [Deutsch](README.de.md)
+
 > Manage your [Pico Launcher](https://github.com/LNH-team/pico-launcher) SD card from the browser, on the [DSpico](https://github.com/LNH-team/dspico) or any flashcart that runs it. Covers, library organization, favorites and play stats. No install, no backend, your files never leave your machine.
 
 ![Library overview with per-system cover coverage](docs/screenshots/library.png)
