@@ -1,7 +1,7 @@
 /**
  * Deutsche Übersetzung für PicoDex.
  * Originaler Text aus 'en.ts':
- * 
+ *
  * English strings, the source of truth for PicoDex's UI copy.
  *
  * The shape here defines the contract: `es.ts` (and any future language) must
@@ -32,7 +32,7 @@ export const de = {
     openSdFolder: 'Die geöffnete SD-Karte',
     reload: 'Neu laden',
     reloading: 'Lädt neu…',
-    whatsNew: "Was ist neu? (EN)",
+    whatsNew: 'Was ist neu? (EN)',
     footerLicense: 'Open source (MIT) · no tracking',
     language: 'Sprache',
     /** Label and tooltip of the repository card in the header. */
@@ -53,17 +53,19 @@ export const de = {
     opening: 'öffne…',
     openLast: (name: string) => `Öffne ${name}`,
     lastCardReady: 'Die Karte, die du das letzte mal geöffnet hattest.',
-    lastCardAskAgain: 'Die Karte, die du das letzte mal geöffnet hattest. Dein Browser wird nochmal nach Zugriff fragen.',
+    lastCardAskAgain:
+      'Die Karte, die du das letzte mal geöffnet hattest. Dein Browser wird nochmal nach Zugriff fragen.',
     pickDifferent: 'Wähle eine andere Karte',
     unsupported:
-      "Dein Browser kann keine Ordner auf deinem Computer öffnen, PicoDex braucht das, um die SD-Karte zu lesen. Öffne diese Seite in einem Chromium-basierten Broser (Chrome, Edge, Opera) an einem Desktop oder Laptop.",
+      'Dein Browser kann keine Ordner auf deinem Computer öffnen, PicoDex braucht das, um die SD-Karte zu lesen. Öffne diese Seite in einem Chromium-basierten Broser (Chrome, Edge, Opera) an einem Desktop oder Laptop.',
     waitingForFolder: 'Warte auf Ordner…',
-    whatsNewButton: "Was ist neu in PicoDex?",
+    whatsNewButton: 'Was ist neu in PicoDex?',
     features: {
       boxArtTitle: 'Box Art',
       boxArtBody: 'Findet Spiele ohne Cover und ruft Cover für Pico Launcher ab.',
       libraryTitle: 'Deine Bibliothek',
-      libraryBody: 'Alle Systeme auf deiner Karte auf einem Blick und wie viele davon ein Cover besitzen.',
+      libraryBody:
+        'Alle Systeme auf deiner Karte auf einem Blick und wie viele davon ein Cover besitzen.',
       statsTitle: 'Spielstatistiken',
       statsBody:
         'Favoriten, meist gespielt und zuletzt gespielte Spiele, falls du Pico Launcher Enhanced verwendest.',
@@ -87,31 +89,34 @@ export const de = {
     needsAccess: (name: string) =>
       `PicoDex benötigt die Erlaubnis, um ${name} zu öffnen. Klicke "${name} öffnen" nochmal und erteile die Erlaubnis, wenn der Browser dich dazu auffordert.`,
     noPicoAnymore:
-      "PicoDex kann nicht den /_pico Ordner auf der SD-Karte finden. Wenn die SD-Karte nicht verbunden ist, stecke sie (erneut) ein. Drücke danach auf SD-Karte öffnen und wähle den Speicherort",
+      'PicoDex kann nicht den /_pico Ordner auf der SD-Karte finden. Wenn die SD-Karte nicht verbunden ist, stecke sie (erneut) ein. Drücke danach auf SD-Karte öffnen und wähle den Speicherort',
     noPicoPickRoot:
-      "PicoDex kann hier keinen /_pico Ordner finden. Wähle das Stammverzeichnis (root) der SD-Karte, nicht einen Ordner darin. Wenn du das bereits getan hast, wurde PicoLauncher noch nicht eingerichtet",
+      'PicoDex kann hier keinen /_pico Ordner finden. Wähle das Stammverzeichnis (root) der SD-Karte, nicht einen Ordner darin. Wenn du das bereits getan hast, wurde PicoLauncher noch nicht eingerichtet',
     noPicoOnCard:
-      "PicoDex kann die Änderungen nicht speichern, weil es den /_pico Ordner nicht mehr finden kann. Prüfe, ob die SD-Karte noch verbunden ist und drücke anschließend auf Neu laden.",
+      'PicoDex kann die Änderungen nicht speichern, weil es den /_pico Ordner nicht mehr finden kann. Prüfe, ob die SD-Karte noch verbunden ist und drücke anschließend auf Neu laden.',
     fsDenied:
       'Dein Computer blockiert die Bearbeitung von PicoDex. Normalerweise heißt das, dass der Schreibschutz der Karte oder der Dateien darin aktiviert wurde. Überprüfe den LOCK Schieber der SD-Karte (Adapter) und versuche es nochmal.',
     fsNotFound:
-      "PicoDex kann die SD-Karte ode reine Datei nicht mehr finden. Prüfe, ob die SD-Karte noch verbunden ist und drücke anschließend auf Neu laden.",
+      'PicoDex kann die SD-Karte ode reine Datei nicht mehr finden. Prüfe, ob die SD-Karte noch verbunden ist und drücke anschließend auf Neu laden.',
   },
   errors: {
-    rateLimited: 'GitHub limitiert im Moment die Suche nach Box Art. Versuche es in einer Stunde erneut.',
+    rateLimited:
+      'GitHub limitiert im Moment die Suche nach Box Art. Versuche es in einer Stunde erneut.',
     rateLimitedUntil: (time: string) =>
       `GitHub limitiert im Moment die Suche nach Box Art bis ${time}. Versuche es danach erneut.`,
     catalogFailed: (status: number) =>
       `GitHub kann nicht die Liste der Box Art bereitstellen: (error ${status}). Versuche es in ein paar Minuten erneut.`,
     catalogUnreadable:
-      "GitHub kann die Liste der Box Art lesen. Versuche es in ein paar Minuten erneut.",
+      'GitHub kann die Liste der Box Art lesen. Versuche es in ein paar Minuten erneut.',
     imageDownloadFailed: (status: number): string =>
       status === 404
-        ? "Diese Box Art ist leider nicht mehr verfügbar :( ."
+        ? 'Diese Box Art ist leider nicht mehr verfügbar :( .'
         : `Das Box Art konnte nicht heruntergeladen werden: (error ${status}). Versuche es in ein paar Minuten erneut.`,
-    imageUnreadable: "PicoDex kann dieses Bild nicht verarbeiten.",
-    canvasFailed: "Dein Browser kann dieses Bild nicht darstellen. Lade die Seite neu und versuche es erneut.",
-    offline: "PicoDex kann GitHub nicht erreichen. Prüfe deine Internet-Einstellungen und versuche es erneut.",
+    imageUnreadable: 'PicoDex kann dieses Bild nicht verarbeiten.',
+    canvasFailed:
+      'Dein Browser kann dieses Bild nicht darstellen. Lade die Seite neu und versuche es erneut.',
+    offline:
+      'PicoDex kann GitHub nicht erreichen. Prüfe deine Internet-Einstellungen und versuche es erneut.',
   },
   associations: {
     title: 'Dateizuordnungen',
@@ -122,20 +127,21 @@ export const de = {
     noSettings3: ', zu erzeugen, danach drücke auf Neu Laden.',
     settingsInvalid1: 'PicoDex gefunden ',
     settingsInvalid2:
-      " aber es kann nicht gelesen werden: Es ist keine gültige Konfigurationsdatei. Starte Pico Launcher nicht, bis es repariert wurde: wenn es der Launcher auch nicht lesen kann, wird es mit Standardeinstellungen erstellt und deine eigenen Zuordnungen gingen verloren. Öffne es in einem Text Editor (Editor, Notepad++, nano etc) und schau nach einem fehlendem Komma, Hochkomma oder Klammer in der Nähe des angegebenen Ortes. Alternativ ersetze die Datei mit einer vorher angelegten Kopie. Drücke dann auf Neu Laden.",
+      ' aber es kann nicht gelesen werden: Es ist keine gültige Konfigurationsdatei. Starte Pico Launcher nicht, bis es repariert wurde: wenn es der Launcher auch nicht lesen kann, wird es mit Standardeinstellungen erstellt und deine eigenen Zuordnungen gingen verloren. Öffne es in einem Text Editor (Editor, Notepad++, nano etc) und schau nach einem fehlendem Komma, Hochkomma oder Klammer in der Nähe des angegebenen Ortes. Alternativ ersetze die Datei mit einer vorher angelegten Kopie. Drücke dann auf Neu Laden.',
     settingsBom1: 'PicoDex gefunden  ',
     settingsBom2:
-      ", aber es startet mit einem byte order mark (BOM), ein unsichtbares Zeichen, das manche Editoren während dem Speichern hinzufügen. Der Launcher kann diese Datei nicht lesen und würde es mit Standardeinstellungen ersetzen und deine eigenen Zuordnungen gingen verloren. Starte Pico Launcher noch nicht: Öffne die Datei in einem anderen Editor (Notepad++) und speichere es im Zeichenformat UTF-8 ohne BOM ab, danach drücke auf Neu Laden.",
+      ', aber es startet mit einem byte order mark (BOM), ein unsichtbares Zeichen, das manche Editoren während dem Speichern hinzufügen. Der Launcher kann diese Datei nicht lesen und würde es mit Standardeinstellungen ersetzen und deine eigenen Zuordnungen gingen verloren. Starte Pico Launcher noch nicht: Öffne die Datei in einem anderen Editor (Notepad++) und speichere es im Zeichenformat UTF-8 ohne BOM ab, danach drücke auf Neu Laden.',
     settingsNotObject1: 'PicoDex gefunden  ',
     settingsNotObject2:
       ', aber es enthält keine Daten: Der Inhalt ist kein JSON Object, also gibt es keine Zuordnung. Ersetze den Ihnalt mit {} oder lösche die Datei, danach drücke auf Neu Laden.',
     settingsUnreadable1: 'PicoDex gefunden  ',
     settingsUnreadable2:
-      " aber es kann nicht gelesen werden. Ein anderes Programm greift möglicherweis enoch darauf zu, oder die SD-Karte hat ein Problem. Starte nicht Pico Launcher, bis PicoDex es öffnen kann: Wenn der Launcher es nicht lesen kann, werden Standardeinstellungen verwendet und deine eigenen Zuordnungen gingen verloren. Schliese alle Anwendungen/Programme, die Zugriff auf die SD-Karte haben könnten und drücke danach auf Neu Laden.",
+      ' aber es kann nicht gelesen werden. Ein anderes Programm greift möglicherweis enoch darauf zu, oder die SD-Karte hat ein Problem. Starte nicht Pico Launcher, bis PicoDex es öffnen kann: Wenn der Launcher es nicht lesen kann, werden Standardeinstellungen verwendet und deine eigenen Zuordnungen gingen verloren. Schliese alle Anwendungen/Programme, die Zugriff auf die SD-Karte haben könnten und drücke danach auf Neu Laden.',
     settingsDetail: 'Details: ',
     notRead:
-      "PicoDex kann die Datei nicht zu Ende lesen - es weiß nicht, ob settings.json existiert. Löse das oben angezeigte Problem und drücke danach auf Neu Laden.",
-    intro1: 'Wähle aus, welche Anwendung der Launcher öffnet, basierend auf der Datei-Endung. Inhalt gespeichert in ',
+      'PicoDex kann die Datei nicht zu Ende lesen - es weiß nicht, ob settings.json existiert. Löse das oben angezeigte Problem und drücke danach auf Neu Laden.',
+    intro1:
+      'Wähle aus, welche Anwendung der Launcher öffnet, basierend auf der Datei-Endung. Inhalt gespeichert in ',
     intro2: '.',
     emptyList: 'Noch keine Dateizuordnung vorhanden — füge unten eine neue hinzu.',
     extension: 'Datei-Endung',
@@ -148,9 +154,10 @@ export const de = {
     invalidExt: 'Gebe die Buchstaben der Endung ein, z.b. nes.',
     hint: 'Gebe die Endung ohne Punkt ein. Hier sind die Emulatoren meist gespeichert: ',
     picoMissing:
-      "Es wurde nichts gespeichert: PicoDex kann den Ordner /_pico nicht mehr finden. Prüfe, ob die Karte noch eingesteckt ist, speichere und lade neu.",
+      'Es wurde nichts gespeichert: PicoDex kann den Ordner /_pico nicht mehr finden. Prüfe, ob die Karte noch eingesteckt ist, speichere und lade neu.',
     restartWarning: 'Once saved, your changes apply the next time Pico Launcher starts on your DS.',
-    emptyPaths: 'Der Anwendungspfad kann nicht leer sein. Schreibe etwas rein oder lösche den leeren Eintrag.',
+    emptyPaths:
+      'Der Anwendungspfad kann nicht leer sein. Schreibe etwas rein oder lösche den leeren Eintrag.',
     discard: 'Änderungen verwerfen',
     saveToSd: 'Speichere auf SD',
     saving: 'Speichervorgang…',
@@ -169,7 +176,7 @@ export const de = {
   },
   changelog: {
     dialogLabel: "Was gibt's neues in PicoDex",
-    title: "Was ist neu?",
+    title: 'Was ist neu?',
     close: 'Schließen',
     fullNotes: 'Alle Änderungen auf GitHub',
   },
@@ -191,7 +198,8 @@ export const de = {
     resultsLabel: 'Zusammenfassung der Importe',
     importing: 'Füge ROMs hinzu…',
     finished: 'Hinzufügen abgeschlossen!',
-    addedCount: (count: number) => (count === 1 ? '1 hinzugefügt' : `${String(count)} ROMs hinzugefügt`),
+    addedCount: (count: number) =>
+      count === 1 ? '1 hinzugefügt' : `${String(count)} ROMs hinzugefügt`,
     dismissLabel: 'Report schließen',
     busyTitle: 'Importvorgang läuft',
     dismiss: 'schließen',
@@ -215,7 +223,8 @@ export const de = {
     launches: 'Gestartet',
     playTime: 'Spieldauer',
     noneLaunched: 'Bisher wurde noch kein Spiel gestartet.',
-    noFavorites: 'Noch kein Spiel als Favorit markiert - Drücke X im Pico Launcher, um es als Favorit hinzuzufügen.',
+    noFavorites:
+      'Noch kein Spiel als Favorit markiert - Drücke X im Pico Launcher, um es als Favorit hinzuzufügen.',
   },
   covers: {
     regionLabel: 'Cover Art',
@@ -239,7 +248,7 @@ export const de = {
     },
     viaBannerTitle: 'Anhand des im SPiel gespeicherten Namens gefunden',
     noBoxartFound:
-      "Keine Box Art gefunden. Du kannst manuell mit dem Stift-Symbol eines auswählen. Das findest du auf dem Cover in der Übersicht der Spielebibliothek.",
+      'Keine Box Art gefunden. Du kannst manuell mit dem Stift-Symbol eines auswählen. Das findest du auf dem Cover in der Übersicht der Spielebibliothek.',
     unknownError: 'Unbekannter Fehler...',
     catalogUnavailable:
       'Konnte nicht die Box Art Liste herunterladen. Prüfe deine Interneteinstellungen und versuche es erneut.',
@@ -247,14 +256,17 @@ export const de = {
       'Das Verzeichnis _pico/covers kann nicht auf der SD-Karte geöffnet werden. Überprüfe, dass die Karte noch verbunden ist und versuche es erneut.',
     noGames: 'Auf dieser Karte wurden keine Spiele gefunden.',
     allCovered: (count: number) =>
-      count === 1 ? 'Dein Spiel hat bereits ein Cover.' : `Alle ${count} Spiele haben bereits ein Cover.`,
+      count === 1
+        ? 'Dein Spiel hat bereits ein Cover.'
+        : `Alle ${count} Spiele haben bereits ein Cover.`,
     missingRegionLabel: 'Spiele ohne Cover',
     missingTitle: 'Fehlende Cover',
     selectAll: 'Alle auswählen',
     selectNone: 'Keine Auswählen',
     fetching: 'abrufen...',
     fetchCount: (count: number) => (count === 1 ? 'Rufe 1 Cover ab' : `Rufe ${count} Cover ab`),
-    noGamecode: 'Kein Spielecode gefunden, das Cover wird dem Dateinamen zugeordnet. Wird das entsprechende Spiel umbenannt, verliert es auch sein Cover. Es muss wieder neu hinzugefügt werden',
+    noGamecode:
+      'Kein Spielecode gefunden, das Cover wird dem Dateinamen zugeordnet. Wird das entsprechende Spiel umbenannt, verliert es auch sein Cover. Es muss wieder neu hinzugefügt werden',
   },
   coverPicker: {
     dialogLabel: (game: string) => `Ändere Cover für ${game}`,
@@ -282,10 +294,10 @@ export const de = {
     writing: 'schreibe...',
     coversDirMissing: 'Kann nicht den Ordner _pico/covers auf deiner SD-Karte öffnen.',
     iconHint:
-      "Das kleine Icon neben dem Spieletitel in der Liste des Launchers. DS-Spiele haben normalerweise ihr eigenes, diese Option kan diese überschreiben. Andere Systeme haben keine Icons, also werden einfach welche hinzugefügt. Dein Bild wird auf 32x32 Pixel verkleinert, transparente Pixel bleiben transparent.",
+      'Das kleine Icon neben dem Spieletitel in der Liste des Launchers. DS-Spiele haben normalerweise ihr eigenes, diese Option kan diese überschreiben. Andere Systeme haben keine Icons, also werden einfach welche hinzugefügt. Dein Bild wird auf 32x32 Pixel verkleinert, transparente Pixel bleiben transparent.',
     iconNone: 'Kein eigenes Icon',
     iconNeedsNewer:
-      "Eigene Icons werden nur mit Pico Launcher neuer als 1.3.0 funktionieren. Seit Version 1.3.0 wird das Icon auf der SD-Karte gespeichert. Wird mit einer älteren Version gestartet, wird das Icon des jeweiligen Spieles gezeigt.",
+      'Eigene Icons werden nur mit Pico Launcher neuer als 1.3.0 funktionieren. Seit Version 1.3.0 wird das Icon auf der SD-Karte gespeichert. Wird mit einer älteren Version gestartet, wird das Icon des jeweiligen Spieles gezeigt.',
     iconInvalidOnCard:
       'Das Format des Icon auf der SD-Karte kann nicht vom Launcher gelesen werden, deswegen wird ein leeres angezeigt. Speichere ein neues, damit dieses angezeigt wird.',
     iconBannerNote:
@@ -319,7 +331,8 @@ export const de = {
     noGames1: 'Es wurden keine Spiele gefunden. PicoDex sucht in jedem Ordner, außer in ',
     noGames2: ', also können die Spiele z.b. in ',
     noGames3: ', sein, in ',
-    noGames4: ' , oder in einen anderen Ordner. Kopiere deine Spiele auf deine SD-Karte und drücke auf Neu Laden.',
+    noGames4:
+      ' , oder in einen anderen Ordner. Kopiere deine Spiele auf deine SD-Karte und drücke auf Neu Laden.',
     gameCount: (count: number) => (count === 1 ? 'Ein Spiel' : `${String(count)} Spiele`),
     covers: (covered: number, count: number, approximate: boolean) =>
       `${String(covered)}/${String(count)} Cover ${approximate ? ' (ungefähr)' : ''}`,
@@ -377,12 +390,12 @@ export const de = {
       const revs = entryVersions.join(', ');
       const romPart =
         romVersion === null
-          ? "Die Revision deiner Kopie kann nicht gelesen werden. Sie wird als Revision 0 behandelt."
+          ? 'Die Revision deiner Kopie kann nicht gelesen werden. Sie wird als Revision 0 behandelt.'
           : `Die Revision der ROM ist ${String(romVersion)}`;
       return `[Issue GitHub] Pico Loader hat ${thing} für ${noun} ${revs} dieses Spiels, aber ${romPart}, wird daher nicht verwendet. Wenn das SPiel einfriert, wird das der Grund sein.`;
     },
     ap: {
-      notListed: "Nicht in aplist.bin. Die meisten Spiele benötigen diesen Fix nicht.",
+      notListed: 'Nicht in aplist.bin. Die meisten Spiele benötigen diesen Fix nicht.',
       skipped: 'Nicht benötigt. Pico Loader überspringt diesen Schritt für Homebrew und DSiWare.',
       applies: (dsProtectVersion: string | null) =>
         `Wird beim Start von Pico Loader angewendet (DS Protect ${dsProtectVersion ?? 'unknown'}).`,
@@ -395,17 +408,20 @@ export const de = {
       dsiWare: (pubSize: string, prvSize: string | null) =>
         `Speichert den Spielstand als ${pubSize} .pub${prvSize ? ` und eine ${prvSize} .prv` : ''} im selben Verzeichnis.`,
       nandHeader: (size: string) => `NAND, ${size}`,
-      defaultSize: 'Nicht in savelist.bin enthalten, Pico Loader erstellt ein 512 KB Speicherstand.',
+      defaultSize:
+        'Nicht in savelist.bin enthalten, Pico Loader erstellt ein 512 KB Speicherstand.',
       none: 'keiner — Dieses Spiel speichert nichts.',
       listed: (type: string, size: string) => `${type}, ${size}`,
     },
     patch: {
-      notListed: "Nicht in patchlist.bin enthalten. die meisten Spiele benötigen dies nicht.",
+      notListed: 'Nicht in patchlist.bin enthalten. die meisten Spiele benötigen dies nicht.',
       skipped: 'Nicht benötigt. Pico Loader patcht keine Homebrew.',
       applied: (count: number) =>
-        count === 1 ? 'Ein Patch bei Start angewendet.' : `${String(count)} Patches bei start angewendet.`,
+        count === 1
+          ? 'Ein Patch bei Start angewendet.'
+          : `${String(count)} Patches bei start angewendet.`,
       listUnavailable:
-        "patchlist.bin fehlt im Ordner/_pico oder kann nicht gelesen werden. Ältere Versionen von Pico-Loader haben diese Datei noch nicht, ein Update fügt die Datei hinzu.",
+        'patchlist.bin fehlt im Ordner/_pico oder kann nicht gelesen werden. Ältere Versionen von Pico-Loader haben diese Datei noch nicht, ein Update fügt die Datei hinzu.',
     },
     // Explanatory hints, per row and per ROM kind. They cannot be fixed
     // strings: the retail wording talks about the list this row reads, which
@@ -458,7 +474,7 @@ export const de = {
     fromGame: 'Von einem Spiel',
     imageFileLabel: 'Icon Bild-Datei',
     needsNewer:
-      "Ordner-Banner setzen Pico Launcher Version 1.3.0 oder neuer voraus. Seit dem 1.3.0 Release behält die Konsole den Ordnernamen und Icon.",
+      'Ordner-Banner setzen Pico Launcher Version 1.3.0 oder neuer voraus. Seit dem 1.3.0 Release behält die Konsole den Ordnernamen und Icon.',
     imageHint:
       'Dein Bild wurde auf 32x32 eingepasst und auf 15 Farben konvertiert. Die Vorschau oben stellt exakt dar, wie es später auf dem aussehen wird.',
     imageFailed: (detail: string) => `Kann das Bild nich lesen: ${detail}`,
@@ -519,8 +535,9 @@ export const de = {
     scanningCount: (count: number) =>
       count === 1 ? 'Scanne… 1 Datei' : `Scanne… ${count} Dateien`,
     libraryRereadFailed:
-      "PicoDex konnte die Spiele auf der SD-Karte nicht scannen, siehe Fehlermeldung. Deshalb wurde der Scan abgebrochen. Prüfe, ob die SD-Karte noch verbunden ist und versuche es erneut.",
-    scannedFiles: (count: number) => (count === 1 ? 'Eine Datei gescannt' : `${count} Dateien gescannt.`),
+      'PicoDex konnte die Spiele auf der SD-Karte nicht scannen, siehe Fehlermeldung. Deshalb wurde der Scan abgebrochen. Prüfe, ob die SD-Karte noch verbunden ist und versuche es erneut.',
+    scannedFiles: (count: number) =>
+      count === 1 ? 'Eine Datei gescannt' : `${count} Dateien gescannt.`,
     skippedFolders: (count: number) =>
       count === 1
         ? 'Einen Ordner übersprungen. Wahrscheinlich ein Systemordner, den PicoDex nicht öffnen kann. Das ist normal.'
@@ -539,13 +556,12 @@ export const de = {
     junkKinds3: '. DIese kann man bedenkenlos löschen.',
     showJunk: 'Zeige Junk-Dateien',
     junkCleanLabel: (count: number) => `Säubere ${count} ${count === 1 ? 'Datei' : 'Dateien'}`,
-    junkConfirmLabel: (count: number) =>
-      `Wirklich ${count} ${count === 1 ? 'Datei' : 'Dateien'}?`,
+    junkConfirmLabel: (count: number) => `Wirklich ${count} ${count === 1 ? 'Datei' : 'Dateien'}?`,
     junkDeleteFailed: (files: string) =>
       `Konnte nicht gelöscht werden: ${files}. Diese beeinflussen nicht den Launcher, also können sie bleiben.`,
     macosKeeps1: 'macOS behält ',
     macosKeeps2:
-      " auf der Karte und schreibt diese immer wieder drauf, sobald die SD-Karte wieder in einen MAC eingesteckt wird. Sie beeinflussen den Launcher oder PicoDex in keiner Weise.",
+      ' auf der Karte und schreibt diese immer wieder drauf, sobald die SD-Karte wieder in einen MAC eingesteckt wird. Sie beeinflussen den Launcher oder PicoDex in keiner Weise.',
     fsevents1: ' enthält nur ',
     fsevents2:
       ' Datei, die macOS davon abhält, Log-Dateien in diesem Verzeichnis/SD-Karte abzulegen. Lass es so wie es ist.',
@@ -565,17 +581,18 @@ export const de = {
     ambiguityIdentical:
       ' Diese Builds haben genau gleiche Dateien, also macht es keinen Unterschied, welche du verwendest.',
     ambiguityIncomplete:
-      " PicoDex kann nicht bestimmen, welche es ist. Die Dateien, die zur Unterscheidung notwendig sind, sind fehlerhaft oder nicht vorhanden. Wenn deine Spiele starten, gibt es nichts zu tun.",
-	  /*
-	  * Folgende Zeilen werden erstmal nicht übersetzt, da eine Möglichkeit zum Update von Pico Launcher über PicoDex vorgeschlagen wurde
-	  */
+      ' PicoDex kann nicht bestimmen, welche es ist. Die Dateien, die zur Unterscheidung notwendig sind, sind fehlerhaft oder nicht vorhanden. Wenn deine Spiele starten, gibt es nichts zu tun.',
+    /*
+     * Folgende Zeilen werden erstmal nicht übersetzt, da eine Möglichkeit zum Update von Pico Launcher über PicoDex vorgeschlagen wurde
+     */
     releasesBehind1: (count: number, atLeast: boolean) =>
       `${atLeast ? 'Mindestens um ' : ''}${count} ${count === 1 ? 'release' : 'releases'} veraltet `,
     releasesBehind2:
       '. zum Updaten, lade die neueste Version von der pico-loader release-Seite herunter und kopiere die entpackten Dateien in das /_pico Verzeichnis.',
     newestKnownCandidate: (tag: string) =>
       `Eine davon ist ${tag}, die neueste Version, die PicoDex kennt. Du könntest aktuell sein.`,
-    newestKnownMaybe: 'Das ist die neueste Version, die PicoDex kennt. Etwas neueres könnte existieren.',
+    newestKnownMaybe:
+      'Das ist die neueste Version, die PicoDex kennt. Etwas neueres könnte existieren.',
     newestRelease: 'Das ist die neueste Version.',
     mixed1: (agreeing: number) =>
       agreeing === 1
@@ -588,34 +605,36 @@ export const de = {
     copyAgain1: 'Kopiere sie alle nochmal von einer ',
     copyAgainRelease: 'pico-loader release',
     copyAgainOverwrites:
-      ". Das ersetzt auch Dateien, die PicoDex nicht erkennt (unten). Wenn welche davon manuell bearbeitet wurden, erstelle von diesen ein Backup.",
+      '. Das ersetzt auch Dateien, die PicoDex nicht erkennt (unten). Wenn welche davon manuell bearbeitet wurden, erstelle von diesen ein Backup.',
     copyAgainEnd: '.',
     unrecognisedAll:
-      "PicoDex erkennt keine Dateien davon, kannnicht erkennen, welcher Loader verwendet wird. Eine Ursache kann sein, dass der Loader neuer ist, als PicoDex oder wenn manuell Änderungen vorgenommen wurden. Wenn die Spiele starten, gibt es nichts weiter zu tun.",
+      'PicoDex erkennt keine Dateien davon, kannnicht erkennen, welcher Loader verwendet wird. Eine Ursache kann sein, dass der Loader neuer ist, als PicoDex oder wenn manuell Änderungen vorgenommen wurden. Wenn die Spiele starten, gibt es nichts weiter zu tun.',
     unrecognisedListed1:
-      "PicoDex kann diese Dateien nicht zuordnen, diese werden ausgelassen, wenn mit der neuen Version gearbeitet wird: ",
-    unrecognisedListed2: '. Das passiert, wenn manuell Änderungen vorgenommen wurden. Üblicherweise ',
-    unrecognisedListed3: ', die von einem neueren Build von PicoDex stammt oder deinem eigenen Build.',
+      'PicoDex kann diese Dateien nicht zuordnen, diese werden ausgelassen, wenn mit der neuen Version gearbeitet wird: ',
+    unrecognisedListed2:
+      '. Das passiert, wenn manuell Änderungen vorgenommen wurden. Üblicherweise ',
+    unrecognisedListed3:
+      ', die von einem neueren Build von PicoDex stammt oder deinem eigenen Build.',
     unrecognisedFine: 'Wenn deine Spiele starten, gibt es nichts weiter zu tun.',
     githubNewer1: 'Die neueste Version von pico-loader auf GitHub ist ',
     githubNewer2: (tag: string) =>
       `. PicoDex kennt ${tag} noch nicht, deshalb kann PicoDex nicht bestimmen, ob es sich bereits auf der SD-Karte befindet. Wenn du möchtest, lade die aktuellsten Daten von pico-loader auf GitHub herunter und kopiere sie in /_pico.`,
     unreadable:
-      "PicoDex konnte manche loader-Dateien nicht öffnen, diese wurden nicht überprüft, scanne dann erneut. Falls das wieder passiert, kopiere folgende Dateien von einer neuen pico-loader Release: ",
+      'PicoDex konnte manche loader-Dateien nicht öffnen, diese wurden nicht überprüft, scanne dann erneut. Falls das wieder passiert, kopiere folgende Dateien von einer neuen pico-loader Release: ',
     optional1: 'Optionale Dateien, die nicht auf der SD-Karte vorhanden sind: ',
     optional2: ' — kann man auch weglassen.',
     savesTitle: 'Saves ohne Zuordnungen',
     savesSkipped:
-      "Nicht Überprüft: PicoDex hat keine Spiele auf der Karte gefunden, es weiß nicht, welche Datei zu einem Spiel gehört.",
+      'Nicht Überprüft: PicoDex hat keine Spiele auf der Karte gefunden, es weiß nicht, welche Datei zu einem Spiel gehört.',
     savesAllOk: 'Jedes sav-Datei gehört zu einem Spiel.',
     savesOrphans: (count: number) =>
       count === 1
-        ? "Eine sav-Datei kann keinem Spiel zugeordnet werden: Es wurde kein Spiel mit dem gleichen Namen in dessen Ordner gefunden, oder in dem ROM-Ordner, in dem der darinliegende saves-Ordner gefunden wurde. Der Launcher wird die Datei nicht verwenden. Wenn du die Datei umbenannt oder verschoben hast, tu dies auch mit der sav-Datei, um den Spielfortschritt nicht zu verlieren. Das Löschen ist permanent: Markiere nur die Spielstände, die du auch wirklich nicht mehr brauchst."
+        ? 'Eine sav-Datei kann keinem Spiel zugeordnet werden: Es wurde kein Spiel mit dem gleichen Namen in dessen Ordner gefunden, oder in dem ROM-Ordner, in dem der darinliegende saves-Ordner gefunden wurde. Der Launcher wird die Datei nicht verwenden. Wenn du die Datei umbenannt oder verschoben hast, tu dies auch mit der sav-Datei, um den Spielfortschritt nicht zu verlieren. Das Löschen ist permanent: Markiere nur die Spielstände, die du auch wirklich nicht mehr brauchst.'
         : `${count} sav-Dateien können keinem Spiel zugeordnet werden: Es wurden keine Spiele mit den entsprechenden Namen in deren Ordner gefunden, oder in dem ROM-Ordner, in dem der darinliegende saves-Ordner gefunden wurde. Der Launcher wird die Dateien nicht verwenden. Wenn du die Dateien umbenannt oder verschoben hast, tu dies auch mit den sav-Dateien, um den Spielfortschritt nicht zu verlieren. Das Löschen ist permanent: Markiere nur die Spielstände, die du auch wirklich nicht mehr brauchst.`,
     savesDeleteLabel: (count: number) => `Lösche (${count}) Spielstände`,
     savesDuplicates: (count: number) =>
       count === 1
-        ? "Ein Spiel hat zwei sav-Dateien: Eines im gleichen Verzeichnis wie die ROM und einmal im saves-Ordner. Pico Launcher verwendet die Datei, die im selben Verzeichnis ist, wie die ROM, TWiLight Menu++ hingegen wird standardmäßig die sav-Datei im saves-Ordner verwenden. Der Spielstand wird (standardmäßig) nicht mit beiden Loadern geteilt. PicoDex kann nicht unterscheiden, welche Datei neuer ist, deswegen wird keine verändert. Wenn du nur einen Launcher verwendest, wird die andere sav-Datei nicht benötigt; verwendest du beide Launcher, lösche eine sav-Datei und verwende diese für beide Launcher. Wenn das jedoch so gewollt ist, ignoriere diesen Hinweis."
+        ? 'Ein Spiel hat zwei sav-Dateien: Eines im gleichen Verzeichnis wie die ROM und einmal im saves-Ordner. Pico Launcher verwendet die Datei, die im selben Verzeichnis ist, wie die ROM, TWiLight Menu++ hingegen wird standardmäßig die sav-Datei im saves-Ordner verwenden. Der Spielstand wird (standardmäßig) nicht mit beiden Loadern geteilt. PicoDex kann nicht unterscheiden, welche Datei neuer ist, deswegen wird keine verändert. Wenn du nur einen Launcher verwendest, wird die andere sav-Datei nicht benötigt; verwendest du beide Launcher, lösche eine sav-Datei und verwende diese für beide Launcher. Wenn das jedoch so gewollt ist, ignoriere diesen Hinweis.'
         : `${count} Spiele haben zwei sav-Dateien: Eines im gleichen Verzeichnis wie die ROM und einmal im saves-Ordner. Pico Launcher verwendet die Dateien, die im selben Verzeichnis ist, wie die ROMs, TWiLight Menu++ hingegen wird standardmäßig die sav-Dateien im saves-Ordner verwenden. Der Spielstand wird (standardmäßig) nicht mit beiden Loadern geteilt. PicoDex kann nicht unterscheiden, welche Dateien neuer sind, deswegen wird keine verändert. Wenn du nur einen Launcher verwendest, wird die andere sav-Datei nicht benötigt; verwendest du beide Launcher, lösche eine sav-Datei und verwende diese für beide Launcher. Wenn das jedoch so gewollt ist, ignoriere diesen Hinweis.`,
     savesDuplicateBeside: 'Im gleichen Verzeichnis wie die ROM: ',
     savesDuplicateInFolder: 'Im saves-Ordner: ',
