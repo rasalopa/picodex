@@ -68,10 +68,11 @@ export interface GameDataEntry {
    */
   path?: string;
   /**
-   * Save slot picked in the launcher's game details sheet, 1 to 9: the loader
-   * then uses `<game name>.sav<N>` instead of `<game name>.sav`. Undefined
-   * means slot 0, the regular save. Not editable here, but carried through
-   * every write: dropping it would silently put the game back on slot 0.
+   * The save the game was started on last time, 1 to 9 for
+   * `<game name>.sav1` to `.sav9`; undefined means the main save,
+   * `<game name>.sav`. The launcher's save picker opens on it; the loader gets
+   * the save each launch starts on, not this field. Not editable here, but
+   * carried through every write, or the picker would open on the main save.
    */
   saveSlot?: number;
 }
@@ -305,7 +306,7 @@ function getOrCreateEntry(
  *
  * Returns a new {@link GameData} — the input is never mutated; the session
  * and all unaffected entries are carried over untouched. An entry toggled
- * back to all-default state (no flags, never launched, no play time) is
+ * back to all-default state (no flags, never launched, no play time, main save) is
  * kept in `entries`: {@link serializeGameData} prunes it on write, exactly
  * like the launcher does.
  */
@@ -354,8 +355,8 @@ export interface GameStats {
  * flags, lastPlayed and path are kept on the returned entry. Negative, fractional or
  * non-finite inputs are clamped to non-negative integers. Returns a new
  * {@link GameData}; the input is never mutated. Setting both counts to 0
- * makes the entry default-valued, so — unless a flag (favorite/completed)
- * keeps it — {@link serializeGameData} prunes it on write, dropping its
+ * makes the entry default-valued, so, unless a flag (favorite/completed) or a
+ * save slot keeps it, {@link serializeGameData} prunes it on write, dropping its
  * lastPlayed/path too (the game leaves recents). That mirrors the launcher,
  * which prunes the same entry on its next save, so preserving those fields
  * here would only diverge from it for a single reload.

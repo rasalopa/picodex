@@ -738,7 +738,7 @@ describe('saveSlot', () => {
     expect(serializeGameData(data)).toBe(slotSample);
   });
 
-  it('survives a favorite toggle, so PicoDex never resets a game to its regular save', () => {
+  it('survives a favorite toggle, so the save picker still opens on that save', () => {
     const next = toggleFavorite(parseGameData(slotSample), 'Pokemon Platinum.nds', 'CPUE');
     const parsed = JSON.parse(serializeGameData(next)) as {
       games: Record<string, { saveSlot?: number }>;
