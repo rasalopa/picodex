@@ -35,6 +35,30 @@ export { REPO_URL } from './repo';
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.12.0',
+    date: '2026-11-06',
+    changes: [
+      {
+        text: {
+          en: "PicoDex is now in German, translated by andeyp, and so is the readme. If you'd like to translate it into your language, CONTRIBUTING.md on GitHub explains how.",
+          es: 'PicoDex ya está en alemán, traducido por andeyp, y el README también. Si quieres traducirlo a tu idioma, CONTRIBUTING.md en GitHub explica cómo.',
+        },
+      },
+      {
+        text: {
+          en: 'Marking a game as a favorite or completed, or editing its stats, no longer makes PicoDex forget the save it was last launched on. The next Pico Launcher Enhanced opens its list of saves with that one selected. Added by BigBrainAFK.',
+          es: 'Marcar un juego como favorito o completado, o editar sus estadísticas, ya no hace que PicoDex olvide el guardado con el que se lanzó la última vez. El próximo Pico Launcher Enhanced abre su lista de guardados con ese seleccionado. Lo añadió BigBrainAFK.',
+        },
+      },
+      {
+        text: {
+          en: 'A game and its hack keep their own favorites and stats. PicoDex finds a game by its file name now, as the launcher does, and no longer by its game code, which a hack shares with the original.',
+          es: 'Un juego y su hack conservan cada uno sus favoritos y estadísticas. PicoDex busca ahora el juego por el nombre del archivo, como el launcher, y ya no por su código, que el hack comparte con el original.',
+        },
+      },
+    ],
+  },
+  {
     version: '0.11.0',
     date: '2026-10-25',
     changes: [

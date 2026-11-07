@@ -5,6 +5,24 @@ reader's language, sourced from [`src/lib/changelog.ts`](src/lib/changelog.ts) â
 a counterpart there. The [Releases](https://github.com/rasalopa/picodex/releases) carry the full
 notes for each version.
 
+## 0.12.0 (2026-11-06)
+
+PicoDex speaks German, and it no longer forgets the save each game was last launched on.
+
+- **PicoDex is in German.** [@andeyp](https://github.com/andeyp) translated it and the readme too,
+  which is now [README.de.md](README.de.md) next to the English one. DE is in the footer.
+- **The launcher's list of saves still opens on the last one used.** The next Pico Launcher
+  Enhanced lets a DS game keep up to nine extra saves and remembers which one each game was last
+  launched on. PicoDex now keeps that when you mark a game as a favorite or completed, or edit its
+  stats; 0.11.0 dropped it. Added by [@BigBrainAFK](https://github.com/BigBrainAFK).
+- **A game and its hack keep their own marks.** PicoDex looked a game up by its game code first,
+  and a hack shares the original's code, so the hack showed the original's favorite and play time,
+  and marking it moved the original's entry over to it. It goes by file name now, like the launcher
+  since 1.5.0.
+- **The logo reads PicoDex.** The gap after the cartridge icon also went between "Pico" and "Dex".
+- **The readme can be translated too.** [CONTRIBUTING.md](CONTRIBUTING.md#translations) explains
+  how.
+
 ## 0.11.0 (2026-10-25)
 
 PicoDex has a light theme now, and a pattern of consoles behind every screen.
