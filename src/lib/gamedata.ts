@@ -14,7 +14,8 @@
  *       "launchCount": 3,
  *       "playMinutes": 125,
  *       "lastPlayed": "2026-07-16 21:30",
- *       "path": "/roms/nds/Mario Kart DS.nds"
+ *       "path": "/roms/nds/Mario Kart DS.nds",
+ *       "saveSlot": 2
  *     }
  *   },
  *   "sessionGame": "<fileName>",
@@ -66,7 +67,17 @@ export interface GameDataEntry {
    * Used by the recents list to navigate back to the game.
    */
   path?: string;
+  /**
+   * Save slot picked in the launcher's game details sheet, 1 to 9: the loader
+   * then uses `<game name>.sav<N>` instead of `<game name>.sav`. Undefined
+   * means slot 0, the regular save. Not editable here, but carried through
+   * every write: dropping it would silently put the game back on slot 0.
+   */
+  saveSlot?: number;
 }
+
+/** Highest save slot the launcher names a save for (`.sav1` to `.sav9`). */
+const MAX_SAVE_SLOT = 9;
 
 /** Open play session, persisted at the top level of gamedata.json. */
 export interface GameDataSession {
@@ -168,6 +179,9 @@ export function parseGameData(text: string): GameData {
       if (lastPlayed.length > 0) entry.lastPlayed = lastPlayed;
       const path = readString(game['path']);
       if (path.length > 0) entry.path = path;
+      // the launcher reads a slot it can't name a save for as slot 0
+      const saveSlot = readCount(game['saveSlot']);
+      if (saveSlot > 0 && saveSlot <= MAX_SAVE_SLOT) entry.saveSlot = saveSlot;
       data.entries.push(entry);
     }
   }
@@ -188,16 +202,22 @@ export function parseGameData(text: string): GameData {
  * (ArduinoJson's `serializeJsonPretty`), no trailing newline.
  *
  * Field omission matches the launcher's `SaveAsync`: `favorite` only when
- * true, counts only when > 0, strings only when non-empty, and the session
- * keys at the top level only while a session is open (non-empty `start`).
- * Entries reset back to all-default state (not favorite, never launched, no
- * play time) are pruned. Only known keys are written.
+ * true, counts and `saveSlot` only when > 0, strings only when non-empty, and
+ * the session keys at the top level only while a session is open (non-empty
+ * `start`). Entries reset back to all-default state (not favorite, never
+ * launched, no play time, slot 0) are pruned. Only known keys are written.
  */
 export function serializeGameData(data: GameData): string {
   const games: Record<string, unknown> = {};
   for (const entry of data.entries) {
     // entries reset back to all-default state are pruned on write
-    if (!entry.favorite && !entry.completed && entry.launchCount <= 0 && entry.playMinutes <= 0)
+    if (
+      !entry.favorite &&
+      !entry.completed &&
+      entry.launchCount <= 0 &&
+      entry.playMinutes <= 0 &&
+      !(entry.saveSlot !== undefined && entry.saveSlot > 0)
+    )
       continue;
     const game: Record<string, unknown> = {};
     if (entry.gameCode !== undefined && entry.gameCode.length > 0)
@@ -209,6 +229,7 @@ export function serializeGameData(data: GameData): string {
     if (entry.lastPlayed !== undefined && entry.lastPlayed.length > 0)
       game['lastPlayed'] = entry.lastPlayed;
     if (entry.path !== undefined && entry.path.length > 0) game['path'] = entry.path;
+    if (entry.saveSlot !== undefined && entry.saveSlot > 0) game['saveSlot'] = entry.saveSlot;
     games[entry.fileName] = game;
   }
 
