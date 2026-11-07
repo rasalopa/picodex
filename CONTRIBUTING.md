@@ -23,7 +23,7 @@ You will need a Chromium-based browser and, ideally, a DSpico SD card (a folder 
 
 ## Translations
 
-PicoDex ships in English, Spanish and Russian, and more languages are welcome, **including a
+PicoDex ships in English, Spanish, Russian and German, and more languages are welcome, **including a
 partial one.** Every key is optional and anything you leave out reads in English, so thirty strings
 translated is a real contribution, not a draft.
 
@@ -34,6 +34,10 @@ enough: the language switch works on the landing page.
 the quotes and leave anything inside `${…}` as it is, then send the file as a pull request from
 GitHub's web editor or attached to an issue. The wiring and the tests can be done on this side. The
 steps below are for checking your language in the app yourself.
+
+The readme can be translated too. Copy [`README.md`](README.md) to `README.xx.md`, with `xx` your
+language's code, translate it and add your language to the line of links at the top of every readme,
+like [`README.de.md`](README.de.md).
 
 ### Adding a language
 
