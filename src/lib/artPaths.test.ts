@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findArt, gamecodeDir, resolveArtTarget, type ArtIndex } from './artPaths';
+import { canShareArt, findArt, gamecodeDir, resolveArtTarget, type ArtIndex } from './artPaths';
 import type { LibraryFile } from './sdcard';
 import { systemById } from './systems';
 
@@ -95,5 +95,47 @@ describe('resolveArtTarget', () => {
       dir: 'user',
       name: 'broken.gba.bmp',
     });
+  });
+
+  it('writes the gamecode file for the shared scope even when an override exists', () => {
+    const idx = index({ user: ['Metroid Fusion.gba.bmp'] });
+    expect(resolveArtTarget(game('gba', 'Metroid Fusion.gba'), 'AMTP', idx, 'shared')).toEqual({
+      dir: 'gba',
+      name: 'AMTP.bmp',
+    });
+  });
+
+  it('writes the per-file name for the game scope, whatever the code or index says', () => {
+    const idx = index({ gba: ['AMTP.bmp'] });
+    expect(resolveArtTarget(game('gba', 'Metroid Fusion.gba'), 'AMTP', idx, 'game')).toEqual({
+      dir: 'user',
+      name: 'Metroid Fusion.gba.bmp',
+    });
+    expect(resolveArtTarget(game('nds', 'Mario Kart DS.nds'), 'AMCE', index(), 'game')).toEqual({
+      dir: 'user',
+      name: 'Mario Kart DS.nds.bmp',
+    });
+  });
+
+  it('falls back to the per-file name for a shared scope without a usable code', () => {
+    expect(resolveArtTarget(game('nds', 'GBARunner3.nds'), '####', index(), 'shared')).toEqual({
+      dir: 'user',
+      name: 'GBARunner3.nds.bmp',
+    });
+    expect(resolveArtTarget(game('gba', 'broken.gba'), null, index(), 'shared').dir).toBe('user');
+    expect(resolveArtTarget(game('gb', 'Tetris.gb'), 'ABCD', index(), 'shared').dir).toBe('user');
+  });
+});
+
+describe('canShareArt', () => {
+  it('accepts gamecode-keyed systems with a usable code, case included', () => {
+    expect(canShareArt(game('nds', 'Mario Kart DS.nds'), 'AMCE')).toBe(true);
+    expect(canShareArt(game('gba', 'Metroid Fusion.gba'), 'amtp')).toBe(true);
+  });
+
+  it('refuses filename systems, unreadable codes and the homebrew placeholder', () => {
+    expect(canShareArt(game('gb', 'Tetris.gb'), 'ABCD')).toBe(false);
+    expect(canShareArt(game('gba', 'broken.gba'), null)).toBe(false);
+    expect(canShareArt(game('nds', 'GBARunner3.nds'), '####')).toBe(false);
   });
 });

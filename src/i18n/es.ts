@@ -267,6 +267,30 @@ export const es: Dict = {
     // Va antes de una ruta en <code>; el JSX añade el espacio y la ruta.
     writes: 'Se guarda en',
     writing: 'Escribiendo…',
+    saveFor: 'Guardar para',
+    scopeShared: (code: string) => `Todos los juegos con ${code}`,
+    scopeGame: 'Solo este juego',
+    scopeSharedNote: (code: string) =>
+      `Todos los juegos con ${code} muestran este arte. Un juego con arte propio conserva el suyo.`,
+    scopeGameNote: (code: string) =>
+      `Solo este juego lo muestra. Los demás juegos con ${code} conservan el suyo.`,
+    ownCoverNote: (shared: boolean) =>
+      shared
+        ? 'Este juego tiene su propia carátula, que tapa la compartida.'
+        : 'Este juego tiene su propia carátula.',
+    ownIconNote: (shared: boolean) =>
+      shared
+        ? 'Este juego tiene su propio icono, que tapa el compartido.'
+        : 'Este juego tiene su propio icono.',
+    removeOwn: 'Quitar…',
+    remove: 'Quitar',
+    cancel: 'Cancelar',
+    removing: 'Quitando…',
+    removeFailed: (message: string) => `No se pudo borrar el archivo. ${message}`,
+    artFrom: (path: string) => `Actual: ${path}`,
+    noCoverOnCard: 'No hay carátula en la tarjeta.',
+    duplicateNameNote:
+      'Otro juego de la tarjeta tiene el mismo nombre de archivo, así que muestra la misma carátula y el mismo icono.',
     coversDirMissing: 'No se pudo abrir la carpeta _pico/covers de tu tarjeta.',
     iconHint:
       'La imagen pequeña junto al nombre del juego en la lista del launcher. Los juegos de DS suelen traer la suya, y esta la sustituye. Los demás sistemas no traen ninguna, así que esta la añade. Tu imagen se ajusta a 32×32 sin deformarse, y las partes transparentes siguen transparentes.',
