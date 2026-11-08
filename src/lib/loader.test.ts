@@ -4,6 +4,7 @@ import {
   isEnhancedLauncher,
   loaderApiCapabilities,
   parseLoaderApiVersion,
+  parseLoaderFork,
   parseNdsRomTitle,
 } from './loader';
 
@@ -92,5 +93,52 @@ describe('isEnhancedLauncher', () => {
   it('is false when there is no banner or the rom is truncated', () => {
     expect(isEnhancedLauncher(new Uint8Array(0x1000))).toBe(false);
     expect(isEnhancedLauncher(new Uint8Array(0x10))).toBe(false);
+  });
+});
+
+/** Builds a picoLoader9.bin-like buffer with `text` embedded after some bytes. */
+function loader9Bytes(text: string): Uint8Array {
+  const encoded = new TextEncoder().encode(text);
+  const bytes = new Uint8Array(0x40 + encoded.length);
+  bytes.set(encoded, 0x40);
+  return bytes;
+}
+
+describe('parseLoaderFork', () => {
+  /** The exact line enhanced-v1.0.0 prints on its error screens. */
+  const MARKER =
+    'Pico Loader Enhanced v1.0.0 - unofficial build\n' +
+    'Report issues at:\ngithub.com/rasalopa/pico-launcher-enhanced';
+
+  it('reads the fork name and version from its error-screen line', () => {
+    expect(parseLoaderFork(loader9Bytes(MARKER))).toEqual({
+      name: 'Pico Loader Enhanced',
+      version: 'v1.0.0',
+    });
+  });
+
+  it('keeps every part of the version, however many digits', () => {
+    expect(
+      parseLoaderFork(loader9Bytes('Pico Loader Enhanced v12.3.40 - unofficial build')),
+    ).toEqual({ name: 'Pico Loader Enhanced', version: 'v12.3.40' });
+  });
+
+  it('reads a version that runs to the end of the file', () => {
+    expect(parseLoaderFork(loader9Bytes('Pico Loader Enhanced v2.0.1'))?.version).toBe('v2.0.1');
+  });
+
+  it('leaves a stock Pico Loader binary alone', () => {
+    expect(parseLoaderFork(loader9Bytes('Pico Loader ARM9 started'))).toBeNull();
+  });
+
+  it('needs a complete version right after the name', () => {
+    expect(parseLoaderFork(loader9Bytes('Pico Loader Enhanced fork'))).toBeNull();
+    expect(parseLoaderFork(loader9Bytes('Pico Loader Enhanced v1.0'))).toBeNull();
+    expect(parseLoaderFork(loader9Bytes('Pico Loader Enhanced v1.0.0.1'))).toBeNull();
+  });
+
+  it('is null for empty or truncated files', () => {
+    expect(parseLoaderFork(new Uint8Array(0))).toBeNull();
+    expect(parseLoaderFork(loader9Bytes('').subarray(0, 10))).toBeNull();
   });
 });

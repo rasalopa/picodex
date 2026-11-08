@@ -559,6 +559,10 @@ export const en = {
     loaderBuild1: ', the ',
     loaderBuild2: ' build.',
     loaderEnd: '.',
+    // A fork is named from its own binary, so it cannot be tied to a release in
+    // the upstream table; the list files it ships with still can.
+    loaderFork: 'Pico Loader Enhanced',
+    loaderForkLists: (tags: string) => `Its list files are from ${tags}.`,
     ambiguityIdentical:
       ' These versions have exactly the same files, so it makes no difference which one you have.',
     ambiguityIncomplete:

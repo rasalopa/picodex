@@ -538,6 +538,8 @@ export const es: Dict = {
     loaderBuild1: ', build ',
     loaderBuild2: '.',
     loaderEnd: '.',
+    loaderFork: 'Pico Loader Enhanced',
+    loaderForkLists: (tags: string) => `Sus archivos de listas son de ${tags}.`,
     ambiguityIdentical:
       ' Esas versiones tienen exactamente los mismos archivos, así que da igual cuál tengas.',
     ambiguityIncomplete:

@@ -43,6 +43,68 @@ export function loaderApiCapabilities(apiVersion: number): LoaderCapability[] {
   return capabilities;
 }
 
+/** Display name the Pico Loader Enhanced fork prints in its error screens. */
+const LOADER_FORK_NAME = 'Pico Loader Enhanced';
+
+/**
+ * The line the fork's error screen starts with, from
+ * `arm9/source/errorDisplay/ErrorDisplay.cpp`: `Pico Loader Enhanced v1.0.0 -
+ * unofficial build`. Stock Pico Loader has no such string, so its presence is
+ * the fork's own marker and the version follows it. A build marker rather than a
+ * hash: this is the loader's counterpart to the launcher's "Enhanced" banner
+ * subtitle, and needs no new table entry for every fork release.
+ */
+const LOADER_FORK_MARKER = `${LOADER_FORK_NAME} v`;
+
+/** A loader fork recognised from its own binary. */
+export interface LoaderFork {
+  /** As the binary prints it. */
+  name: string;
+  /** With its `v`, as the binary prints it: `v1.0.0`. */
+  version: string;
+}
+
+/**
+ * Whether `picoLoader9.bin` is the Pico Loader Enhanced fork, and which version,
+ * told from the line the fork prints on its error and warning screens. Read
+ * straight from the binary, so it holds whether or not the loader has ever run.
+ *
+ * Only the arm9 half carries the marker; the arm7 half looks the same on both
+ * builds to this check. A card whose arm9 file was replaced on its own still
+ * reports the fork, which is what it is.
+ *
+ * @param picoLoader9 Complete `/_pico/picoLoader9.bin` bytes.
+ * @returns The fork, or `null` for stock Pico Loader or a marker with no version.
+ */
+export function parseLoaderFork(picoLoader9: Uint8Array): LoaderFork | null {
+  const marker = [...LOADER_FORK_MARKER].map((char) => char.charCodeAt(0));
+  for (let start = 0; start + marker.length < picoLoader9.length; start++) {
+    let i = 0;
+    while (i < marker.length && picoLoader9[start + i] === marker[i]) i++;
+    if (i < marker.length) continue;
+    const version = readVersionAt(picoLoader9, start + marker.length);
+    if (version !== null) return { name: LOADER_FORK_NAME, version };
+  }
+  return null;
+}
+
+/**
+ * Reads a `MAJOR.MINOR.PATCH` run of ASCII digits and dots starting at `start`.
+ * The lookahead keeps a four-part version from being reported as its first three.
+ * The run is capped so a binary of digits cannot build an enormous string.
+ */
+function readVersionAt(bytes: Uint8Array, start: number): string | null {
+  let text = '';
+  for (let i = start; i < bytes.length && text.length < 32; i++) {
+    const byte = bytes[i];
+    const digit = byte >= 0x30 && byte <= 0x39;
+    if (!digit && byte !== 0x2e) break;
+    text += String.fromCharCode(byte);
+  }
+  const match = /^(\d+\.\d+\.\d+)(?![\d.])/.exec(text);
+  return match ? `v${match[1]}` : null;
+}
+
 /**
  * Extracts the banner title of an NDS ROM (e.g. `_picoboot.nds`), first line
  * only.
