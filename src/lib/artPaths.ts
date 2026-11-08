@@ -16,6 +16,12 @@ import type { System } from './systems';
 /** One of the three launcher art folders. */
 export type ArtDir = 'nds' | 'gba' | 'user';
 
+/**
+ * Which games a newly saved cover or icon is for: every game sharing the ROM's
+ * gamecode (`shared`), or only this file name (`game`).
+ */
+export type ArtScope = 'shared' | 'game';
+
 /** A file inside an art folder set: folder key plus file name. */
 export interface ArtTarget {
   dir: ArtDir;
@@ -61,21 +67,43 @@ export function findArt(
 }
 
 /**
+ * Whether new art for `game` can be saved under its gamecode — an NDS/GBA ROM
+ * with a usable 4-character code. Homebrew (`####`), filename-keyed systems
+ * and unreadable codes have only the per-file choice.
+ */
+export function canShareArt(game: LibraryFile, code: string | null): boolean {
+  return game.system.coverKeying === 'gamecode' && code !== null && isUsableGameCode(code);
+}
+
+/**
  * The file a NEW cover or icon for `game` must be written to.
  *
- * A `user/` file already on the card shadows the gamecode folders, so it is
- * replaced in place: writing the gamecode path instead would look like a
- * silent no-op. Otherwise gamecode-keyed systems with a usable code go to
- * `<nds|gba>/<CODE>.bmp`. A code that is not an identity (the `####` homebrew
- * placeholder every homebrew shares) falls back to the file name, or the art
- * would show up on all of them.
+ * With the default `auto` scope, a `user/` file already on the card shadows
+ * the gamecode folders, so it is replaced in place: writing the gamecode path
+ * instead would look like a silent no-op. Otherwise gamecode-keyed systems
+ * with a usable code go to `<nds|gba>/<CODE>.bmp`. A code that is not an
+ * identity (the `####` homebrew placeholder every homebrew shares) falls back
+ * to the file name, or the art would show up on all of them.
+ *
+ * An explicit scope overrides that: `game` always targets the per-file name,
+ * `shared` always targets the gamecode file (falling back to the file name
+ * when there is no usable code) — even when a `user/` file exists, because
+ * choosing "all games" means writing the shared file the user asked for.
  */
 export function resolveArtTarget(
   game: LibraryFile,
   code: string | null,
   index: ArtIndex,
+  scope: ArtScope | 'auto' = 'auto',
 ): ArtTarget {
   const userName = `${game.fileName}.bmp`;
+  if (scope === 'game') return { dir: 'user', name: userName };
+  if (scope === 'shared') {
+    if (game.system.coverKeying === 'gamecode' && code !== null && isUsableGameCode(code)) {
+      return { dir: gamecodeDir(game.system), name: `${code.toUpperCase()}.bmp` };
+    }
+    return { dir: 'user', name: userName };
+  }
   if (index.user.has(userName.toLowerCase())) return { dir: 'user', name: userName };
   if (game.system.coverKeying === 'gamecode' && code !== null && isUsableGameCode(code)) {
     return { dir: gamecodeDir(game.system), name: `${code.toUpperCase()}.bmp` };

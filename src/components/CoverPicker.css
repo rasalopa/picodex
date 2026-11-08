@@ -402,6 +402,15 @@
   color: var(--warn);
 }
 
+/* the cover file the launcher shows today, under the top screen */
+
+.cover-picker__caption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
 /* footer: what a save writes, errors, and the one Save button */
 
 .cover-picker__footer {
@@ -416,6 +425,63 @@
 .cover-picker__writes {
   font-size: 0.78rem;
   color: var(--text-dim);
+}
+
+/* "Save for" choice: both rows span the footer so the buttons keep their line */
+
+.cover-picker__scope {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+}
+
+.cover-picker__scope-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.cover-picker__scope-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cover-picker__scope-note {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* own per-file art: what it is, where it is, and the two-step remove */
+
+.cover-picker__own {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1 1 100%;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.cover-picker__own-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cover-picker__own-item code {
+  font-size: 0.75rem;
+}
+
+.cover-picker__own-error {
+  flex: 1 1 100%;
+  color: var(--warn);
 }
 
 .cover-picker__chip {

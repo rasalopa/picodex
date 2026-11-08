@@ -277,6 +277,30 @@ export const en = {
     // Rendered before a <code> path; the JSX adds the space and the path.
     writes: 'Saves to',
     writing: 'Writing…',
+    saveFor: 'Save for',
+    scopeShared: (code: string) => `All games with ${code}`,
+    scopeGame: 'Only this game',
+    scopeSharedNote: (code: string) =>
+      `Every game with ${code} shows this art. A game with its own art keeps it.`,
+    scopeGameNote: (code: string) =>
+      `Only this game shows it. Other games with ${code} keep theirs.`,
+    ownCoverNote: (shared: boolean): string =>
+      shared
+        ? 'This game has its own cover, which wins over the shared one.'
+        : 'This game has its own cover.',
+    ownIconNote: (shared: boolean): string =>
+      shared
+        ? 'This game has its own icon, which wins over the shared one.'
+        : 'This game has its own icon.',
+    removeOwn: 'Remove…',
+    remove: 'Remove',
+    cancel: 'Cancel',
+    removing: 'Removing…',
+    removeFailed: (message: string) => `Could not remove the file. ${message}`,
+    artFrom: (path: string) => `Current art: ${path}`,
+    noCoverOnCard: 'No cover on the card.',
+    duplicateNameNote:
+      'Another game on the card has the same file name, so it shows the same cover and icon.',
     coversDirMissing: 'Could not open the _pico/covers folder on your card.',
     iconHint:
       "The small picture next to the game's name in the launcher list. DS games usually bring their own, and this one replaces it. Other systems have none, so this adds one. Your image is fitted into 32×32 without stretching, and transparent parts stay transparent.",

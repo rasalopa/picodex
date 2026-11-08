@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import { errorText } from '../i18n/errors';
-import { findArt, resolveArtTarget, type ArtIndex, type ArtTarget } from '../lib/artPaths';
+import {
+  canShareArt,
+  findArt,
+  resolveArtTarget,
+  type ArtIndex,
+  type ArtScope,
+  type ArtTarget,
+} from '../lib/artPaths';
 import { decodeBannerIcon } from '../lib/banner';
 import { encodeCoverBmp, encodeIconBmp, validateLauncherIconBmp } from '../lib/bmp';
 import {
@@ -185,7 +192,7 @@ export function CoverPicker({
   onClose,
   onSaved,
 }: CoverPickerProps) {
-  const { root, coverIndex, iconIndex, bannerIndex, cardInfo } = useSd();
+  const { root, coverIndex, iconIndex, bannerIndex, cardInfo, games } = useSd();
   const t = useT();
   const repo = game.system.libretroRepo;
   const title = titleOf(game.fileName);
@@ -223,16 +230,53 @@ export function CoverPicker({
   const [saving, setSaving] = useState(false);
   /** Mirror for event handlers registered once (Escape). */
   const savingRef = useRef(false);
+  /** Mirror of {@link removing} for the same handlers. */
+  const removingRef = useRef(false);
   /** Per file: written by the last save (so it is no longer pending) or why it failed. */
   const [saved, setSaved] = useState<Record<ArtKind, boolean>>({ cover: false, icon: false });
   const [writeErrors, setWriteErrors] = useState<Record<ArtKind, string | null>>({
     cover: null,
     icon: null,
   });
+  /** Two-step remove: which own file is asking to be deleted. */
+  const [confirmRemove, setConfirmRemove] = useState<ArtKind | null>(null);
+  /** Own file being deleted right now (`null` when none). */
+  const [removing, setRemoving] = useState<ArtKind | null>(null);
+  const [removeErrors, setRemoveErrors] = useState<Record<ArtKind, string | null>>({
+    cover: null,
+    icon: null,
+  });
   const searchRef = useRef<HTMLInputElement | null>(null);
 
-  const coverTarget = resolveArtTarget(game, code, coverIndex);
-  const iconTarget = resolveArtTarget(game, code, iconIndex);
+  /** File name a per-file save writes in `user/` for both covers and icons. */
+  const userName = `${game.fileName}.bmp`;
+  /** Per-file art already on the card, which wins over the shared gamecode file. */
+  const ownCover = coverIndex.user.has(userName.toLowerCase());
+  const ownIcon = iconIndex.user.has(userName.toLowerCase());
+  /** Whether a shared save has a gamecode to be keyed to (hidden choice otherwise). */
+  const shareable = canShareArt(game, code);
+  /**
+   * Which games the next save is for. Starts on the per-file art when this
+   * game already has some — that is where a save goes anyway — and on the
+   * shared gamecode art otherwise, the behavior of every PicoDex before this
+   * choice existed.
+   */
+  const [scope, setScope] = useState<ArtScope>(() =>
+    shareable && !ownCover && !ownIcon ? 'shared' : 'game',
+  );
+  /** `auto` keeps the launcher-order target for systems without a choice. */
+  const targetScope: ArtScope | 'auto' = shareable ? scope : 'auto';
+
+  const coverTarget = resolveArtTarget(game, code, coverIndex, targetScope);
+  const iconTarget = resolveArtTarget(game, code, iconIndex, targetScope);
+  /** The cover file the launcher shows today, for the source caption. */
+  const currentCover = findArt(game, code, coverIndex, 'bmp');
+  /** Another game on the card whose file name would collide in `user/`. */
+  const duplicateName = games.some(
+    (other) =>
+      other.fileName.toLowerCase() === game.fileName.toLowerCase() &&
+      other.path.join('/') !== game.path.join('/'),
+  );
 
   // Focus the search input when the dialog opens (select the prefilled title
   // so typing starts a fresh query).
@@ -244,7 +288,7 @@ export function CoverPicker({
   // Escape closes the dialog.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !savingRef.current) onClose();
+      if (e.key === 'Escape' && !savingRef.current && !removingRef.current) onClose();
     }
     document.addEventListener('keydown', onKeyDown);
     return () => {
@@ -378,7 +422,7 @@ export function CoverPicker({
   // is never written while a banner would make the launcher ignore it.
   const coverPending = cover.composed !== null && !saved.cover;
   const iconPending = icon.composed !== null && !saved.icon && !hasBanner;
-  const canSave = (coverPending || iconPending) && !saving;
+  const canSave = (coverPending || iconPending) && !saving && removing === null;
 
   // index once per catalog; per keystroke only the query-dependent half runs
   const searchIndex = useMemo(
@@ -458,6 +502,92 @@ export function CoverPicker({
     });
   }
 
+  /**
+   * Deletes this game's own file for one art kind. This is the only way back:
+   * a `user/` file shadows the shared gamecode one, so without removing it the
+   * launcher keeps showing it however the next save is targeted.
+   */
+  function handleRemove(kind: ArtKind) {
+    if (root === null || saving || removing !== null) return;
+    const rootHandle = root;
+    const folders = kind === 'cover' ? COVERS : ICONS;
+    setRemoving(kind);
+    removingRef.current = true;
+    setRemoveErrors((errors) => ({ ...errors, [kind]: null }));
+    async function remove() {
+      const dir = await getDir(rootHandle, folders.user);
+      if (dir === null) {
+        throw new Error(
+          kind === 'cover' ? t.coverPicker.coversDirMissing : t.coverPicker.iconsDirMissing,
+        );
+      }
+      await dir.removeEntry(userName);
+    }
+    remove().then(
+      () => {
+        setRemoving(null);
+        removingRef.current = false;
+        setConfirmRemove(null);
+        onSaved();
+      },
+      (e: unknown) => {
+        setRemoving(null);
+        removingRef.current = false;
+        setRemoveErrors((errors) => ({ ...errors, [kind]: errorText(t, e) }));
+      },
+    );
+  }
+
+  /** One "this game has its own file" row with its inline two-step remove. */
+  function ownArtRow(kind: ArtKind, note: string) {
+    const error = removeErrors[kind];
+    return (
+      <span className="cover-picker__own-item">
+        <span>{note}</span>
+        <code>
+          {kind === 'cover' ? 'covers' : 'icons'}/user/{userName}
+        </code>
+        {confirmRemove === kind ? (
+          <>
+            <button
+              type="button"
+              disabled={saving || removing !== null}
+              onClick={() => {
+                handleRemove(kind);
+              }}
+            >
+              {removing === kind ? t.coverPicker.removing : t.coverPicker.remove}
+            </button>
+            <button
+              type="button"
+              disabled={saving || removing !== null}
+              onClick={() => {
+                setConfirmRemove(null);
+              }}
+            >
+              {t.coverPicker.cancel}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            disabled={saving || removing !== null}
+            onClick={() => {
+              setConfirmRemove(kind);
+            }}
+          >
+            {t.coverPicker.removeOwn}
+          </button>
+        )}
+        {error !== null && (
+          <span className="cover-picker__own-error" role="alert">
+            {t.coverPicker.removeFailed(error)}
+          </span>
+        )}
+      </span>
+    );
+  }
+
   const before = neighbours?.before ?? [];
   const after = neighbours?.after ?? [];
   const showNewCover = cover.composed !== null;
@@ -467,7 +597,7 @@ export function CoverPicker({
     <div
       className="cover-picker__overlay"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !saving) onClose();
+        if (e.target === e.currentTarget && !saving && removing === null) onClose();
       }}
     >
       <div
@@ -488,7 +618,7 @@ export function CoverPicker({
             type="button"
             className="cover-picker__close"
             aria-label={t.coverPicker.close}
-            disabled={saving}
+            disabled={saving || removing !== null}
             onClick={onClose}
           >
             <span aria-hidden="true">×</span>
@@ -541,6 +671,11 @@ export function CoverPicker({
                 </span>
               )}
             </div>
+            <p className="cover-picker__caption">
+              {currentCover === null
+                ? t.coverPicker.noCoverOnCard
+                : t.coverPicker.artFrom(`covers/${currentCover.dir}/${currentCover.name}`)}
+            </p>
           </section>
 
           <section className="cover-picker__screen" aria-label={t.coverPicker.bottomScreen}>
@@ -772,6 +907,55 @@ export function CoverPicker({
         )}
 
         <footer className="cover-picker__footer">
+          {shareable && code !== null && (
+            <>
+              <div
+                className="cover-picker__scope"
+                role="radiogroup"
+                aria-label={t.coverPicker.saveFor}
+              >
+                <span className="cover-picker__scope-label">{t.coverPicker.saveFor}</span>
+                <label className="cover-picker__scope-option">
+                  <input
+                    type="radio"
+                    name="cover-picker-scope"
+                    checked={scope === 'shared'}
+                    disabled={saving || removing !== null}
+                    onChange={() => {
+                      setScope('shared');
+                    }}
+                  />
+                  {t.coverPicker.scopeShared(code)}
+                </label>
+                <label className="cover-picker__scope-option">
+                  <input
+                    type="radio"
+                    name="cover-picker-scope"
+                    checked={scope === 'game'}
+                    disabled={saving || removing !== null}
+                    onChange={() => {
+                      setScope('game');
+                    }}
+                  />
+                  {t.coverPicker.scopeGame}
+                </label>
+              </div>
+              <p className="cover-picker__scope-note">
+                {scope === 'shared'
+                  ? t.coverPicker.scopeSharedNote(code)
+                  : t.coverPicker.scopeGameNote(code)}
+              </p>
+            </>
+          )}
+          {scope === 'game' && duplicateName && (
+            <p className="cover-picker__scope-note">{t.coverPicker.duplicateNameNote}</p>
+          )}
+          {(ownCover || ownIcon) && (
+            <div className="cover-picker__own">
+              {ownCover && ownArtRow('cover', t.coverPicker.ownCoverNote(scope === 'shared'))}
+              {ownIcon && ownArtRow('icon', t.coverPicker.ownIconNote(scope === 'shared'))}
+            </div>
+          )}
           {(coverPending || iconPending) && (
             <span className="cover-picker__writes">{t.coverPicker.writes}</span>
           )}
@@ -798,7 +982,7 @@ export function CoverPicker({
             </code>
           )}
           <span className="cover-picker__spacer" />
-          <button type="button" disabled={saving} onClick={onClose}>
+          <button type="button" disabled={saving || removing !== null} onClick={onClose}>
             {t.coverPicker.close}
           </button>
           <button
