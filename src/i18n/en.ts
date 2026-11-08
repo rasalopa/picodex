@@ -334,6 +334,8 @@ export const en = {
     enhancedChip: 'Pico Enhanced',
     updatedOn: (date: string) => `· updated ${date}`,
     apiVersion: (version: number) => `Installed (API v${String(version)})`,
+    // Badge next to the loader's API version when the card runs the Enhanced fork.
+    loaderForkChip: (version: string) => `Enhanced ${version}`,
     // Labels for the loader's API capabilities, shown next to the version.
     // Keyed to match loaderApiCapabilities()'s return values.
     capabilities: {
@@ -559,6 +561,10 @@ export const en = {
     loaderBuild1: ', the ',
     loaderBuild2: ' build.',
     loaderEnd: '.',
+    // A fork is named from its own binary, so it cannot be tied to a release in
+    // the upstream table; the list files it ships with still can.
+    loaderFork: (name: string, version: string) => `${name} ${version}, an unofficial build.`,
+    loaderForkLists: (tags: string) => `Its list files are from ${tags}.`,
     ambiguityIdentical:
       ' These versions have exactly the same files, so it makes no difference which one you have.',
     ambiguityIncomplete:

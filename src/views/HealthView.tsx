@@ -198,6 +198,21 @@ export function HealthView() {
    */
   const manifestIsStale = isNewerThanManifest(LOADER_MANIFEST, liveLatestTag);
 
+  /**
+   * The fork ships its own picoLoader7.bin and picoLoader9.bin, which the
+   * upstream manifest cannot know. Once the fork is recognised from its own
+   * marker, those two files are accounted for, so calling them unrecognised
+   * would contradict the fork line.
+   */
+  const unrecognisedLoaderFiles =
+    loaderVersion?.unrecognisedFiles.filter(
+      (name) =>
+        !(
+          cardInfo.loaderFork !== null &&
+          (name === 'picoLoader7.bin' || name === 'picoLoader9.bin')
+        ),
+    ) ?? [];
+
   const loader = useMemo(
     () => (scan === null ? null : missingLoaderFiles(scan.picoEntries)),
     [scan],
@@ -458,7 +473,19 @@ export function HealthView() {
                 </>
               )
             )}
-            {loaderVersion !== null && loaderVersion.status === 'identified' && (
+            {/* The fork's own binaries are nowhere in the upstream manifest, so
+                the release found below is what its list files came from, not what
+                the loader itself is. This line names the loader. */}
+            {cardInfo.loaderFork !== null && (
+              <p>
+                {t.health.loaderFork(cardInfo.loaderFork.name, cardInfo.loaderFork.version)}
+                {loaderVersion !== null &&
+                  loaderVersion.candidates.length > 0 &&
+                  ` ${t.health.loaderForkLists(loaderVersion.candidates.join(t.health.orJoiner))}`}
+              </p>
+            )}
+
+            {loaderVersion?.status === 'identified' && cardInfo.loaderFork === null && (
               // Two statements, not one sentence. Which release the card is on, and
               // whether that is current, are independently true or false, and every
               // attempt to carry both in one clause has ended up claiming something
@@ -506,7 +533,7 @@ export function HealthView() {
                   <p className="health-view__dim">
                     {t.health.newestKnownCandidate(loaderVersion.latestKnown)}
                   </p>
-                ) : manifestIsStale || loaderVersion.unrecognisedFiles.length > 0 ? (
+                ) : manifestIsStale || unrecognisedLoaderFiles.length > 0 ? (
                   <p className="health-view__dim">{t.health.newestKnownMaybe}</p>
                 ) : (
                   <p className="health-view__ok">{t.health.newestRelease}</p>
@@ -538,7 +565,7 @@ export function HealthView() {
                     <a href={LOADER_RELEASES_URL} target="_blank" rel="noreferrer">
                       {t.health.copyAgainRelease}
                     </a>
-                    {loaderVersion.unrecognisedFiles.length > 0
+                    {unrecognisedLoaderFiles.length > 0
                       ? t.health.copyAgainOverwrites
                       : t.health.copyAgainEnd}
                   </p>
@@ -554,10 +581,10 @@ export function HealthView() {
                 and its numbers do not add up to what was hashed. */}
             {loaderVersion !== null &&
               (loaderVersion.status === 'identified' || loaderVersion.status === 'mixed') &&
-              loaderVersion.unrecognisedFiles.length > 0 && (
+              unrecognisedLoaderFiles.length > 0 && (
                 <p className="health-view__dim">
                   {t.health.unrecognisedListed1}
-                  {loaderVersion.unrecognisedFiles.map((name, index) => (
+                  {unrecognisedLoaderFiles.map((name, index) => (
                     <span key={name}>
                       {index > 0 && ', '}
                       <code>{name}</code>

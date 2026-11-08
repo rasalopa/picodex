@@ -322,6 +322,7 @@ export const es: Dict = {
     enhancedChip: 'Pico Enhanced',
     updatedOn: (date: string) => `· actualizado el ${date}`,
     apiVersion: (version: number) => `Instalado (API v${String(version)})`,
+    loaderForkChip: (version: string) => `Enhanced ${version}`,
     capabilities: {
       gameLoading: 'Carga de juegos',
       returnToLauncher: 'Volver al launcher',
@@ -538,6 +539,9 @@ export const es: Dict = {
     loaderBuild1: ', build ',
     loaderBuild2: '.',
     loaderEnd: '.',
+    loaderFork: (name: string, version: string) =>
+      `${name} ${version}, una compilación no oficial.`,
+    loaderForkLists: (tags: string) => `Sus archivos de listas son de ${tags}.`,
     ambiguityIdentical:
       ' Esas versiones tienen exactamente los mismos archivos, así que da igual cuál tengas.',
     ambiguityIncomplete:

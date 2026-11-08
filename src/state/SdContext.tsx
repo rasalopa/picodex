@@ -18,7 +18,13 @@ import {
   type GameData,
   type GameStats,
 } from '../lib/gamedata';
-import { isEnhancedLauncher, parseLoaderApiVersion, parseNdsRomTitle } from '../lib/loader';
+import {
+  isEnhancedLauncher,
+  parseLoaderApiVersion,
+  parseLoaderFork,
+  parseNdsRomTitle,
+  type LoaderFork,
+} from '../lib/loader';
 import { parseApList, parsePatchList, parseSaveList, type LoaderLists } from '../lib/loaderlists';
 import { readSettingsBytes, type ParsedSettings, type SettingsProblem } from '../lib/settings';
 import {
@@ -51,6 +57,11 @@ export interface CardInfo {
   launcherModified: number | null;
   /** Pico Loader ABI version from `picoLoader7.bin`, or `null`. */
   loaderApiVersion: number | null;
+  /**
+   * The Pico Loader Enhanced fork, when `picoLoader9.bin` is its build, or `null`
+   * for stock Pico Loader. See `parseLoaderFork`.
+   */
+  loaderFork: LoaderFork | null;
   /** True when `_picoboot.nds` is the Pico Launcher Enhanced fork (banner marker). */
   isEnhancedFork: boolean;
   /**
@@ -190,6 +201,7 @@ const EMPTY_CARD_INFO: CardInfo = {
   launcherTitle: null,
   launcherModified: null,
   loaderApiVersion: null,
+  loaderFork: null,
   isEnhancedFork: false,
   hasScreenshots: false,
 };
@@ -211,6 +223,10 @@ async function readCardInfo(root: FileSystemDirectoryHandle): Promise<CardInfo> 
     const loader7 = await readFileBytes(picoDir, 'picoLoader7.bin');
     if (loader7 !== null) {
       info.loaderApiVersion = parseLoaderApiVersion(loader7);
+    }
+    const loader9 = await readFileBytes(picoDir, 'picoLoader9.bin');
+    if (loader9 !== null) {
+      info.loaderFork = parseLoaderFork(loader9);
     }
   }
   info.hasScreenshots = (await getDir(root, SCREENSHOTS)) !== null;
