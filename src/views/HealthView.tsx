@@ -478,7 +478,7 @@ export function HealthView() {
                 the loader itself is. This line names the loader. */}
             {cardInfo.loaderFork !== null && (
               <p>
-                {t.health.loaderFork(cardInfo.loaderFork.name, cardInfo.loaderFork.version)}
+                {t.health.loaderFork}
                 {loaderVersion !== null &&
                   loaderVersion.candidates.length > 0 &&
                   ` ${t.health.loaderForkLists(loaderVersion.candidates.join(t.health.orJoiner))}`}

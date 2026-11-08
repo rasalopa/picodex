@@ -338,9 +338,7 @@ export function LibraryView() {
                 <>
                   {t.library.apiVersion(cardInfo.loaderApiVersion)}
                   {cardInfo.loaderFork !== null && (
-                    <span className="library-view__chip">
-                      {t.library.loaderForkChip(cardInfo.loaderFork.version)}
-                    </span>
+                    <span className="library-view__chip">{t.library.enhancedChip}</span>
                   )}
                   <span className="library-view__card-info-dim">
                     {' '}
