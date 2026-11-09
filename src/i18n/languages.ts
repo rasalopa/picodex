@@ -19,6 +19,7 @@
 import { en, type Dict } from './en';
 import { de } from './de';
 import { es } from './es';
+import { it } from './it';
 import { ru } from './ru';
 
 /**
@@ -52,6 +53,7 @@ const REGISTRY = {
   en: { label: 'EN' },
   de: { label: 'DE', translation: de },
   es: { label: 'ES', translation: es },
+  it: { label: 'IT', translation: it },
   ru: { label: 'RU', translation: ru },
 } satisfies Record<string, Entry>;
 
