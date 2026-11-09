@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/rasalopa/picodex?color=e04b62)](https://github.com/rasalopa/picodex/releases)
 [![License](https://img.shields.io/github/license/rasalopa/picodex)](LICENSE)
 
-[English](README.md) | Deutsch
+[English](README.md) | Deutsch | [Italiano](README.it.md)
 
 > Verwalte die SD-Karte deines [Pico Launcher](https://github.com/LNH-team/pico-launcher) direkt im Browser, auf dem [DSpico](https://github.com/LNH-team/dspico) oder jedem anderen Flashcart, auf dem er läuft. Cover, Bibliotheksorganisation, Favoriten und Spielstatistiken. Keine Installation, kein Backend, deine Dateien verlassen nie deinen Rechner.
 
